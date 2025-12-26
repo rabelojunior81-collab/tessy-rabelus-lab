@@ -83,7 +83,13 @@ export const applyFactorsAndGenerate = async (interpretation: any, factors: Fact
       systemInstruction += "Sempre que possível, inclua blocos de código bem comentados e seguindo as melhores práticas. ";
     }
 
+    const toneInstruction = isProfessional 
+      ? "IMPORTANTE: Use um tom estritamente profissional, executivo e técnico. Evite saudações informais como 'Olá'."
+      : "Use um tom amigável e acessível.";
+
     const prompt = `
+      ${toneInstruction}
+      
       Execute a seguinte tarefa baseada na interpretação estruturada abaixo:
       
       TAREFA: ${interpretation.task}
