@@ -1,15 +1,17 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import RepositoryBrowser from './components/RepositoryBrowser';
 import Canvas from './components/Canvas';
 import FactorPanel from './components/FactorPanel';
 import { interpretIntent } from './services/geminiService';
+import { addDoc } from './services/storageService';
 import { Factor, RepositoryItem } from './types';
 
 const App: React.FC = () => {
   const [inputText, setInputText] = useState('');
   const [result, setResult] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [factors, setFactors] = useState<Factor[]>([
     { id: 'prof', label: 'Tom Profissional', enabled: true },
     { id: 'flash', label: 'Modelo Flash', enabled: true },
@@ -21,7 +23,10 @@ const App: React.FC = () => {
     if (!inputText.trim()) return;
     
     setIsLoading(true);
-    const response = await interpretIntent(inputText);
+    const context = factors.filter(f => f.enabled).map(f => f.label).join(', ');
+    const enhancedPrompt = `Contexto: [${context}]. Entrada: ${inputText}`;
+    
+    const response = await interpretIntent(enhancedPrompt);
     setResult(response);
     setIsLoading(false);
   };
@@ -31,7 +36,22 @@ const App: React.FC = () => {
   };
 
   const handleSelectItem = (item: RepositoryItem) => {
-    setInputText(`Use o contexto de ${item.title}: `);
+    if (item.content) {
+      setResult(item.content);
+      if (item.factors) setFactors(item.factors);
+    }
+    setInputText(`Refinar contexto de "${item.title}": `);
+  };
+
+  const handleSaveToRepository = (title: string, description: string) => {
+    const newPrompt = {
+      title,
+      description,
+      content: result,
+      factors: [...factors],
+    };
+    addDoc('prompts', newPrompt);
+    setRefreshKey(prev => prev + 1); // Trigger refresh in RepositoryBrowser
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -42,9 +62,9 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="h-screen w-full flex flex-col bg-slate-950 text-slate-200">
+    <div className="h-screen w-full flex flex-col bg-slate-950 text-slate-200 overflow-hidden">
       {/* Header */}
-      <header className="h-16 flex items-center justify-between px-6 border-b border-slate-800 bg-slate-900/50 backdrop-blur-md z-20">
+      <header className="h-16 flex items-center justify-between px-6 border-b border-slate-800 bg-slate-900/50 backdrop-blur-md z-20 shrink-0">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center font-bold text-xl text-white shadow-lg shadow-indigo-500/20">
             T
@@ -61,7 +81,7 @@ const App: React.FC = () => {
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Descreva sua intenção aqui..."
+              placeholder="O que você deseja que a Tessy execute?"
               className="w-full bg-slate-800 border border-slate-700 rounded-full py-2 px-6 pr-24 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all text-sm placeholder-slate-500"
             />
             <button
@@ -79,8 +99,8 @@ const App: React.FC = () => {
             <p className="text-[10px] text-slate-500 uppercase font-bold leading-none">Status</p>
             <p className="text-xs text-green-400 font-medium">System Online</p>
           </div>
-          <div className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 overflow-hidden">
-            <img src="https://picsum.photos/40/40" alt="Avatar" className="w-full h-full object-cover" />
+          <div className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 overflow-hidden shadow-inner">
+            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=tessy&backgroundColor=b6e3f4`} alt="Avatar" className="w-full h-full object-cover" />
           </div>
         </div>
       </header>
@@ -88,35 +108,55 @@ const App: React.FC = () => {
       {/* Main Layout */}
       <main className="flex-1 flex overflow-hidden">
         {/* Left Col - 20% */}
-        <aside className="w-[20%] min-w-[200px]">
-          <RepositoryBrowser onSelectItem={handleSelectItem} />
+        <aside className="w-[20%] min-w-[220px]">
+          <RepositoryBrowser onSelectItem={handleSelectItem} refreshKey={refreshKey} />
         </aside>
 
         {/* Center Col - 50% */}
         <section className="flex-1 w-[50%] min-w-[400px]">
-          <Canvas result={result} isLoading={isLoading} />
+          <Canvas 
+            result={result} 
+            isLoading={isLoading} 
+            onSavePrompt={handleSaveToRepository} 
+          />
         </section>
 
         {/* Right Col - 30% */}
-        <aside className="w-[30%] min-w-[250px]">
+        <aside className="w-[30%] min-w-[280px]">
           <FactorPanel factors={factors} onToggle={toggleFactor} />
         </aside>
       </main>
 
       {/* Footer / Status Bar */}
-      <footer className="h-8 border-t border-slate-800 bg-slate-900 px-4 flex items-center justify-between text-[10px] text-slate-500">
+      <footer className="h-8 border-t border-slate-800 bg-slate-900 px-4 flex items-center justify-between text-[10px] text-slate-500 shrink-0">
         <div className="flex items-center space-x-4">
-          <span>&copy; 2024 RABELUS LAB</span>
-          <span className="flex items-center space-x-1">
-            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-            <span>API CONNECTED</span>
+          <span className="font-bold tracking-tighter">© 2024 RABELUS LAB</span>
+          <span className="flex items-center space-x-1.5">
+            <span className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
+            <span className="uppercase font-bold tracking-widest text-[9px]">API Connected</span>
           </span>
         </div>
-        <div className="flex items-center space-x-4">
-          <span>LATENCY: 124ms</span>
-          <span>BUILD: 2.0.4-BETA</span>
+        <div className="flex items-center space-x-4 uppercase font-bold tracking-widest text-[9px]">
+          <span>Latency: 88ms</span>
+          <span>v2.1.0-STABLE</span>
         </div>
       </footer>
+
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #1e293b;
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #334155;
+        }
+      `}</style>
     </div>
   );
 };

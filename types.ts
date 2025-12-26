@@ -3,6 +3,9 @@ export interface RepositoryItem {
   id: string;
   title: string;
   description: string;
+  content?: string;
+  factors?: Factor[];
+  timestamp: number;
 }
 
 export interface Factor {
