@@ -26,3 +26,24 @@ export interface GeminiResponse {
   text: string;
   error?: string;
 }
+
+export interface AttachedFile {
+  id: string;
+  name: string;
+  mimeType: string;
+  data: string; // base64
+  size: number;
+}
+
+export interface OptimizationSuggestion {
+  category: string;
+  issue: string;
+  recommendation: string;
+}
+
+export interface OptimizationResult {
+  clarity_score: number;
+  completeness_score: number;
+  suggestions: OptimizationSuggestion[];
+  optimized_prompt: string;
+}
