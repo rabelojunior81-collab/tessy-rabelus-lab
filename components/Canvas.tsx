@@ -10,6 +10,15 @@ interface CanvasProps {
 
 const Canvas: React.FC<CanvasProps> = ({ result, isLoading, onSavePrompt }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    if (!result) return;
+    navigator.clipboard.writeText(result).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
 
   return (
     <div className="h-full flex flex-col p-6 bg-slate-950 overflow-hidden">
@@ -17,15 +26,38 @@ const Canvas: React.FC<CanvasProps> = ({ result, isLoading, onSavePrompt }) => {
         <h2 className="text-2xl font-bold text-white tracking-tight">Canvas</h2>
         <div className="flex items-center space-x-3">
           {result && !isLoading && (
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="text-xs bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 px-3 py-1.5 rounded-lg transition-all font-semibold flex items-center space-x-2"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h5a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h5v5.586l-1.293-1.293z" />
-              </svg>
-              <span>Salvar no Repositório</span>
-            </button>
+            <>
+              <button
+                onClick={handleCopy}
+                className={`text-xs px-3 py-1.5 rounded-lg transition-all font-semibold flex items-center space-x-2 border ${
+                  copied 
+                    ? 'bg-emerald-500 text-white border-emerald-500' 
+                    : 'bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-400 border-emerald-500/30'
+                }`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                  {copied ? (
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  ) : (
+                    <>
+                      <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+                      <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+                    </>
+                  )}
+                </svg>
+                <span>{copied ? 'Copiado!' : 'Copiar'}</span>
+              </button>
+              
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="text-xs bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 px-3 py-1.5 rounded-lg transition-all font-semibold flex items-center space-x-2"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h5a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h5v5.586l-1.293-1.293z" />
+                </svg>
+                <span>Salvar no Repositório</span>
+              </button>
+            </>
           )}
           <div className="flex space-x-2">
             <div className="w-3 h-3 rounded-full bg-red-500/50"></div>
