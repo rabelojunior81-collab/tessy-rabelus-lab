@@ -20,7 +20,11 @@ const App: React.FC = () => {
   const [isOptModalOpen, setIsOptModalOpen] = useState(false);
   const [lastInterpretation, setLastInterpretation] = useState<any>(null);
   
-  // Multi-turn state
+  // Pending state for optimistic UI feedback
+  const [pendingUserMessage, setPendingUserMessage] = useState<string | null>(null);
+  const [pendingFiles, setPendingFiles] = useState<AttachedFile[]>([]);
+  
+  // Multi-turn conversation state
   const [conversationHistory, setConversationHistory] = useState<ConversationTurn[]>([]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -38,28 +42,35 @@ const App: React.FC = () => {
     const textToUse = forcedText ?? inputText;
     if (!textToUse.trim() && attachedFiles.length === 0) return;
     
-    setIsLoading(true);
-    setResult('');
+    // IMMEDIATE UI FEEDBACK PIPELINE
     const currentInput = textToUse;
     const currentFiles = [...attachedFiles];
     
+    setPendingUserMessage(currentInput);
+    setPendingFiles(currentFiles);
+    setInputText('');
+    setAttachedFiles([]);
+    setIsLoading(true);
+    setStatusMessage('INTERPRETANDO...');
+    setResult('');
+    
     try {
-      setStatusMessage('INTERPRETANDO...');
-      const interpretation = await interpretIntent(textToUse, currentFiles, conversationHistory);
+      // Step 1: Interpret the user's intent using Gemini
+      const interpretation = await interpretIntent(currentInput, currentFiles, conversationHistory);
       setLastInterpretation(interpretation);
       
       if (!interpretation) {
         setResult("Não foi possível processar a intenção.");
-        setIsLoading(false);
         setStatusMessage('ERROR');
         return;
       }
 
+      // Step 2: Apply factors and generate the full professional response
       setStatusMessage('GERANDO RESPOSTA...');
       const finalResponse = await applyFactorsAndGenerate(interpretation, factors, currentFiles, conversationHistory);
       
       const newTurn: ConversationTurn = {
-        id: `turn_${Date.now()}_${Math.random()}`,
+        id: `turn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         userMessage: currentInput,
         tessyResponse: finalResponse,
         timestamp: Date.now(),
@@ -67,16 +78,15 @@ const App: React.FC = () => {
       };
 
       setConversationHistory(prev => [...prev, newTurn]);
-      setResult('');
-      setInputText('');
-      setAttachedFiles([]);
       setStatusMessage('READY');
     } catch (error) {
       console.error(error);
-      setResult("Erro no processamento da Tessy. Verifique os logs.");
+      setResult("Erro no processamento da Tessy. Verifique os logs e sua conexão.");
       setStatusMessage('ERROR');
     } finally {
       setIsLoading(false);
+      setPendingUserMessage(null);
+      setPendingFiles([]);
     }
   };
 
@@ -85,6 +95,8 @@ const App: React.FC = () => {
     setResult('');
     setInputText('');
     setAttachedFiles([]);
+    setPendingUserMessage(null);
+    setPendingFiles([]);
     setStatusMessage('READY');
   };
 
@@ -106,7 +118,6 @@ const App: React.FC = () => {
   };
 
   const handleApplyOptimization = (optimizedPrompt: string) => {
-    setInputText(optimizedPrompt);
     setIsOptModalOpen(false);
     handleInterpret(optimizedPrompt);
   };
@@ -132,7 +143,7 @@ const App: React.FC = () => {
       reader.onload = () => {
         const base64Data = (reader.result as string).split(',')[1];
         setAttachedFiles(prev => [...prev, {
-          id: `file_${Date.now()}_${Math.random()}`,
+          id: `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           name: file.name,
           mimeType: file.type,
           data: base64Data,
@@ -183,7 +194,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="h-screen w-full flex flex-col bg-slate-950 text-slate-200 overflow-hidden font-sans">
+    <div className="h-screen w-full flex flex-col bg-slate-950 text-slate-200 overflow-hidden font-sans selection:bg-indigo-500/30">
       <header className="h-16 flex items-center justify-between px-6 border-b border-slate-800 bg-slate-900/50 backdrop-blur-md z-20 shrink-0">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center font-bold text-xl text-white shadow-lg shadow-indigo-500/20">T</div>
@@ -197,18 +208,20 @@ const App: React.FC = () => {
             <p className="text-[10px] text-slate-500 uppercase font-bold leading-none">Status</p>
             <p className="text-xs text-green-400 font-medium">System Online</p>
           </div>
-          <div className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 overflow-hidden shadow-inner">
-            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=tessy&backgroundColor=b6e3f4`} alt="Avatar" className="w-full h-full object-cover" />
+          <div className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 overflow-hidden shadow-inner p-0.5">
+            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=tessy&backgroundColor=b6e3f4`} alt="Avatar" className="w-full h-full object-cover rounded-full" />
           </div>
         </div>
       </header>
 
       <main className="flex-1 flex overflow-hidden">
-        <aside className="w-[15%] min-w-[200px]">
+        {/* Column 1: RepositoryBrowser (20%) */}
+        <aside className="w-1/5 min-w-[220px] bg-slate-900/40">
           <RepositoryBrowser onSelectItem={handleSelectItem} refreshKey={refreshKey} />
         </aside>
 
-        <section className="flex-1 w-[60%] min-w-[500px]">
+        {/* Column 2: Canvas (50%) */}
+        <section className="w-1/2 min-w-[400px] flex-1">
           <Canvas 
             result={result} 
             isLoading={isLoading} 
@@ -225,10 +238,13 @@ const App: React.FC = () => {
             handleFileUpload={handleFileUpload}
             handleInterpret={handleInterpret}
             handleKeyDown={handleKeyDown}
+            pendingUserMessage={pendingUserMessage}
+            pendingFiles={pendingFiles}
           />
         </section>
 
-        <aside className="w-[25%] min-w-[260px]">
+        {/* Column 3: FactorPanel (30%) */}
+        <aside className="w-[30%] min-w-[280px] bg-slate-900/40">
           <FactorPanel factors={factors} onToggle={handleToggleFactor} />
         </aside>
       </main>

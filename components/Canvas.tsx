@@ -20,6 +20,8 @@ interface CanvasProps {
   handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleInterpret: () => void;
   handleKeyDown: (e: React.KeyboardEvent) => void;
+  pendingUserMessage?: string | null;
+  pendingFiles?: AttachedFile[];
 }
 
 const Canvas: React.FC<CanvasProps> = ({ 
@@ -37,7 +39,9 @@ const Canvas: React.FC<CanvasProps> = ({
   fileInputRef,
   handleFileUpload,
   handleInterpret,
-  handleKeyDown
+  handleKeyDown,
+  pendingUserMessage,
+  pendingFiles
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -45,7 +49,7 @@ const Canvas: React.FC<CanvasProps> = ({
   
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll logic
+  // Auto-scroll logic to stay at the bottom of the conversation
   useEffect(() => {
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTo({
@@ -53,7 +57,7 @@ const Canvas: React.FC<CanvasProps> = ({
         behavior: 'smooth'
       });
     }
-  }, [conversationHistory, isLoading, result]);
+  }, [conversationHistory, isLoading, result, pendingUserMessage]);
 
   const handleCopy = () => {
     const textToCopy = result || (conversationHistory.length > 0 ? conversationHistory[conversationHistory.length-1].tessyResponse : "");
@@ -107,9 +111,9 @@ const Canvas: React.FC<CanvasProps> = ({
   };
 
   return (
-    <div className="h-full flex flex-col p-6 bg-slate-950 overflow-hidden">
+    <div className="h-full flex flex-col p-6 bg-slate-950 overflow-hidden relative">
       {/* Top Action Bar */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 z-10 shrink-0">
         <div className="flex items-center gap-3">
           <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
             Canvas
@@ -180,7 +184,7 @@ const Canvas: React.FC<CanvasProps> = ({
                 {showExportMenu && (
                   <>
                     <div className="fixed inset-0 z-0" onClick={() => setShowExportMenu(false)} />
-                    <div className="absolute top-full mt-2 right-0 bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-1 z-10 min-w-[140px] animate-in fade-in slide-in-from-top-1 duration-200">
+                    <div className="absolute top-full mt-2 right-0 bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-1 z-20 min-w-[140px] animate-in fade-in slide-in-from-top-1 duration-200">
                       <button onClick={() => handleExport('markdown')} className="w-full text-left px-4 py-2 text-xs text-slate-300 hover:bg-slate-700 transition-colors">Markdown (.md)</button>
                       <button onClick={() => handleExport('json')} className="w-full text-left px-4 py-2 text-xs text-slate-300 hover:bg-slate-700 transition-colors">JSON (.json)</button>
                       <button onClick={() => handleExport('text')} className="w-full text-left px-4 py-2 text-xs text-slate-300 hover:bg-slate-700 transition-colors">Texto (.txt)</button>
@@ -206,23 +210,23 @@ const Canvas: React.FC<CanvasProps> = ({
       {/* History Area */}
       <div 
         ref={scrollContainerRef}
-        className="flex-1 w-full bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 overflow-y-auto custom-scrollbar flex flex-col space-y-4"
+        className="flex-1 w-full bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 overflow-y-auto custom-scrollbar flex flex-col space-y-6"
       >
-        {conversationHistory.length === 0 && !isLoading && !result && (
+        {conversationHistory.length === 0 && !isLoading && !result && !pendingUserMessage && (
           <div className="h-full flex items-center justify-center text-slate-600 italic text-center px-12">
             Aguardando entrada de dados para iniciar a conversação inteligente...
           </div>
         )}
 
         {conversationHistory.map((turn) => (
-          <div key={turn.id} className="flex flex-col space-y-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div key={turn.id} className="flex flex-col space-y-3">
             {/* User Message */}
-            <div className="self-end max-w-[85%] bg-indigo-600/20 border border-indigo-500/30 p-3 rounded-2xl rounded-tr-none text-sm text-white shadow-sm">
+            <div className="self-end max-w-[85%] bg-indigo-600/20 border border-indigo-500/30 p-3.5 rounded-2xl rounded-tr-none text-sm text-white shadow-sm">
               <p className="whitespace-pre-wrap">{turn.userMessage}</p>
               {turn.attachedFiles && turn.attachedFiles.length > 0 && (
-                 <div className="mt-2 flex gap-1 flex-wrap">
+                 <div className="mt-2.5 flex gap-1.5 flex-wrap">
                     {turn.attachedFiles.map(f => (
-                       <div key={f.id} className="text-[8px] bg-indigo-500/20 px-1.5 py-0.5 rounded border border-indigo-500/30">📎 {f.name}</div>
+                       <div key={f.id} className="text-[8px] bg-indigo-500/20 px-1.5 py-0.5 rounded border border-indigo-500/30 font-bold">📎 {f.name}</div>
                     ))}
                  </div>
               )}
@@ -235,31 +239,76 @@ const Canvas: React.FC<CanvasProps> = ({
           </div>
         ))}
 
-        {isLoading && (
-          <div className="self-start max-w-[85%] bg-slate-800 border border-slate-700 p-4 rounded-2xl rounded-tl-none text-sm text-slate-300 shadow-sm animate-in fade-in duration-300">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 rounded-full bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold text-xs">T</div>
-              <span className="text-xs text-slate-400">Tessy está digitando</span>
+        {/* Optimistic UI Block: Current Pending Message */}
+        {pendingUserMessage && (
+          <div className="flex flex-col space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            {/* User's Message (Instant) */}
+            <div className="self-end max-w-[85%] bg-indigo-600/20 border border-indigo-500/30 p-3.5 rounded-2xl rounded-tr-none text-sm text-white shadow-sm">
+              <p className="whitespace-pre-wrap">{pendingUserMessage}</p>
+              {pendingFiles && pendingFiles.length > 0 && (
+                 <div className="mt-2.5 flex gap-1.5 flex-wrap">
+                    {pendingFiles.map(f => (
+                       <div key={f.id} className="text-[8px] bg-indigo-500/20 px-1.5 py-0.5 rounded border border-indigo-500/30 font-bold">📎 {f.name}</div>
+                    ))}
+                 </div>
+              )}
             </div>
-            <div className="flex space-x-1 ml-11">
+            
+            {/* Typing Indicator (Instant) */}
+            <div className="self-start max-w-[85%] bg-slate-800 border border-slate-700 p-4 rounded-2xl rounded-tl-none text-sm text-slate-300 shadow-sm">
+              <div className="flex items-center gap-3 mb-2.5">
+                <div className="w-8 h-8 rounded-full bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold text-xs">T</div>
+                <span className="text-xs text-slate-400 font-semibold tracking-wide">Tessy está digitando</span>
+              </div>
+              <div className="flex space-x-1.5 ml-11">
+                <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Generic Loading Indicator if no specific pending message but system is busy */}
+        {isLoading && !pendingUserMessage && (
+          <div className="self-start max-w-[85%] bg-slate-800 border border-slate-700 p-4 rounded-2xl rounded-tl-none text-sm text-slate-300 shadow-sm animate-in fade-in duration-300">
+            <div className="flex items-center gap-3 mb-2.5">
+              <div className="w-8 h-8 rounded-full bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold text-xs">T</div>
+              <span className="text-xs text-slate-400 font-semibold tracking-wide">Tessy está processando...</span>
+            </div>
+            <div className="flex space-x-1.5 ml-11">
               <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
               <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
               <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
             </div>
           </div>
         )}
+
+        {result && !isLoading && (
+           <div className="self-start max-w-[85%] bg-red-900/20 border border-red-500/30 p-4 rounded-2xl rounded-tl-none text-sm text-red-300 shadow-sm animate-in shake duration-500">
+             <div className="flex items-center gap-2 mb-2 font-bold uppercase text-[10px]">
+               <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+               </svg>
+               Erro de Processamento
+             </div>
+             {result}
+           </div>
+        )}
       </div>
 
       {/* Input Area */}
-      <div className="mt-4 flex flex-col space-y-4">
+      <div className="mt-4 flex flex-col space-y-4 shrink-0 z-10">
         {attachedFiles.length > 0 && (
-          <FilePreview files={attachedFiles} onRemove={onRemoveFile} />
+          <div className="px-2">
+            <FilePreview files={attachedFiles} onRemove={onRemoveFile} />
+          </div>
         )}
         
-        <div className="relative flex items-center space-x-2 bg-slate-900 p-2 rounded-3xl border border-slate-800 shadow-xl">
+        <div className="relative flex items-center space-x-2 bg-slate-900 p-2 rounded-3xl border border-slate-800 shadow-2xl focus-within:border-indigo-500/50 focus-within:ring-1 focus-within:ring-indigo-500/20 transition-all duration-300">
           <button 
             onClick={() => fileInputRef.current?.click()}
-            className="p-3 text-slate-500 hover:text-indigo-400 transition-colors rounded-full hover:bg-slate-800"
+            className="p-3 text-slate-500 hover:text-indigo-400 transition-all rounded-full hover:bg-slate-800 active:scale-95"
             title="Anexar arquivo"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -279,26 +328,35 @@ const Canvas: React.FC<CanvasProps> = ({
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Digite sua mensagem aqui..."
-            className="flex-1 bg-transparent border-none py-3 px-2 focus:outline-none text-sm text-slate-100 placeholder-slate-500"
+            placeholder="Digite sua mensagem para a Tessy..."
+            className="flex-1 bg-transparent border-none py-3 px-2 focus:outline-none text-sm text-slate-100 placeholder-slate-500 font-medium"
+            disabled={isLoading}
           />
           <button
             onClick={() => handleInterpret()}
             disabled={isLoading || (!inputText.trim() && attachedFiles.length === 0)}
-            className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-bold px-6 py-3 rounded-full transition-all shadow-lg flex items-center space-x-2"
+            className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-bold px-7 py-3 rounded-full transition-all shadow-lg shadow-indigo-500/20 flex items-center space-x-2 active:scale-95"
           >
-            <span>{isLoading ? '...' : 'Enviar'}</span>
+            <span>{isLoading ? 'Interpretando' : 'Enviar'}</span>
+            {!isLoading && (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+              </svg>
+            )}
           </button>
         </div>
       </div>
       
-      <div className="mt-3 flex justify-between items-center text-[9px] text-slate-600 font-bold uppercase tracking-[0.2em]">
+      <div className="mt-4 flex justify-between items-center text-[9px] text-slate-600 font-bold uppercase tracking-[0.2em] shrink-0">
         <div className="flex items-center gap-3">
-          <span>STATE: {isLoading ? 'BUSY' : 'IDLE'}</span>
+          <span className="flex items-center gap-1.5">
+            <span className={`w-1.5 h-1.5 rounded-full ${isLoading ? 'bg-amber-500 animate-pulse' : 'bg-indigo-500'}`}></span>
+            STATE: {isLoading ? 'BUSY' : 'IDLE'}
+          </span>
           <span>•</span>
           <span>CONTEXT: {conversationHistory.length} TURNS</span>
         </div>
-        <span>SECURITY: AES-256 ENCRYPTED</span>
+        <span>RABELUS SECURE PROTOCOL • v2.5.0</span>
       </div>
 
       <SavePromptModal 
