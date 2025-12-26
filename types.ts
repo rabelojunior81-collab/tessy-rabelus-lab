@@ -13,6 +13,14 @@ export interface Factor {
   description?: string;
 }
 
+export interface ConversationTurn {
+  id: string;
+  userMessage: string;
+  tessyResponse: string;
+  timestamp: number;
+  attachedFiles?: AttachedFile[];
+}
+
 export interface RepositoryItem {
   id: string;
   title: string;

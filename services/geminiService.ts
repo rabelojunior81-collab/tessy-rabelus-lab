@@ -1,22 +1,35 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { Factor, AttachedFile, OptimizationResult } from "../types";
+import { Factor, AttachedFile, OptimizationResult, ConversationTurn } from "../types";
 
 const MODEL_FLASH = 'gemini-3-flash-preview';
 const MODEL_PRO = 'gemini-3-pro-preview';
 
 /**
- * Step 1: Interpret the user's raw text into a structured JSON intent.
+ * Step 1: Interpret the user's raw text into a structured JSON intent, considering context.
  */
-export const interpretIntent = async (text: string, files: AttachedFile[] = []): Promise<any> => {
+export const interpretIntent = async (
+  text: string, 
+  files: AttachedFile[] = [], 
+  history: ConversationTurn[] = []
+): Promise<any> => {
   if (!text.trim() && files.length === 0) return null;
 
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
-    const parts: any[] = [{ text: `Analise a seguinte entrada do usuário e extraia a intenção estruturada: "${text}"` }];
+    let contextStr = "";
+    if (history.length > 0) {
+      const lastTurns = history.slice(-3);
+      contextStr = "CONTEXTO DA CONVERSA:\n" + lastTurns.map(t => 
+        `Usuário: ${t.userMessage}\nTessy: ${t.tessyResponse.slice(0, 200)}...`
+      ).join("\n\n") + "\n\n";
+    }
+
+    const parts: any[] = [{ 
+      text: `${contextStr}Analise a seguinte nova entrada do usuário e extraia a intenção estruturada: "${text}"` 
+    }];
     
-    // Add files to context for interpretation
     for (const file of files) {
       parts.push({
         inlineData: {
@@ -65,9 +78,14 @@ export const interpretIntent = async (text: string, files: AttachedFile[] = []):
 };
 
 /**
- * Step 2: Generate the final response based on the structured interpretation and active factors.
+ * Step 2: Generate the final response based on structured interpretation, active factors, and history.
  */
-export const applyFactorsAndGenerate = async (interpretation: any, factors: Factor[], files: AttachedFile[] = []): Promise<string> => {
+export const applyFactorsAndGenerate = async (
+  interpretation: any, 
+  factors: Factor[], 
+  files: AttachedFile[] = [],
+  history: ConversationTurn[] = []
+): Promise<string> => {
   if (!interpretation) return "Interpretação inválida.";
 
   try {
@@ -82,36 +100,34 @@ export const applyFactorsAndGenerate = async (interpretation: any, factors: Fact
     const additionalContext = factors.find(f => f.id === 'context')?.value || '';
 
     if (isProfessional) {
-      systemInstruction += "Mantenha um tom estritamente profissional, executivo e conciso. Evite gírias. ";
+      systemInstruction += "Mantenha um tom estritamente profissional, executivo e conciso. ";
     } else {
       systemInstruction += "Mantenha um tom amigável, prestativo e acessível. ";
     }
 
-    // Refactored Gradual Detail Levels
-    if (detailLevel === 1) {
-      systemInstruction += "Seja extremamente conciso. Responda em 1 ou 2 parágrafos curtos. ";
-    } else if (detailLevel === 2) {
-      systemInstruction += "Seja conciso mas forneça uma resposta completa. Responda em 2 ou 3 parágrafos. ";
-    } else if (detailLevel === 3) {
-      systemInstruction += "Forneça uma resposta balanceada com os detalhes mais relevantes. ";
-    } else if (detailLevel === 4) {
-      systemInstruction += "Forneça uma resposta detalhada, incluindo exemplos práticos e contexto adicional. ";
-    } else if (detailLevel === 5) {
-      systemInstruction += "Forneça uma análise profunda e abrangente. Organize a resposta em múltiplas seções, inclua exemplos práticos, considere casos de borda e faça comparações se necessário. ";
-    }
+    if (detailLevel === 1) systemInstruction += "Seja extremamente conciso. ";
+    else if (detailLevel === 2) systemInstruction += "Seja breve e direto. ";
+    else if (detailLevel === 4) systemInstruction += "Forneça detalhes e exemplos. ";
+    else if (detailLevel === 5) systemInstruction += "Forneça uma análise profunda e abrangente em várias seções. ";
 
-    if (audience === 'iniciante') {
-      systemInstruction += "Use linguagem simples. ";
-    } else if (audience === 'especialista') {
-      systemInstruction += "Use terminologia técnica avançada. ";
-    }
+    if (audience === 'iniciante') systemInstruction += "Use linguagem simples. ";
+    else if (audience === 'especialista') systemInstruction += "Use terminologia técnica avançada. ";
 
-    if (wantsCode) {
-      systemInstruction += "Inclua blocos de código bem comentados. ";
-    }
+    if (wantsCode) systemInstruction += "Inclua blocos de código bem comentados. ";
 
     const contextSection = additionalContext ? `\nCONTEXTO ADICIONAL: ${additionalContext}` : '';
 
+    const contents: any[] = [];
+    
+    // Add history context (last 3 turns)
+    if (history.length > 0) {
+      history.slice(-3).forEach(turn => {
+        contents.push({ parts: [{ text: `Usuário: ${turn.userMessage}` }] });
+        contents.push({ parts: [{ text: `Tessy: ${turn.tessyResponse}` }] });
+      });
+    }
+
+    // Add current request
     const parts: any[] = [{
       text: `Execute a seguinte tarefa:
       TAREFA: ${interpretation.task}
@@ -120,7 +136,6 @@ export const applyFactorsAndGenerate = async (interpretation: any, factors: Fact
       LINGUAGEM: ${interpretation.language || 'Não especificado'}${contextSection}`
     }];
 
-    // Add files
     for (const file of files) {
       parts.push({
         inlineData: {
@@ -130,9 +145,11 @@ export const applyFactorsAndGenerate = async (interpretation: any, factors: Fact
       });
     }
 
+    contents.push({ parts });
+
     const response = await ai.models.generateContent({
       model: MODEL_FLASH,
-      contents: { parts },
+      contents: contents,
       config: {
         systemInstruction: systemInstruction,
         temperature: 0.7,

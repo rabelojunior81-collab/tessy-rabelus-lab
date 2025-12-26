@@ -1,8 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import SavePromptModal from './SavePromptModal';
 import FilePreview from './FilePreview';
-import { AttachedFile } from '../types';
+import { AttachedFile, ConversationTurn } from '../types';
 
 interface CanvasProps {
   result: string;
@@ -12,6 +12,8 @@ interface CanvasProps {
   onOptimize: () => void;
   attachedFiles: AttachedFile[];
   onRemoveFile: (id: string) => void;
+  conversationHistory: ConversationTurn[];
+  onNewConversation: () => void;
 }
 
 const Canvas: React.FC<CanvasProps> = ({ 
@@ -21,43 +23,64 @@ const Canvas: React.FC<CanvasProps> = ({
   onSavePrompt, 
   onOptimize, 
   attachedFiles, 
-  onRemoveFile 
+  onRemoveFile,
+  conversationHistory,
+  onNewConversation
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll logic
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        top: scrollContainerRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  }, [conversationHistory, isLoading, result]);
 
   const handleCopy = () => {
-    if (!result) return;
-    navigator.clipboard.writeText(result).then(() => {
+    const textToCopy = result || (conversationHistory.length > 0 ? conversationHistory[conversationHistory.length-1].tessyResponse : "");
+    if (!textToCopy) return;
+    navigator.clipboard.writeText(textToCopy).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
   };
 
   const handleExport = (format: 'markdown' | 'json' | 'text') => {
-    if (!result) return;
+    const lastResponse = result || (conversationHistory.length > 0 ? conversationHistory[conversationHistory.length-1].tessyResponse : "");
+    if (!lastResponse) return;
     
     let content = '';
     let filename = '';
     let mimeType = '';
     
     if (format === 'markdown') {
-      content = `# Resposta da Tessy\n\n${result}`;
-      filename = 'tessy-response.md';
+      content = `# Histórico de Conversa Tessy\n\n`;
+      conversationHistory.forEach(turn => {
+        content += `### Usuário\n${turn.userMessage}\n\n### Tessy\n${turn.tessyResponse}\n\n---\n\n`;
+      });
+      if (result) content += `### Usuário (Atual)\n\n### Tessy\n${result}`;
+      filename = 'tessy-chat.md';
       mimeType = 'text/markdown';
     } else if (format === 'json') {
       const exportData = {
         timestamp: new Date().toISOString(),
-        result: result,
-        engine: 'gemini-3-flash-preview'
+        history: conversationHistory,
+        currentResult: result
       };
       content = JSON.stringify(exportData, null, 2);
-      filename = 'tessy-response.json';
+      filename = 'tessy-chat.json';
       mimeType = 'application/json';
     } else {
-      content = result;
-      filename = 'tessy-response.txt';
+      content = conversationHistory.map(t => `Usuário: ${t.userMessage}\nTessy: ${t.tessyResponse}`).join("\n\n");
+      if (result) content += `\n\nTessy: ${result}`;
+      filename = 'tessy-chat.txt';
       mimeType = 'text/plain';
     }
     
@@ -74,16 +97,25 @@ const Canvas: React.FC<CanvasProps> = ({
   return (
     <div className="h-full flex flex-col p-6 bg-slate-950 overflow-hidden">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-          Canvas
-          {isLoading && (
-             <span className="text-[10px] px-2 py-0.5 bg-indigo-500/20 text-indigo-400 rounded-full animate-pulse border border-indigo-500/30 uppercase">
-               Processing...
-             </span>
+        <div className="flex items-center gap-3">
+          <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
+            Canvas
+          </h2>
+          {conversationHistory.length > 0 && (
+            <button
+              onClick={onNewConversation}
+              className="text-[10px] px-2 py-1 bg-red-600/10 hover:bg-red-600/20 text-red-400 border border-red-500/30 rounded-lg transition-all font-bold flex items-center gap-1.5 uppercase"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+              </svg>
+              Nova Conversa
+            </button>
           )}
-        </h2>
+        </div>
+        
         <div className="flex items-center space-x-2">
-          {result && !isLoading && (
+          {(result || conversationHistory.length > 0) && !isLoading && (
             <>
               <button
                 onClick={onOptimize}
@@ -134,20 +166,11 @@ const Canvas: React.FC<CanvasProps> = ({
                 
                 {showExportMenu && (
                   <>
-                    <div 
-                      className="fixed inset-0 z-0" 
-                      onClick={() => setShowExportMenu(false)}
-                    />
+                    <div className="fixed inset-0 z-0" onClick={() => setShowExportMenu(false)} />
                     <div className="absolute top-full mt-2 right-0 bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-1 z-10 min-w-[140px] animate-in fade-in slide-in-from-top-1 duration-200">
-                      <button onClick={() => handleExport('markdown')} className="w-full text-left px-4 py-2 text-xs text-slate-300 hover:bg-slate-700 transition-colors">
-                        Markdown (.md)
-                      </button>
-                      <button onClick={() => handleExport('json')} className="w-full text-left px-4 py-2 text-xs text-slate-300 hover:bg-slate-700 transition-colors">
-                        JSON (.json)
-                      </button>
-                      <button onClick={() => handleExport('text')} className="w-full text-left px-4 py-2 text-xs text-slate-300 hover:bg-slate-700 transition-colors">
-                        Texto (.txt)
-                      </button>
+                      <button onClick={() => handleExport('markdown')} className="w-full text-left px-4 py-2 text-xs text-slate-300 hover:bg-slate-700 transition-colors">Markdown (.md)</button>
+                      <button onClick={() => handleExport('json')} className="w-full text-left px-4 py-2 text-xs text-slate-300 hover:bg-slate-700 transition-colors">JSON (.json)</button>
+                      <button onClick={() => handleExport('text')} className="w-full text-left px-4 py-2 text-xs text-slate-300 hover:bg-slate-700 transition-colors">Texto (.txt)</button>
                     </div>
                   </>
                 )}
@@ -167,27 +190,46 @@ const Canvas: React.FC<CanvasProps> = ({
         </div>
       </div>
 
-      {/* File Preview moved inside Canvas */}
       <div className="mb-4">
         <FilePreview files={attachedFiles} onRemove={onRemoveFile} />
       </div>
       
-      <div className="flex-1 w-full bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 overflow-y-auto font-mono text-sm leading-relaxed text-slate-300 relative group custom-scrollbar">
-        {isLoading ? (
-          <div className="absolute inset-x-0 top-0 h-1 flex items-center justify-center z-10">
-            <div className="w-full h-full bg-indigo-600/20 overflow-hidden">
-               <div className="h-full bg-indigo-500 animate-[loading_1.5s_infinite] w-1/3"></div>
+      <div 
+        ref={scrollContainerRef}
+        className="flex-1 w-full bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 overflow-y-auto custom-scrollbar flex flex-col space-y-4"
+      >
+        {conversationHistory.length === 0 && !isLoading && !result && (
+          <div className="h-full flex items-center justify-center text-slate-600 italic text-center px-12">
+            Aguardando entrada de dados para iniciar a conversação inteligente...
+          </div>
+        )}
+
+        {conversationHistory.map((turn) => (
+          <div key={turn.id} className="flex flex-col space-y-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            {/* User Message */}
+            <div className="self-end max-w-[85%] bg-indigo-600/20 border border-indigo-500/30 p-3 rounded-2xl rounded-tr-none text-sm text-white shadow-sm">
+              <p className="whitespace-pre-wrap">{turn.userMessage}</p>
+              {turn.attachedFiles && turn.attachedFiles.length > 0 && (
+                 <div className="mt-2 flex gap-1 flex-wrap">
+                    {turn.attachedFiles.map(f => (
+                       <div key={f.id} className="text-[8px] bg-indigo-500/20 px-1.5 py-0.5 rounded border border-indigo-500/30">📎 {f.name}</div>
+                    ))}
+                 </div>
+              )}
+            </div>
+            
+            {/* Tessy Response */}
+            <div className="self-start max-w-[85%] bg-slate-800 border border-slate-700 p-4 rounded-2xl rounded-tl-none text-sm text-slate-300 leading-relaxed shadow-sm font-sans">
+              <div className="whitespace-pre-wrap">{turn.tessyResponse}</div>
             </div>
           </div>
-        ) : null}
-        
-        {!result && !isLoading ? (
-          <div className="h-full flex items-center justify-center text-slate-600 italic text-center px-12">
-            Aguardando entrada de dados para processamento multimodelo...
-          </div>
-        ) : (
-          <div className="whitespace-pre-wrap animate-in fade-in duration-500">
-            {result}
+        ))}
+
+        {isLoading && (
+          <div className="flex flex-col space-y-2 animate-pulse">
+            <div className="self-start max-w-[85%] bg-slate-800/50 border border-slate-700/50 p-4 rounded-2xl rounded-tl-none text-sm text-slate-500 italic">
+              {result || 'Tessy está processando sua solicitação...'}
+            </div>
           </div>
         )}
       </div>
@@ -196,7 +238,7 @@ const Canvas: React.FC<CanvasProps> = ({
         <div className="flex items-center gap-3">
           <span>STATE: {isLoading ? 'BUSY' : 'IDLE'}</span>
           <span>•</span>
-          <span>ENGINE: GEMINI-3-FLASH</span>
+          <span>CONTEXT: {conversationHistory.length} TURNS</span>
         </div>
         <span>SECURITY: AES-256 ENCRYPTED</span>
       </div>
@@ -206,13 +248,6 @@ const Canvas: React.FC<CanvasProps> = ({
         onClose={() => setIsModalOpen(false)} 
         onSave={onSavePrompt}
       />
-
-      <style>{`
-        @keyframes loading {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(300%); }
-        }
-      `}</style>
     </div>
   );
 };
