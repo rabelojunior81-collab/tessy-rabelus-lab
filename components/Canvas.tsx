@@ -1,6 +1,8 @@
 
 import React, { useState } from 'react';
 import SavePromptModal from './SavePromptModal';
+import FilePreview from './FilePreview';
+import { AttachedFile } from '../types';
 
 interface CanvasProps {
   result: string;
@@ -8,9 +10,19 @@ interface CanvasProps {
   isOptimizing: boolean;
   onSavePrompt: (title: string, description: string) => void;
   onOptimize: () => void;
+  attachedFiles: AttachedFile[];
+  onRemoveFile: (id: string) => void;
 }
 
-const Canvas: React.FC<CanvasProps> = ({ result, isLoading, isOptimizing, onSavePrompt, onOptimize }) => {
+const Canvas: React.FC<CanvasProps> = ({ 
+  result, 
+  isLoading, 
+  isOptimizing, 
+  onSavePrompt, 
+  onOptimize, 
+  attachedFiles, 
+  onRemoveFile 
+}) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
@@ -61,35 +73,42 @@ const Canvas: React.FC<CanvasProps> = ({ result, isLoading, isOptimizing, onSave
 
   return (
     <div className="h-full flex flex-col p-6 bg-slate-950 overflow-hidden">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-white tracking-tight">Canvas</h2>
-        <div className="flex items-center space-x-3">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
+          Canvas
+          {isLoading && (
+             <span className="text-[10px] px-2 py-0.5 bg-indigo-500/20 text-indigo-400 rounded-full animate-pulse border border-indigo-500/30 uppercase">
+               Processing...
+             </span>
+          )}
+        </h2>
+        <div className="flex items-center space-x-2">
           {result && !isLoading && (
             <>
               <button
                 onClick={onOptimize}
                 disabled={isOptimizing}
-                className={`text-xs px-3 py-1.5 rounded-lg transition-all font-semibold flex items-center space-x-2 border ${
+                className={`text-[10px] px-2.5 py-1.5 rounded-lg transition-all font-bold flex items-center space-x-1.5 border uppercase tracking-wider ${
                   isOptimizing
                     ? 'bg-purple-600/50 text-white cursor-not-allowed'
                     : 'bg-purple-600/10 hover:bg-purple-600/20 text-purple-400 border-purple-500/30'
                 }`}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className={`h-3.5 w-3.5 ${isOptimizing ? 'animate-spin' : ''}`} viewBox="0 0 20 20" fill="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className={`h-3 w-3 ${isOptimizing ? 'animate-spin' : ''}`} viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
                 </svg>
-                <span>{isOptimizing ? 'Otimizando...' : 'Otimizar'}</span>
+                <span>Otimizar</span>
               </button>
 
               <button
                 onClick={handleCopy}
-                className={`text-xs px-3 py-1.5 rounded-lg transition-all font-semibold flex items-center space-x-2 border ${
+                className={`text-[10px] px-2.5 py-1.5 rounded-lg transition-all font-bold flex items-center space-x-1.5 border uppercase tracking-wider ${
                   copied 
                     ? 'bg-emerald-500 text-white border-emerald-500' 
                     : 'bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-400 border-emerald-500/30'
                 }`}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
                   {copied ? (
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   ) : (
@@ -99,15 +118,15 @@ const Canvas: React.FC<CanvasProps> = ({ result, isLoading, isOptimizing, onSave
                     </>
                   )}
                 </svg>
-                <span>{copied ? 'Copiado!' : 'Copiar'}</span>
+                <span>Copiar</span>
               </button>
 
               <div className="relative">
                 <button
                   onClick={() => setShowExportMenu(!showExportMenu)}
-                  className="text-xs bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-500/30 px-3 py-1.5 rounded-lg transition-all font-semibold flex items-center space-x-2"
+                  className="text-[10px] bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-500/30 px-2.5 py-1.5 rounded-lg transition-all font-bold flex items-center space-x-1.5 uppercase tracking-wider"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
                   </svg>
                   <span>Exportar</span>
@@ -136,48 +155,50 @@ const Canvas: React.FC<CanvasProps> = ({ result, isLoading, isOptimizing, onSave
               
               <button
                 onClick={() => setIsModalOpen(true)}
-                className="text-xs bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 px-3 py-1.5 rounded-lg transition-all font-semibold flex items-center space-x-2"
+                className="text-[10px] bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 px-2.5 py-1.5 rounded-lg transition-all font-bold flex items-center space-x-1.5 uppercase tracking-wider"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h5a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h5v5.586l-1.293-1.293z" />
                 </svg>
                 <span>Salvar</span>
               </button>
             </>
           )}
-          <div className="flex space-x-2">
-            <div className="w-3 h-3 rounded-full bg-red-500/50"></div>
-            <div className="w-3 h-3 rounded-full bg-yellow-500/50"></div>
-            <div className="w-3 h-3 rounded-full bg-green-500/50"></div>
-          </div>
         </div>
+      </div>
+
+      {/* File Preview moved inside Canvas */}
+      <div className="mb-4">
+        <FilePreview files={attachedFiles} onRemove={onRemoveFile} />
       </div>
       
       <div className="flex-1 w-full bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 overflow-y-auto font-mono text-sm leading-relaxed text-slate-300 relative group custom-scrollbar">
         {isLoading ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm z-10">
-            <div className="flex flex-col items-center">
-              <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-              <p className="mt-4 text-indigo-400 font-medium animate-pulse">Consultando Tessy...</p>
+          <div className="absolute inset-x-0 top-0 h-1 flex items-center justify-center z-10">
+            <div className="w-full h-full bg-indigo-600/20 overflow-hidden">
+               <div className="h-full bg-indigo-500 animate-[loading_1.5s_infinite] w-1/3"></div>
             </div>
           </div>
         ) : null}
         
         {!result && !isLoading ? (
-          <div className="h-full flex items-center justify-center text-slate-600 italic">
-            Aguardando entrada de dados para processamento...
+          <div className="h-full flex items-center justify-center text-slate-600 italic text-center px-12">
+            Aguardando entrada de dados para processamento multimodelo...
           </div>
         ) : (
-          <div className="whitespace-pre-wrap">
+          <div className="whitespace-pre-wrap animate-in fade-in duration-500">
             {result}
           </div>
         )}
       </div>
       
-      <div className="mt-4 flex justify-between items-center text-[10px] text-slate-500 font-medium uppercase tracking-wider">
-        <span>ESTADO: {isLoading ? 'PROCESSING' : 'READY'}</span>
-        <span>ENGINE: GEMINI-3-FLASH</span>
-        <span>SECURE CONNECTION ACTIVE</span>
+      <div className="mt-3 flex justify-between items-center text-[9px] text-slate-600 font-bold uppercase tracking-[0.2em]">
+        <div className="flex items-center gap-3">
+          <span>STATE: {isLoading ? 'BUSY' : 'IDLE'}</span>
+          <span>•</span>
+          <span>ENGINE: GEMINI-3-FLASH</span>
+        </div>
+        <span>SECURITY: AES-256 ENCRYPTED</span>
       </div>
 
       <SavePromptModal 
@@ -185,6 +206,13 @@ const Canvas: React.FC<CanvasProps> = ({ result, isLoading, isOptimizing, onSave
         onClose={() => setIsModalOpen(false)} 
         onSave={onSavePrompt}
       />
+
+      <style>{`
+        @keyframes loading {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(300%); }
+        }
+      `}</style>
     </div>
   );
 };

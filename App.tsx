@@ -3,7 +3,6 @@ import React, { useState, useRef } from 'react';
 import RepositoryBrowser from './components/RepositoryBrowser';
 import Canvas from './components/Canvas';
 import FactorPanel from './components/FactorPanel';
-import FilePreview from './components/FilePreview';
 import OptimizationModal from './components/OptimizationModal';
 import { interpretIntent, applyFactorsAndGenerate, optimizePrompt } from './services/geminiService';
 import { addDoc } from './services/storageService';
@@ -26,7 +25,7 @@ const App: React.FC = () => {
   const [factors, setFactors] = useState<Factor[]>([
     { id: 'prof', type: 'toggle', label: 'Tom Profissional', enabled: false },
     { id: 'flash', type: 'toggle', label: 'Modelo Flash', enabled: true },
-    { id: 'detailed', type: 'toggle', label: 'Resposta Detalhada', enabled: false },
+    // 'detailed' removed as it was redundant with 'detail_level' slider
     { id: 'code', type: 'toggle', label: 'Formatação de Código', enabled: false },
     { id: 'detail_level', type: 'slider', label: 'Nível de Detalhe', enabled: true, value: 3, min: 1, max: 5 },
     { id: 'audience', type: 'dropdown', label: 'Público-Alvo', enabled: true, value: 'intermediario', options: ['iniciante', 'intermediario', 'avancado', 'especialista'] },
@@ -94,7 +93,6 @@ const App: React.FC = () => {
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
     const maxSize = 4 * 1024 * 1024; // 4MB
 
-    // Fix: Explicitly cast Array.from(files) to File[] to ensure 'file' is not treated as 'unknown'
     (Array.from(files) as File[]).forEach(file => {
       if (!allowedTypes.includes(file.type)) {
         alert(`Arquivo ${file.name} ignorado: Formato não suportado.`);
@@ -162,7 +160,7 @@ const App: React.FC = () => {
 
   return (
     <div className="h-screen w-full flex flex-col bg-slate-950 text-slate-200 overflow-hidden">
-      {/* Header */}
+      {/* Header - Fixed Height h-16 */}
       <header className="h-16 flex items-center justify-between px-6 border-b border-slate-800 bg-slate-900/50 backdrop-blur-md z-20 shrink-0">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center font-bold text-xl text-white shadow-lg shadow-indigo-500/20">
@@ -174,42 +172,39 @@ const App: React.FC = () => {
         </div>
         
         <div className="flex-1 max-w-2xl px-12">
-          <div className="flex flex-col">
-            <div className="relative group">
-              <button 
-                onClick={() => fileInputRef.current?.click()}
-                className="absolute left-2 top-1/2 -translate-y-1/2 p-2 text-slate-500 hover:text-indigo-400 transition-colors"
-                title="Anexar arquivo (Imagens ou PDF)"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                </svg>
-              </button>
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleFileUpload} 
-                className="hidden" 
-                multiple 
-                accept=".jpg,.jpeg,.png,.webp,.pdf"
-              />
-              <input
-                type="text"
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Descreva sua intenção ou anexe um arquivo..."
-                className="w-full bg-slate-800 border border-slate-700 rounded-full py-2 pl-12 pr-24 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all text-sm placeholder-slate-500"
-              />
-              <button
-                onClick={() => handleInterpret()}
-                disabled={isLoading || (!inputText.trim() && attachedFiles.length === 0)}
-                className="absolute right-1 top-1 bottom-1 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:hover:bg-indigo-600 text-white text-xs font-bold px-4 rounded-full transition-colors shadow-lg"
-              >
-                {isLoading ? '...' : 'Executar'}
-              </button>
-            </div>
-            <FilePreview files={attachedFiles} onRemove={handleRemoveFile} />
+          <div className="relative group">
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute left-2 top-1/2 -translate-y-1/2 p-2 text-slate-500 hover:text-indigo-400 transition-colors"
+              title="Anexar arquivo (Imagens ou PDF)"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+              </svg>
+            </button>
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleFileUpload} 
+              className="hidden" 
+              multiple 
+              accept=".jpg,.jpeg,.png,.webp,.pdf"
+            />
+            <input
+              type="text"
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Descreva sua intenção ou anexe um arquivo..."
+              className="w-full bg-slate-800 border border-slate-700 rounded-full py-2 pl-12 pr-24 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all text-sm placeholder-slate-500"
+            />
+            <button
+              onClick={() => handleInterpret()}
+              disabled={isLoading || (!inputText.trim() && attachedFiles.length === 0)}
+              className="absolute right-1 top-1 bottom-1 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:hover:bg-indigo-600 text-white text-xs font-bold px-4 rounded-full transition-colors shadow-lg"
+            >
+              {isLoading ? '...' : 'Executar'}
+            </button>
           </div>
         </div>
 
@@ -224,23 +219,25 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      {/* Main Layout */}
+      {/* Main Layout - Refactored Proportions */}
       <main className="flex-1 flex overflow-hidden">
-        <aside className="w-[20%] min-w-[220px]">
+        <aside className="w-[15%] min-w-[200px]">
           <RepositoryBrowser onSelectItem={handleSelectItem} refreshKey={refreshKey} />
         </aside>
 
-        <section className="flex-1 w-[50%] min-w-[400px]">
+        <section className="flex-1 w-[60%] min-w-[500px]">
           <Canvas 
             result={result} 
             isLoading={isLoading} 
             isOptimizing={isOptimizing}
             onSavePrompt={handleSaveToRepository} 
             onOptimize={handleOptimize}
+            attachedFiles={attachedFiles}
+            onRemoveFile={handleRemoveFile}
           />
         </section>
 
-        <aside className="w-[30%] min-w-[280px]">
+        <aside className="w-[25%] min-w-[260px]">
           <FactorPanel factors={factors} onToggle={handleToggleFactor} />
         </aside>
       </main>
@@ -256,7 +253,7 @@ const App: React.FC = () => {
         </div>
         <div className="flex items-center space-x-4 uppercase font-bold tracking-widest text-[9px]">
           <span>Processing Mode: Multi-Stage Multimodal</span>
-          <span>v2.3.0-VEO-HYBRID</span>
+          <span>v2.4.0-REFAC</span>
         </div>
       </footer>
 

@@ -87,10 +87,17 @@ export const applyFactorsAndGenerate = async (interpretation: any, factors: Fact
       systemInstruction += "Mantenha um tom amigável, prestativo e acessível. ";
     }
 
+    // Refactored Gradual Detail Levels
     if (detailLevel === 1) {
-      systemInstruction += "Seja extremamente conciso. ";
+      systemInstruction += "Seja extremamente conciso. Responda em 1 ou 2 parágrafos curtos. ";
+    } else if (detailLevel === 2) {
+      systemInstruction += "Seja conciso mas forneça uma resposta completa. Responda em 2 ou 3 parágrafos. ";
+    } else if (detailLevel === 3) {
+      systemInstruction += "Forneça uma resposta balanceada com os detalhes mais relevantes. ";
+    } else if (detailLevel === 4) {
+      systemInstruction += "Forneça uma resposta detalhada, incluindo exemplos práticos e contexto adicional. ";
     } else if (detailLevel === 5) {
-      systemInstruction += "Forneça uma análise profunda e abrangente. ";
+      systemInstruction += "Forneça uma análise profunda e abrangente. Organize a resposta em múltiplas seções, inclua exemplos práticos, considere casos de borda e faça comparações se necessário. ";
     }
 
     if (audience === 'iniciante') {
