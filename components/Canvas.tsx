@@ -14,6 +14,12 @@ interface CanvasProps {
   onRemoveFile: (id: string) => void;
   conversationHistory: ConversationTurn[];
   onNewConversation: () => void;
+  inputText: string;
+  setInputText: (text: string) => void;
+  fileInputRef: React.RefObject<HTMLInputElement>;
+  handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleInterpret: () => void;
+  handleKeyDown: (e: React.KeyboardEvent) => void;
 }
 
 const Canvas: React.FC<CanvasProps> = ({ 
@@ -25,7 +31,13 @@ const Canvas: React.FC<CanvasProps> = ({
   attachedFiles, 
   onRemoveFile,
   conversationHistory,
-  onNewConversation
+  onNewConversation,
+  inputText,
+  setInputText,
+  fileInputRef,
+  handleFileUpload,
+  handleInterpret,
+  handleKeyDown
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -96,6 +108,7 @@ const Canvas: React.FC<CanvasProps> = ({
 
   return (
     <div className="h-full flex flex-col p-6 bg-slate-950 overflow-hidden">
+      {/* Top Action Bar */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
@@ -190,10 +203,7 @@ const Canvas: React.FC<CanvasProps> = ({
         </div>
       </div>
 
-      <div className="mb-4">
-        <FilePreview files={attachedFiles} onRemove={onRemoveFile} />
-      </div>
-      
+      {/* History Area */}
       <div 
         ref={scrollContainerRef}
         className="flex-1 w-full bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 overflow-y-auto custom-scrollbar flex flex-col space-y-4"
@@ -226,12 +236,60 @@ const Canvas: React.FC<CanvasProps> = ({
         ))}
 
         {isLoading && (
-          <div className="flex flex-col space-y-2 animate-pulse">
-            <div className="self-start max-w-[85%] bg-slate-800/50 border border-slate-700/50 p-4 rounded-2xl rounded-tl-none text-sm text-slate-500 italic">
-              {result || 'Tessy está processando sua solicitação...'}
+          <div className="self-start max-w-[85%] bg-slate-800 border border-slate-700 p-4 rounded-2xl rounded-tl-none text-sm text-slate-300 shadow-sm animate-in fade-in duration-300">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-8 h-8 rounded-full bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold text-xs">T</div>
+              <span className="text-xs text-slate-400">Tessy está digitando</span>
+            </div>
+            <div className="flex space-x-1 ml-11">
+              <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+              <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+              <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
             </div>
           </div>
         )}
+      </div>
+
+      {/* Input Area */}
+      <div className="mt-4 flex flex-col space-y-4">
+        {attachedFiles.length > 0 && (
+          <FilePreview files={attachedFiles} onRemove={onRemoveFile} />
+        )}
+        
+        <div className="relative flex items-center space-x-2 bg-slate-900 p-2 rounded-3xl border border-slate-800 shadow-xl">
+          <button 
+            onClick={() => fileInputRef.current?.click()}
+            className="p-3 text-slate-500 hover:text-indigo-400 transition-colors rounded-full hover:bg-slate-800"
+            title="Anexar arquivo"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+            </svg>
+          </button>
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleFileUpload} 
+            className="hidden" 
+            multiple 
+            accept=".jpg,.jpeg,.png,.webp,.pdf"
+          />
+          <input
+            type="text"
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Digite sua mensagem aqui..."
+            className="flex-1 bg-transparent border-none py-3 px-2 focus:outline-none text-sm text-slate-100 placeholder-slate-500"
+          />
+          <button
+            onClick={() => handleInterpret()}
+            disabled={isLoading || (!inputText.trim() && attachedFiles.length === 0)}
+            className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-bold px-6 py-3 rounded-full transition-all shadow-lg flex items-center space-x-2"
+          >
+            <span>{isLoading ? '...' : 'Enviar'}</span>
+          </button>
+        </div>
       </div>
       
       <div className="mt-3 flex justify-between items-center text-[9px] text-slate-600 font-bold uppercase tracking-[0.2em]">

@@ -159,7 +159,6 @@ const App: React.FC = () => {
 
   const handleSelectItem = (item: RepositoryItem) => {
     if (item.content) {
-      // For repository items, we might want to start a new turn or replace current
       setInputText(item.title);
     }
   };
@@ -184,7 +183,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="h-screen w-full flex flex-col bg-slate-950 text-slate-200 overflow-hidden">
+    <div className="h-screen w-full flex flex-col bg-slate-950 text-slate-200 overflow-hidden font-sans">
       <header className="h-16 flex items-center justify-between px-6 border-b border-slate-800 bg-slate-900/50 backdrop-blur-md z-20 shrink-0">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center font-bold text-xl text-white shadow-lg shadow-indigo-500/20">T</div>
@@ -193,43 +192,6 @@ const App: React.FC = () => {
           </h1>
         </div>
         
-        <div className="flex-1 max-w-2xl px-12">
-          <div className="relative group">
-            <button 
-              onClick={() => fileInputRef.current?.click()}
-              className="absolute left-2 top-1/2 -translate-y-1/2 p-2 text-slate-500 hover:text-indigo-400 transition-colors"
-              title="Anexar arquivo"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-              </svg>
-            </button>
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              onChange={handleFileUpload} 
-              className="hidden" 
-              multiple 
-              accept=".jpg,.jpeg,.png,.webp,.pdf"
-            />
-            <input
-              type="text"
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Digite sua mensagem aqui..."
-              className="w-full bg-slate-800 border border-slate-700 rounded-full py-2 pl-12 pr-24 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all text-sm placeholder-slate-500"
-            />
-            <button
-              onClick={() => handleInterpret()}
-              disabled={isLoading || (!inputText.trim() && attachedFiles.length === 0)}
-              className="absolute right-1 top-1 bottom-1 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:hover:bg-indigo-600 text-white text-xs font-bold px-4 rounded-full transition-colors shadow-lg"
-            >
-              {isLoading ? '...' : 'Enviar'}
-            </button>
-          </div>
-        </div>
-
         <div className="flex items-center space-x-4">
           <div className="text-right hidden sm:block">
             <p className="text-[10px] text-slate-500 uppercase font-bold leading-none">Status</p>
@@ -257,6 +219,12 @@ const App: React.FC = () => {
             onRemoveFile={handleRemoveFile}
             conversationHistory={conversationHistory}
             onNewConversation={handleNewConversation}
+            inputText={inputText}
+            setInputText={setInputText}
+            fileInputRef={fileInputRef}
+            handleFileUpload={handleFileUpload}
+            handleInterpret={handleInterpret}
+            handleKeyDown={handleKeyDown}
           />
         </section>
 
