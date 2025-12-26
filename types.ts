@@ -1,4 +1,18 @@
 
+export type FactorType = 'toggle' | 'slider' | 'dropdown' | 'text';
+
+export interface Factor {
+  id: string;
+  type: FactorType;
+  label: string;
+  enabled: boolean;
+  value?: any;
+  options?: string[];
+  min?: number;
+  max?: number;
+  description?: string;
+}
+
 export interface RepositoryItem {
   id: string;
   title: string;
@@ -6,12 +20,6 @@ export interface RepositoryItem {
   content?: string;
   factors?: Factor[];
   timestamp: number;
-}
-
-export interface Factor {
-  id: string;
-  label: string;
-  enabled: boolean;
 }
 
 export interface GeminiResponse {

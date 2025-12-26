@@ -64,19 +64,32 @@ export const applyFactorsAndGenerate = async (interpretation: any, factors: Fact
     let systemInstruction = "Você é Tessy, uma assistente avançada do Rabelus Lab. ";
     
     const isProfessional = factors.find(f => f.id === 'prof' && f.enabled);
-    const isDetailed = factors.find(f => f.id === 'detailed' && f.enabled);
     const wantsCode = factors.find(f => f.id === 'code' && f.enabled);
+    const detailLevel = factors.find(f => f.id === 'detail_level')?.value || 3;
+    const audience = factors.find(f => f.id === 'audience')?.value || 'intermediario';
+    const additionalContext = factors.find(f => f.id === 'context')?.value || '';
 
+    // Tone & Vocabulary
     if (isProfessional) {
       systemInstruction += "Mantenha um tom estritamente profissional, executivo e conciso. Evite gírias e use vocabulário técnico apropriado. ";
     } else {
       systemInstruction += "Mantenha um tom amigável, prestativo e acessível. ";
     }
 
-    if (isDetailed) {
-      systemInstruction += "Forneça explicações profundas, cubra casos de borda e ofereça contexto histórico ou técnico adicional. ";
+    // Detail Level Logic
+    if (detailLevel === 1) {
+      systemInstruction += "Seja extremamente conciso. Responda em 1-2 parágrafos curtos, focando apenas no essencial. ";
+    } else if (detailLevel === 5) {
+      systemInstruction += "Forneça uma análise profunda e abrangente. Inclua múltiplas seções, exemplos detalhados, casos de borda, contexto histórico e comparações. ";
     } else {
-      systemInstruction += "Seja direto ao ponto e foque na utilidade imediata. ";
+      systemInstruction += `Use um nível de detalhamento moderado (nível ${detailLevel} de 5). `;
+    }
+
+    // Audience Targeting
+    if (audience === 'iniciante') {
+      systemInstruction += "Use linguagem simples e acessível. Evite jargões técnicos ou explique-os claramente. Assuma conhecimento básico. ";
+    } else if (audience === 'especialista') {
+      systemInstruction += "Use terminologia técnica avançada. Assuma profundo conhecimento do assunto. Foque em nuances e detalhes técnicos. ";
     }
 
     if (wantsCode) {
@@ -87,6 +100,10 @@ export const applyFactorsAndGenerate = async (interpretation: any, factors: Fact
       ? "IMPORTANTE: Use um tom estritamente profissional, executivo e técnico. Evite saudações informais como 'Olá'."
       : "Use um tom amigável e acessível.";
 
+    const contextSection = additionalContext 
+      ? `\nCONTEXTO ADICIONAL DO USUÁRIO: ${additionalContext}`
+      : '';
+
     const prompt = `
       ${toneInstruction}
       
@@ -95,7 +112,7 @@ export const applyFactorsAndGenerate = async (interpretation: any, factors: Fact
       TAREFA: ${interpretation.task}
       ASSUNTO: ${interpretation.subject}
       DETALHES: ${interpretation.details || 'Nenhum detalhe adicional'}
-      LINGUAGEM/IDIOMA: ${interpretation.language || 'Não especificado'}
+      LINGUAGEM/IDIOMA: ${interpretation.language || 'Não especificado'}${contextSection}
       
       Por favor, gere a resposta final agora.
     `;

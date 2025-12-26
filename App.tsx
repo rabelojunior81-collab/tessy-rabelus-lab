@@ -14,10 +14,13 @@ const App: React.FC = () => {
   const [statusMessage, setStatusMessage] = useState('READY');
   const [refreshKey, setRefreshKey] = useState(0);
   const [factors, setFactors] = useState<Factor[]>([
-    { id: 'prof', label: 'Tom Profissional', enabled: true },
-    { id: 'flash', label: 'Modelo Flash', enabled: true },
-    { id: 'detailed', label: 'Resposta Detalhada', enabled: false },
-    { id: 'code', label: 'Formatação de Código', enabled: false },
+    { id: 'prof', type: 'toggle', label: 'Tom Profissional', enabled: false },
+    { id: 'flash', type: 'toggle', label: 'Modelo Flash', enabled: true },
+    { id: 'detailed', type: 'toggle', label: 'Resposta Detalhada', enabled: false },
+    { id: 'code', type: 'toggle', label: 'Formatação de Código', enabled: false },
+    { id: 'detail_level', type: 'slider', label: 'Nível de Detalhe', enabled: true, value: 3, min: 1, max: 5 },
+    { id: 'audience', type: 'dropdown', label: 'Público-Alvo', enabled: true, value: 'intermediario', options: ['iniciante', 'intermediario', 'avancado', 'especialista'] },
+    { id: 'context', type: 'text', label: 'Contexto Adicional', enabled: true, value: '' },
   ]);
 
   const handleInterpret = async () => {
@@ -53,8 +56,12 @@ const App: React.FC = () => {
     }
   };
 
-  const toggleFactor = (id: string) => {
-    setFactors(prev => prev.map(f => f.id === id ? { ...f, enabled: !f.enabled } : f));
+  const handleToggleFactor = (id: string, value?: any) => {
+    setFactors(prev => prev.map(f => 
+      f.id === id 
+        ? { ...f, enabled: value !== undefined ? true : !f.enabled, value: value !== undefined ? value : f.value }
+        : f
+    ));
   };
 
   const handleSelectItem = (item: RepositoryItem) => {
@@ -145,7 +152,7 @@ const App: React.FC = () => {
 
         {/* Right Col - 30% */}
         <aside className="w-[30%] min-w-[280px]">
-          <FactorPanel factors={factors} onToggle={toggleFactor} />
+          <FactorPanel factors={factors} onToggle={handleToggleFactor} />
         </aside>
       </main>
 

@@ -11,6 +11,7 @@ interface CanvasProps {
 const Canvas: React.FC<CanvasProps> = ({ result, isLoading, onSavePrompt }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
   const handleCopy = () => {
     if (!result) return;
@@ -18,6 +19,42 @@ const Canvas: React.FC<CanvasProps> = ({ result, isLoading, onSavePrompt }) => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
+  };
+
+  const handleExport = (format: 'markdown' | 'json' | 'text') => {
+    if (!result) return;
+    
+    let content = '';
+    let filename = '';
+    let mimeType = '';
+    
+    if (format === 'markdown') {
+      content = `# Resposta da Tessy\n\n${result}`;
+      filename = 'tessy-response.md';
+      mimeType = 'text/markdown';
+    } else if (format === 'json') {
+      const exportData = {
+        timestamp: new Date().toISOString(),
+        result: result,
+        engine: 'gemini-3-flash-preview'
+      };
+      content = JSON.stringify(exportData, null, 2);
+      filename = 'tessy-response.json';
+      mimeType = 'application/json';
+    } else {
+      content = result;
+      filename = 'tessy-response.txt';
+      mimeType = 'text/plain';
+    }
+    
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+    setShowExportMenu(false);
   };
 
   return (
@@ -47,6 +84,41 @@ const Canvas: React.FC<CanvasProps> = ({ result, isLoading, onSavePrompt }) => {
                 </svg>
                 <span>{copied ? 'Copiado!' : 'Copiar'}</span>
               </button>
+
+              <div className="relative">
+                <button
+                  onClick={() => setShowExportMenu(!showExportMenu)}
+                  className="text-xs bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-500/30 px-3 py-1.5 rounded-lg transition-all font-semibold flex items-center space-x-2"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                  <span>Exportar</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </button>
+                
+                {showExportMenu && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-0" 
+                      onClick={() => setShowExportMenu(false)}
+                    />
+                    <div className="absolute top-full mt-2 right-0 bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-1 z-10 min-w-[140px] animate-in fade-in slide-in-from-top-1 duration-200">
+                      <button onClick={() => handleExport('markdown')} className="w-full text-left px-4 py-2 text-xs text-slate-300 hover:bg-slate-700 transition-colors">
+                        Markdown (.md)
+                      </button>
+                      <button onClick={() => handleExport('json')} className="w-full text-left px-4 py-2 text-xs text-slate-300 hover:bg-slate-700 transition-colors">
+                        JSON (.json)
+                      </button>
+                      <button onClick={() => handleExport('text')} className="w-full text-left px-4 py-2 text-xs text-slate-300 hover:bg-slate-700 transition-colors">
+                        Texto (.txt)
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
               
               <button
                 onClick={() => setIsModalOpen(true)}
