@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 
 interface SavePromptModalProps {
@@ -10,67 +9,36 @@ interface SavePromptModalProps {
 const SavePromptModal: React.FC<SavePromptModalProps> = ({ isOpen, onClose, onSave }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
     onSave(title, description);
-    setTitle('');
-    setDescription('');
-    onClose();
+    setTitle(''); setDescription(''); onClose();
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-      <div className="bg-slate-900 border border-slate-700 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-        <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
-          <h3 className="text-lg font-bold text-white">Salvar no Repositório</h3>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-8 bg-slate-950/80 backdrop-blur-sm">
+      <div className="glass-panel !rounded-none w-full max-w-md animate-in zoom-in duration-200">
+        <div className="px-8 py-6 border-b-2 border-white/10 flex justify-between items-center bg-slate-900/40">
+          <h3 className="text-xl font-black text-white uppercase tracking-tighter">Protocolo de Arquivamento</h3>
           <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
-        
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-8 space-y-6 bg-slate-900/20">
           <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Título do Prompt</label>
-            <input
-              autoFocus
-              type="text"
-              required
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ex: Análise de Contrato V1"
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-            />
+            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-2">Título do Protocolo</label>
+            <input autoFocus type="text" required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Contrato V1.0..." className="w-full bg-slate-900/60 border-2 border-white/10 p-4 text-white font-bold placeholder-slate-700 focus:outline-none focus:border-cyan-500 transition-all !rounded-none" />
           </div>
           <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Descrição (opcional)</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Breve resumo sobre o que este prompt faz..."
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 h-24 resize-none"
-            />
+            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-2">Resumo de Metadados</label>
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Breve descrição da sequência lógica..." className="w-full bg-slate-900/60 border-2 border-white/10 p-4 text-white font-medium placeholder-slate-700 focus:outline-none focus:border-cyan-500 transition-all h-32 resize-none !rounded-none custom-scrollbar" />
           </div>
-          
-          <div className="flex space-x-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-2 px-4 rounded-lg transition-colors border border-slate-700"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2 px-4 rounded-lg transition-colors shadow-lg shadow-indigo-500/20"
-            >
-              Confirmar e Salvar
-            </button>
+          <div className="flex gap-4 pt-4">
+            <button type="button" onClick={onClose} className="brutalist-button flex-1 py-4 bg-slate-800 text-slate-400 font-black uppercase tracking-widest text-xs">Abortar</button>
+            <button type="submit" className="brutalist-button flex-1 py-4 bg-cyan-500 text-white font-black uppercase tracking-widest text-xs">Confirmar</button>
           </div>
         </form>
       </div>

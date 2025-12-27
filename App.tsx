@@ -17,29 +17,21 @@ const INITIAL_FACTORS: Factor[] = [
 ];
 
 const App: React.FC = () => {
-  // State
   const [inputText, setInputText] = useState('');
   const [result, setResult] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isOptimizing, setIsOptimizing] = useState(false);
-  const [statusMessage, setStatusMessage] = useState('READY');
+  const [statusMessage, setStatusMessage] = useState('PRONTO');
   const [refreshKey, setRefreshKey] = useState(0);
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
   const [optimizationResult, setOptimizationResult] = useState<OptimizationResult | null>(null);
   const [isOptModalOpen, setIsOptModalOpen] = useState(false);
   const [lastInterpretation, setLastInterpretation] = useState<any>(null);
-  
-  // Pending state for optimistic UI feedback
   const [pendingUserMessage, setPendingUserMessage] = useState<string | null>(null);
   const [pendingFiles, setPendingFiles] = useState<AttachedFile[]>([]);
-  
-  // Structured Multi-turn conversation state
   const [currentConversation, setCurrentConversation] = useState<Conversation>(() => {
-    // Attempt to restore last conversation on init
     const last = loadLastConversation();
     if (last) return last;
-    
-    // Default new empty conversation
     return {
       id: generateUUID(),
       title: 'Nova Conversa',
@@ -48,7 +40,6 @@ const App: React.FC = () => {
       updatedAt: Date.now()
     };
   });
-
   const [factors, setFactors] = useState<Factor[]>(() => {
     const saved = loadFactors();
     return saved || INITIAL_FACTORS;
@@ -71,47 +62,37 @@ const App: React.FC = () => {
     setAttachedFiles([]);
     setPendingUserMessage(null);
     setPendingFiles([]);
-    setStatusMessage('READY');
+    setStatusMessage('PRONTO');
     setTimeout(() => textInputRef.current?.focus(), 10);
   };
 
-  // Keyboard Shortcuts
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      // Ctrl+K to focus
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         textInputRef.current?.focus();
       }
-      // Ctrl+N for new conversation
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n') {
         e.preventDefault();
         handleNewConversation();
       }
     };
-
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
   }, []);
 
-  // Persistence Effects
-  
-  // Effect 1: Auto-save Factors (Debounced 500ms)
   useEffect(() => {
     if (saveFactorsTimerRef.current) {
       window.clearTimeout(saveFactorsTimerRef.current);
     }
-    
     saveFactorsTimerRef.current = window.setTimeout(() => {
       saveFactors(factors);
     }, 500);
-    
     return () => {
       if (saveFactorsTimerRef.current) window.clearTimeout(saveFactorsTimerRef.current);
     };
   }, [factors]);
 
-  // Effect 2: Auto-save Current Conversation
   useEffect(() => {
     if (currentConversation.turns.length > 0) {
       saveConversation(currentConversation);
@@ -121,11 +102,8 @@ const App: React.FC = () => {
   const handleInterpret = async (forcedText?: string) => {
     const textToUse = forcedText ?? inputText;
     if (!textToUse.trim() && attachedFiles.length === 0) return;
-    
-    // IMMEDIATE UI FEEDBACK PIPELINE
     const currentInput = textToUse;
     const currentFiles = [...attachedFiles];
-    
     setPendingUserMessage(currentInput);
     setPendingFiles(currentFiles);
     setInputText('');
@@ -133,22 +111,16 @@ const App: React.FC = () => {
     setIsLoading(true);
     setStatusMessage('INTERPRETANDO...');
     setResult('');
-    
     try {
-      // Step 1: Interpret the user's intent using Gemini
       const interpretation = await interpretIntent(currentInput, currentFiles, currentConversation.turns);
       setLastInterpretation(interpretation);
-      
       if (!interpretation) {
         setResult("Não foi possível processar a intenção.");
-        setStatusMessage('ERROR');
+        setStatusMessage('ERRO');
         return;
       }
-
-      // Step 2: Apply factors and generate the full professional response
       setStatusMessage('GERANDO RESPOSTA...');
       const finalResponse = await applyFactorsAndGenerate(interpretation, factors, currentFiles, currentConversation.turns);
-      
       const newTurn: ConversationTurn = {
         id: generateUUID(),
         userMessage: currentInput,
@@ -156,29 +128,20 @@ const App: React.FC = () => {
         timestamp: Date.now(),
         attachedFiles: currentFiles.length > 0 ? currentFiles : undefined
       };
-
       setCurrentConversation(prev => {
         const isFirstMessage = prev.turns.length === 0;
         let newTitle = prev.title;
-        
         if (isFirstMessage) {
           const rawTitle = currentInput.trim();
           newTitle = rawTitle.substring(0, 50) + (rawTitle.length > 50 ? '...' : '');
         }
-
-        return {
-          ...prev,
-          title: newTitle,
-          turns: [...prev.turns, newTurn],
-          updatedAt: Date.now()
-        };
+        return { ...prev, title: newTitle, turns: [...prev.turns, newTurn], updatedAt: Date.now() };
       });
-      
-      setStatusMessage('READY');
+      setStatusMessage('PRONTO');
     } catch (error) {
       console.error(error);
       setResult("Erro no processamento da Tessy. Verifique os logs e sua conexão.");
-      setStatusMessage('ERROR');
+      setStatusMessage('ERRO');
     } finally {
       setIsLoading(false);
       setPendingUserMessage(null);
@@ -189,7 +152,6 @@ const App: React.FC = () => {
   const handleOptimize = async () => {
     if (currentConversation.turns.length === 0) return;
     const lastTurn = currentConversation.turns[currentConversation.turns.length - 1];
-    
     setIsOptimizing(true);
     try {
       const optimization = await optimizePrompt(lastTurn.userMessage, lastInterpretation, lastTurn.tessyResponse);
@@ -211,10 +173,8 @@ const App: React.FC = () => {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
-    const maxSize = 4 * 1024 * 1024; // 4MB
-
+    const maxSize = 4 * 1024 * 1024;
     (Array.from(files) as File[]).forEach(file => {
       if (!allowedTypes.includes(file.type)) {
         alert(`Arquivo ${file.name} ignorado: Formato não suportado.`);
@@ -224,7 +184,6 @@ const App: React.FC = () => {
         alert(`Arquivo ${file.name} muito grande (máximo 4MB).`);
         return;
       }
-
       const reader = new FileReader();
       reader.onload = () => {
         const base64Data = (reader.result as string).split(',')[1];
@@ -238,7 +197,6 @@ const App: React.FC = () => {
       };
       reader.readAsDataURL(file);
     });
-
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -255,36 +213,21 @@ const App: React.FC = () => {
   };
 
   const handleSelectItem = (item: RepositoryItem) => {
-    if (!item.content) {
-      alert("Este prompt não contém uma resposta salva.");
-      return;
-    }
-
-    if (item.factors) {
-      setFactors(item.factors);
-    }
-
-    const isDuplicate = currentConversation.turns.length > 0 && 
-                      currentConversation.turns[currentConversation.turns.length - 1].userMessage === item.title &&
-                      currentConversation.turns[currentConversation.turns.length - 1].tessyResponse === item.content;
-
-    if (!isDuplicate) {
-      const newTurn: ConversationTurn = {
-        id: generateUUID(),
-        userMessage: item.title,
-        tessyResponse: item.content,
-        timestamp: item.timestamp || Date.now()
-      };
-      
-      setCurrentConversation(prev => ({
-        ...prev,
-        turns: [...prev.turns, newTurn],
-        updatedAt: Date.now()
-      }));
-    }
-
+    if (!item.content) return;
+    if (item.factors) setFactors(item.factors);
+    const newTurn: ConversationTurn = {
+      id: generateUUID(),
+      userMessage: item.title,
+      tessyResponse: item.content,
+      timestamp: item.timestamp || Date.now()
+    };
+    setCurrentConversation(prev => ({
+      ...prev,
+      turns: [...prev.turns, newTurn],
+      updatedAt: Date.now()
+    }));
     setInputText('');
-    setStatusMessage('READY');
+    setStatusMessage('PRONTO');
   };
 
   const handleSaveToRepository = (title: string, description: string) => {
@@ -299,46 +242,38 @@ const App: React.FC = () => {
     setRefreshKey(prev => prev + 1);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    // Only send on Ctrl+Enter or Cmd+Enter (Mac)
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      handleInterpret();
-    }
-  };
-
   return (
-    <div className="h-screen w-full flex flex-col bg-slate-950 text-slate-200 overflow-hidden font-sans selection:bg-indigo-500/30">
-      <header className="h-16 flex items-center justify-between px-6 border-b border-slate-800 bg-slate-900/50 backdrop-blur-md z-20 shrink-0">
-        <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center font-bold text-xl text-white shadow-lg shadow-indigo-500/20">T</div>
+    <div className="h-screen w-full flex flex-col overflow-hidden font-sans selection:bg-cyan-500/30">
+      <header className="h-16 flex items-center justify-between px-8 border-b-2 border-white/10 bg-slate-900/60 backdrop-blur-xl z-20 shrink-0">
+        <div className="flex items-center space-x-4">
+          <div className="w-10 h-10 bg-cyan-500 flex items-center justify-center font-black text-2xl text-white shadow-[4px_4px_0_rgba(0,0,0,0.5)] border-2 border-white/20">T</div>
           <div className="flex flex-col">
-            <h1 className="text-xl font-bold tracking-tight leading-none">
-              tessy <span className="text-indigo-400 font-light italic text-base">by Rabelus Lab</span>
+            <h1 className="text-2xl font-black tracking-tight leading-none text-white uppercase">
+              tessy <span className="text-cyan-400 font-light italic text-lg lowercase">by Rabelus Lab</span>
             </h1>
-            <span className="text-[9px] font-bold text-slate-500 tracking-widest uppercase mt-0.5">{currentConversation.title}</span>
+            <span className="text-[10px] font-black text-slate-400 tracking-[0.2em] uppercase mt-1">{currentConversation.title}</span>
           </div>
         </div>
         
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-6">
           <div className="text-right hidden sm:block">
-            <p className="text-[10px] text-slate-500 uppercase font-bold leading-none">Session Status</p>
-            <p className="text-xs text-green-400 font-medium">Persistence Active</p>
+            <p className="text-[10px] text-slate-500 uppercase font-black leading-none tracking-widest">Protocolo de Sistema</p>
+            <p className="text-xs text-cyan-400 font-bold uppercase mt-1">v2.6.0-Liquid</p>
           </div>
-          <div className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 overflow-hidden shadow-inner p-0.5">
-            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=tessy-v2&backgroundColor=b6e3f4`} alt="Avatar" className="w-full h-full object-cover rounded-full" />
+          <div className="w-11 h-11 border-2 border-cyan-500/50 p-0.5 shadow-[4px_4px_0_rgba(0,0,0,0.5)]">
+            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=tessy-v2&backgroundColor=b6e3f4`} alt="Avatar" className="w-full h-full object-cover" />
           </div>
         </div>
       </header>
 
       <main className="flex-1 flex overflow-hidden">
-        {/* Column 1: RepositoryBrowser (20%) */}
-        <aside className="w-1/5 min-w-[220px] bg-slate-900/40">
+        {/* Coluna 1: RepositoryBrowser (15%) */}
+        <aside className="w-[15%] min-w-[200px] border-r-2 border-white/10 glass-panel shadow-none border-t-0 border-b-0">
           <RepositoryBrowser onSelectItem={handleSelectItem} refreshKey={refreshKey} />
         </aside>
 
-        {/* Column 2: Canvas (50%) */}
-        <section className="w-1/2 min-w-[400px] flex-1">
+        {/* Coluna 2: Canvas (60%) */}
+        <section className="w-[60%] min-w-[500px] flex-1">
           <Canvas 
             result={result} 
             isLoading={isLoading} 
@@ -355,29 +290,34 @@ const App: React.FC = () => {
             textInputRef={textInputRef}
             handleFileUpload={handleFileUpload}
             handleInterpret={handleInterpret}
-            handleKeyDown={handleKeyDown}
+            handleKeyDown={(e) => {
+              if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                handleInterpret();
+              }
+            }}
             pendingUserMessage={pendingUserMessage}
             pendingFiles={pendingFiles}
           />
         </section>
 
-        {/* Column 3: FactorPanel (30%) */}
-        <aside className="w-[30%] min-w-[280px] bg-slate-900/40">
+        {/* Coluna 3: FactorPanel (25%) */}
+        <aside className="w-[25%] min-w-[300px] border-l-2 border-white/10 glass-panel shadow-none border-t-0 border-b-0">
           <FactorPanel factors={factors} onToggle={handleToggleFactor} />
         </aside>
       </main>
 
-      <footer className="h-8 border-t border-slate-800 bg-slate-900 px-4 flex items-center justify-between text-[10px] text-slate-500 shrink-0">
-        <div className="flex items-center space-x-4">
-          <span className="font-bold tracking-tighter">© 2024 RABELUS LAB</span>
-          <span className="flex items-center space-x-1.5">
-            <span className={`w-2 h-2 rounded-full ${isLoading ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'} shadow-[0_0_8px_rgba(34,197,94,0.6)]`}></span>
-            <span className="uppercase font-bold tracking-widest text-[9px]">Persistence Engine: {statusMessage}</span>
+      <footer className="h-10 border-t-2 border-white/10 bg-slate-900/80 px-8 flex items-center justify-between text-[10px] text-slate-400 font-black tracking-[0.2em] shrink-0 z-20">
+        <div className="flex items-center space-x-6">
+          <span className="text-white">© 2024 RABELUS LAB</span>
+          <span className="flex items-center space-x-2">
+            <span className={`w-2.5 h-2.5 ${isLoading ? 'bg-amber-500 animate-pulse' : 'bg-cyan-500'} shadow-[0_0_10px_rgba(14,165,233,0.5)]`}></span>
+            <span className="uppercase text-white">MOTOR: {statusMessage}</span>
           </span>
         </div>
-        <div className="flex items-center space-x-4 uppercase font-bold tracking-widest text-[9px]">
-          <span>Protocol: Automatic Sync</span>
-          <span>v2.6.0-PULSE</span>
+        <div className="flex items-center space-x-8">
+          <span>SINC SEGURA: ATIVA</span>
+          <span className="text-cyan-400">PULSE PROTOCOL 2.6.0</span>
         </div>
       </footer>
 

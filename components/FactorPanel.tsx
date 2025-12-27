@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Factor } from '../types';
 
@@ -9,72 +8,64 @@ interface FactorPanelProps {
 
 const FactorPanel: React.FC<FactorPanelProps> = ({ factors, onToggle }) => {
   return (
-    <div className="h-full flex flex-col bg-slate-900 border-l border-slate-800 p-4 overflow-y-auto custom-scrollbar">
-      <h2 className="text-xl font-bold mb-6 text-indigo-400">Painel de Fatores</h2>
-      <div className="space-y-4">
+    <div className="h-full flex flex-col p-8 overflow-y-auto custom-scrollbar bg-transparent">
+      <h2 className="text-xl font-black mb-8 text-cyan-400 uppercase tracking-widest border-b-2 border-cyan-500/20 pb-4">
+        Controladores de Fatores
+      </h2>
+      <div className="space-y-6">
         {factors.map((factor) => {
           if (factor.type === 'toggle') {
             return (
-              <div key={factor.id} className="flex items-center justify-between p-3 bg-slate-800 rounded-lg border border-slate-700">
-                <span className="text-sm font-medium text-slate-300">{factor.label}</span>
+              <div key={factor.id} className="flex items-center justify-between p-4 bg-slate-900/40 border-2 border-white/10 shadow-[4px_4px_0_rgba(0,0,0,0.3)]">
+                <span className="text-xs font-black text-white uppercase tracking-wider">{factor.label}</span>
                 <button
                   onClick={() => onToggle(factor.id)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                    factor.enabled ? 'bg-indigo-600' : 'bg-slate-600'
-                  }`}
+                  className={`w-14 h-7 border-2 transition-all flex items-center px-1 ${
+                    factor.enabled ? 'bg-cyan-500 border-cyan-300' : 'bg-slate-800 border-slate-600'
+                  } !rounded-none shadow-inner`}
                 >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      factor.enabled ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                  />
+                  <div className={`w-4 h-4 bg-white transition-transform ${factor.enabled ? 'translate-x-7' : 'translate-x-0'}`} />
                 </button>
               </div>
             );
           } else if (factor.type === 'slider') {
             return (
-              <div key={factor.id} className="p-4 bg-slate-800 rounded-lg border border-slate-700">
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+              <div key={factor.id} className="p-5 bg-slate-900/40 border-2 border-white/10 shadow-[4px_4px_0_rgba(0,0,0,0.3)]">
+                <label className="block text-xs font-black text-white uppercase tracking-wider mb-4">
                   {factor.label}
                 </label>
                 <input
-                  type="range"
-                  min={factor.min || 1}
-                  max={factor.max || 5}
-                  value={factor.value ?? 3}
+                  type="range" min={factor.min || 1} max={factor.max || 5} value={factor.value ?? 3}
                   onChange={(e) => onToggle(factor.id, parseInt(e.target.value))}
-                  className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                  className="w-full h-1 bg-slate-700 appearance-none cursor-pointer accent-cyan-500"
+                  style={{ borderRadius: 0 }}
                 />
-                <div className="flex justify-between text-xs text-slate-500 mt-1">
-                  <span>Resumo</span>
-                  <span className="text-indigo-400 font-bold">
-                    {factor.value ?? 3}
-                  </span>
-                  <span>Profundo</span>
+                <div className="flex justify-between text-[10px] font-black text-slate-500 uppercase mt-4 tracking-tighter">
+                  <span>Conciso</span>
+                  <span className="text-cyan-400 text-sm">LVL {factor.value ?? 3}</span>
+                  <span>Detalhado</span>
                 </div>
               </div>
             );
           } else if (factor.type === 'dropdown') {
             return (
-              <div key={factor.id} className="p-4 bg-slate-800 rounded-lg border border-slate-700">
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+              <div key={factor.id} className="p-5 bg-slate-900/40 border-2 border-white/10 shadow-[4px_4px_0_rgba(0,0,0,0.3)]">
+                <label className="block text-xs font-black text-white uppercase tracking-wider mb-3">
                   {factor.label}
                 </label>
                 <select
                   value={factor.value ?? (factor.options?.[0] || 'intermediario')}
                   onChange={(e) => onToggle(factor.id, e.target.value)}
-                  className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                  className="w-full bg-slate-800 border-2 border-white/10 p-3 text-xs font-bold text-white uppercase focus:outline-none focus:border-cyan-500 transition-all !rounded-none"
                 >
                   {factor.options?.map((opt) => (
-                    <option key={opt} value={opt}>
-                      {opt.charAt(0).toUpperCase() + opt.slice(1)}
-                    </option>
+                    <option key={opt} value={opt}>{opt.toUpperCase()}</option>
                   )) || (
                     <>
-                      <option value="iniciante">Iniciante</option>
-                      <option value="intermediario">Intermediário</option>
-                      <option value="avancado">Avançado</option>
-                      <option value="especialista">Especialista</option>
+                      <option value="iniciante">INICIANTE</option>
+                      <option value="intermediario">INTERMEDIÁRIO</option>
+                      <option value="avancado">AVANÇADO</option>
+                      <option value="especialista">ESPECIALISTA</option>
                     </>
                   )}
                 </select>
@@ -82,16 +73,15 @@ const FactorPanel: React.FC<FactorPanelProps> = ({ factors, onToggle }) => {
             );
           } else if (factor.type === 'text') {
             return (
-              <div key={factor.id} className="p-4 bg-slate-800 rounded-lg border border-slate-700">
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+              <div key={factor.id} className="p-5 bg-slate-900/40 border-2 border-white/10 shadow-[4px_4px_0_rgba(0,0,0,0.3)]">
+                <label className="block text-xs font-black text-white uppercase tracking-wider mb-3">
                   {factor.label}
                 </label>
                 <textarea
                   value={factor.value ?? ''}
                   onChange={(e) => onToggle(factor.id, e.target.value)}
-                  placeholder="Ex: Trabalhando com Node.js 20..."
-                  className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none transition-all"
-                  rows={3}
+                  placeholder="EX: PROTOCOLO NODE.JS..."
+                  className="w-full bg-slate-800 border-2 border-white/10 p-4 text-xs font-medium text-slate-300 focus:outline-none focus:border-cyan-500 resize-none transition-all !rounded-none h-32 custom-scrollbar"
                 />
               </div>
             );
@@ -100,10 +90,12 @@ const FactorPanel: React.FC<FactorPanelProps> = ({ factors, onToggle }) => {
         })}
       </div>
       
-      <div className="mt-8 p-4 bg-indigo-900/20 border border-indigo-500/30 rounded-xl">
-        <h4 className="text-xs font-bold text-indigo-300 uppercase mb-2">Dica de Contexto</h4>
-        <p className="text-xs text-slate-400 leading-relaxed">
-          Ativar o "Tom Profissional" fará com que as respostas do Gemini evitem gírias e foquem em clareza executiva. O nível de detalhe ajusta a verbosidade.
+      <div className="mt-auto p-6 bg-cyan-900/20 border-2 border-cyan-500/30 shadow-[6px_6px_0_rgba(0,0,0,0.3)]">
+        <h4 className="text-xs font-black text-cyan-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+           <span className="w-1.5 h-3 bg-cyan-400"></span> Dica do Sistema
+        </h4>
+        <p className="text-[11px] text-slate-300 leading-relaxed font-medium">
+          Modo Profissional impõe clareza semântica rigorosa. Controle de profundidade ajusta densidade de tokens.
         </p>
       </div>
     </div>
