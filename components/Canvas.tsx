@@ -17,7 +17,7 @@ interface CanvasProps {
   inputText: string;
   setInputText: (text: string) => void;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
-  textInputRef: React.RefObject<HTMLInputElement | null>;
+  textInputRef: React.RefObject<HTMLTextAreaElement | HTMLInputElement | null>;
   handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleInterpret: () => void;
   handleKeyDown: (e: React.KeyboardEvent) => void;
@@ -325,15 +325,20 @@ const Canvas: React.FC<CanvasProps> = ({
             multiple 
             accept=".jpg,.jpeg,.png,.webp,.pdf"
           />
-          <input
-            type="text"
-            ref={textInputRef}
+          <textarea
+            ref={textInputRef as any}
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Digite sua mensagem para a Tessy..."
-            className="flex-1 bg-transparent border-none py-3 px-2 focus:outline-none text-sm text-slate-100 placeholder-slate-500 font-medium"
+            placeholder="Digite sua mensagem para a Tessy... (Ctrl+Enter para enviar)"
+            className="flex-1 bg-transparent border-none py-3 px-2 focus:outline-none text-sm text-slate-100 placeholder-slate-500 font-medium resize-none overflow-y-auto max-h-32 custom-scrollbar"
+            rows={1}
             disabled={isLoading}
+            onInput={(e) => {
+              const target = e.target as HTMLTextAreaElement;
+              target.style.height = 'auto';
+              target.style.height = `${Math.min(target.scrollHeight, 128)}px`;
+            }}
           />
           <button
             onClick={() => handleInterpret()}
@@ -359,7 +364,7 @@ const Canvas: React.FC<CanvasProps> = ({
           <span>•</span>
           <span>CONTEXT: {conversationHistory.length} TURNS</span>
         </div>
-        <span>RABELUS SECURE PROTOCOL • v2.5.0</span>
+        <span>RABELUS SECURE PROTOCOL • v2.6.0-PULSE</span>
       </div>
 
       <SavePromptModal 

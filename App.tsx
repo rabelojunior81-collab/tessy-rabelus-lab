@@ -56,10 +56,10 @@ const App: React.FC = () => {
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const textInputRef = useRef<HTMLInputElement>(null);
+  const textInputRef = useRef<HTMLTextAreaElement | HTMLInputElement>(null);
   const saveFactorsTimerRef = useRef<number | null>(null);
 
-  // Keyboard Shortcuts (Ctrl+K)
+  // Keyboard Shortcuts (Ctrl+K to focus)
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
@@ -294,7 +294,8 @@ const App: React.FC = () => {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    // Only send on Ctrl+Enter or Cmd+Enter (Mac)
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       handleInterpret();
     }
