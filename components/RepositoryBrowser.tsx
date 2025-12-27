@@ -12,6 +12,7 @@ const RepositoryBrowser: React.FC<RepositoryBrowserProps> = ({ onSelectItem, ref
   const [items, setItems] = useState<RepositoryItem[]>([]);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const loadItems = () => {
     const localItems = getDocs('prompts') as RepositoryItem[];
@@ -36,11 +37,33 @@ const RepositoryBrowser: React.FC<RepositoryBrowserProps> = ({ onSelectItem, ref
   };
 
   const filteredItems = useMemo(() => {
-    if (selectedTags.length === 0) return items;
-    return items.filter(item => 
-      selectedTags.every(tag => item.tags?.includes(tag.toLowerCase()))
-    );
-  }, [items, selectedTags]);
+    let results = items;
+
+    // Filter by Search Term
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      results = results.filter(item => 
+        item.title.toLowerCase().includes(term) ||
+        (item.description && item.description.toLowerCase().includes(term)) ||
+        (item.content && item.content.toLowerCase().includes(term)) ||
+        (item.tags && item.tags.some(t => t.toLowerCase().includes(term)))
+      );
+    }
+
+    // Filter by Selected Tags
+    if (selectedTags.length > 0) {
+      results = results.filter(item => 
+        selectedTags.every(tag => item.tags?.includes(tag.toLowerCase()))
+      );
+    }
+
+    return results;
+  }, [items, selectedTags, searchTerm]);
+
+  const handleResetFilters = () => {
+    setSearchTerm('');
+    setSelectedTags([]);
+  };
 
   return (
     <div className="h-full flex flex-col p-6 bg-transparent">
@@ -49,8 +72,37 @@ const RepositoryBrowser: React.FC<RepositoryBrowserProps> = ({ onSelectItem, ref
         Biblioteca
       </h2>
 
+      {/* Search Bar Section */}
+      <div className="mb-6">
+        <div className="relative group">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg className="h-4 w-4 text-emerald-500/50 group-focus-within:text-emerald-500 transition-colors" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="BUSCAR PROMPTS..."
+            className="w-full bg-slate-900/60 border-2 border-emerald-500/10 py-2.5 pl-10 pr-10 text-[10px] font-black text-white placeholder-emerald-900/30 focus:outline-none focus:border-emerald-500/50 transition-all !rounded-none uppercase tracking-widest shadow-[4px_4px_0_rgba(0,0,0,0.2)]"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-emerald-500/50 hover:text-emerald-400 transition-colors"
+              title="Limpar Busca"
+            >
+              <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Tag Filters Section */}
-      <div className="mb-8 space-y-4">
+      <div className="mb-6 space-y-4">
         <div className="flex items-center justify-between">
           <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Filtros</p>
           {selectedTags.length > 0 && (
@@ -84,15 +136,31 @@ const RepositoryBrowser: React.FC<RepositoryBrowserProps> = ({ onSelectItem, ref
       </div>
 
       <div className="flex items-center justify-between mb-4 px-1">
-         <span className="text-[10px] text-emerald-500/70 font-black uppercase">Resultados: {filteredItems.length}</span>
+         <span className="text-[10px] text-emerald-500/70 font-black uppercase tracking-tighter">
+          {filteredItems.length === items.length 
+            ? `TOTAL: ${items.length}` 
+            : `ENCONTRADOS: ${filteredItems.length} de ${items.length}`}
+         </span>
       </div>
 
       <div className="space-y-4 overflow-y-auto flex-1 pr-2 custom-scrollbar">
         {filteredItems.length === 0 ? (
           <div className="border-2 border-dashed border-emerald-500/10 p-8 text-center bg-slate-900/20">
-            <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">
-              {items.length === 0 ? 'Arquivo Vazio' : 'Nenhum Correspondente'}
+            <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest leading-relaxed">
+              {items.length === 0 
+                ? 'Arquivo Vazio' 
+                : (searchTerm || selectedTags.length > 0) 
+                  ? 'Nenhum correspondente encontrado para sua busca' 
+                  : 'Nenhum item na biblioteca'}
             </p>
+            {(searchTerm || selectedTags.length > 0) && (
+              <button 
+                onClick={handleResetFilters}
+                className="mt-4 text-[9px] text-emerald-400 font-black uppercase border border-emerald-500/30 px-3 py-1 hover:bg-emerald-500/10 transition-all"
+              >
+                Resetar Filtros
+              </button>
+            )}
           </div>
         ) : (
           filteredItems.map((item) => (
