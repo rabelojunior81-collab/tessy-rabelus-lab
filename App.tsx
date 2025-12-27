@@ -56,7 +56,21 @@ const App: React.FC = () => {
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textInputRef = useRef<HTMLInputElement>(null);
   const saveFactorsTimerRef = useRef<number | null>(null);
+
+  // Keyboard Shortcuts (Ctrl+K)
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        textInputRef.current?.focus();
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
 
   // Persistence Effects
   
@@ -331,6 +345,7 @@ const App: React.FC = () => {
             inputText={inputText}
             setInputText={setInputText}
             fileInputRef={fileInputRef}
+            textInputRef={textInputRef}
             handleFileUpload={handleFileUpload}
             handleInterpret={handleInterpret}
             handleKeyDown={handleKeyDown}

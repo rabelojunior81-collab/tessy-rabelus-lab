@@ -16,7 +16,8 @@ interface CanvasProps {
   onNewConversation: () => void;
   inputText: string;
   setInputText: (text: string) => void;
-  fileInputRef: React.RefObject<HTMLInputElement>;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
+  textInputRef: React.RefObject<HTMLInputElement | null>;
   handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleInterpret: () => void;
   handleKeyDown: (e: React.KeyboardEvent) => void;
@@ -37,6 +38,7 @@ const Canvas: React.FC<CanvasProps> = ({
   inputText,
   setInputText,
   fileInputRef,
+  textInputRef,
   handleFileUpload,
   handleInterpret,
   handleKeyDown,
@@ -325,6 +327,7 @@ const Canvas: React.FC<CanvasProps> = ({
           />
           <input
             type="text"
+            ref={textInputRef}
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
