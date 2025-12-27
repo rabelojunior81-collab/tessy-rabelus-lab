@@ -36,6 +36,7 @@ export interface RepositoryItem {
   content?: string;
   factors?: Factor[];
   timestamp: number;
+  tags?: string[];
 }
 
 export interface GeminiResponse {

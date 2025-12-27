@@ -271,13 +271,14 @@ const App: React.FC = () => {
     setStatusMessage('PRONTO');
   };
 
-  const handleSaveToRepository = (title: string, description: string) => {
+  const handleSaveToRepository = (title: string, description: string, tags: string[]) => {
     const lastTurn = currentConversation.turns[currentConversation.turns.length - 1];
     const newPrompt = {
       title,
       description,
       content: lastTurn?.tessyResponse || result,
       factors: [...factors],
+      tags: tags
     };
     addDoc('prompts', newPrompt);
     setRefreshKey(prev => prev + 1);

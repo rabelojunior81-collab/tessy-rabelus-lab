@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import SavePromptModal from './SavePromptModal';
 import FilePreview from './FilePreview';
@@ -7,7 +8,7 @@ interface CanvasProps {
   result: string;
   isLoading: boolean;
   isOptimizing: boolean;
-  onSavePrompt: (title: string, description: string) => void;
+  onSavePrompt: (title: string, description: string, tags: string[]) => void;
   onOptimize: () => void;
   attachedFiles: AttachedFile[];
   onRemoveFile: (id: string) => void;

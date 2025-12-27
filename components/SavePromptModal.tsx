@@ -1,21 +1,72 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect, useRef } from 'react';
+import { getAllTags } from '../services/storageService';
 
 interface SavePromptModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (title: string, description: string) => void;
+  onSave: (title: string, description: string, tags: string[]) => void;
 }
 
 const SavePromptModal: React.FC<SavePromptModalProps> = ({ isOpen, onClose, onSave }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [tagInput, setTagInput] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const existingTags = useRef<string[]>([]);
+
+  useEffect(() => {
+    if (isOpen) {
+      existingTags.current = getAllTags();
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (tagInput.trim()) {
+      const filtered = existingTags.current.filter(t => 
+        t.toLowerCase().includes(tagInput.toLowerCase()) && !tags.includes(t)
+      );
+      setSuggestions(filtered.slice(0, 10));
+      setShowSuggestions(filtered.length > 0);
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  }, [tagInput, tags]);
+
   if (!isOpen) return null;
+
+  const handleAddTag = (tag: string) => {
+    const normalized = tag.trim().toLowerCase();
+    if (normalized && !tags.includes(normalized)) {
+      setTags([...tags, normalized]);
+    }
+    setTagInput('');
+    setShowSuggestions(false);
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setTags(tags.filter(t => t !== tagToRemove));
+  };
+
+  const handleTagKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      handleAddTag(tagInput);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
-    onSave(title, description);
-    setTitle(''); setDescription(''); onClose();
+    onSave(title, description, tags);
+    setTitle(''); 
+    setDescription(''); 
+    setTags([]);
+    setTagInput('');
+    onClose();
   };
 
   return (
@@ -34,7 +85,40 @@ const SavePromptModal: React.FC<SavePromptModalProps> = ({ isOpen, onClose, onSa
           </div>
           <div>
             <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-2">Resumo de Metadados</label>
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Breve descrição da sequência lógica..." className="w-full bg-slate-900/60 border-2 border-emerald-500/10 p-4 text-white font-medium placeholder-emerald-900/30 focus:outline-none focus:border-emerald-500 transition-all h-32 resize-none !rounded-none custom-scrollbar" />
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Breve descrição da sequência lógica..." className="w-full bg-slate-900/60 border-2 border-emerald-500/10 p-4 text-white font-medium placeholder-emerald-900/30 focus:outline-none focus:border-emerald-500 transition-all h-24 resize-none !rounded-none custom-scrollbar" />
+          </div>
+          <div className="relative">
+            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-2">Tags / Categorias</label>
+            <input 
+              type="text" 
+              value={tagInput} 
+              onChange={(e) => setTagInput(e.target.value)} 
+              onKeyDown={handleTagKeyDown}
+              placeholder="Adicione tags (Enter ou vírgula)..." 
+              className="w-full bg-slate-900/60 border-2 border-emerald-500/10 p-4 text-white font-bold placeholder-emerald-900/30 focus:outline-none focus:border-emerald-500 transition-all !rounded-none" 
+            />
+            {showSuggestions && (
+              <div className="absolute top-full left-0 w-full z-30 bg-slate-950 border-2 border-emerald-500/40 shadow-xl !rounded-none mt-1">
+                {suggestions.map(suggestion => (
+                  <button 
+                    key={suggestion}
+                    type="button"
+                    onClick={() => handleAddTag(suggestion)}
+                    className="w-full text-left px-4 py-2 text-xs font-bold text-emerald-400 hover:bg-emerald-500/20 uppercase"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="flex flex-wrap gap-2 mt-3">
+              {tags.map(tag => (
+                <span key={tag} className="px-2 py-1 bg-emerald-500/20 border border-emerald-500/50 text-emerald-400 text-[10px] font-black uppercase flex items-center gap-2">
+                  {tag}
+                  <button type="button" onClick={() => removeTag(tag)} className="hover:text-white">×</button>
+                </span>
+              ))}
+            </div>
           </div>
           <div className="flex gap-4 pt-4">
             <button type="button" onClick={onClose} className="brutalist-button flex-1 py-4 bg-slate-800 text-slate-400 font-black uppercase tracking-widest text-xs">Abortar</button>

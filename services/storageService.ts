@@ -60,6 +60,17 @@ export const deleteDoc = (collectionName: string, docId: string): void => {
   }
 };
 
+export const getAllTags = (): string[] => {
+  const items = getDocs('prompts') as RepositoryItem[];
+  const tagSet = new Set<string>();
+  items.forEach(item => {
+    if (item.tags) {
+      item.tags.forEach(tag => tagSet.add(tag.toLowerCase()));
+    }
+  });
+  return Array.from(tagSet).sort();
+};
+
 // --- New Centralized Persistence (Conversations) ---
 
 export const saveConversation = (conv: Conversation): void => {
