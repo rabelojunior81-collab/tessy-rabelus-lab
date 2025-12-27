@@ -169,9 +169,35 @@ const App: React.FC = () => {
   };
 
   const handleSelectItem = (item: RepositoryItem) => {
-    if (item.content) {
-      setInputText(item.title);
+    // 1. Validar conteúdo
+    if (!item.content) {
+      alert("Este prompt não contém uma resposta salva.");
+      return;
     }
+
+    // 2. Restaurar Fatores
+    if (item.factors) {
+      setFactors(item.factors);
+    }
+
+    // 3. Adicionar ao Histórico (Previnindo duplicação exata consecutiva)
+    const isDuplicate = conversationHistory.length > 0 && 
+                      conversationHistory[conversationHistory.length - 1].userMessage === item.title &&
+                      conversationHistory[conversationHistory.length - 1].tessyResponse === item.content;
+
+    if (!isDuplicate) {
+      const newTurn: ConversationTurn = {
+        id: `turn_loaded_${Date.now()}_${item.id}`,
+        userMessage: item.title,
+        tessyResponse: item.content,
+        timestamp: item.timestamp || Date.now()
+      };
+      setConversationHistory(prev => [...prev, newTurn]);
+    }
+
+    // 4. Limpar input e garantir status pronto
+    setInputText('');
+    setStatusMessage('READY');
   };
 
   const handleSaveToRepository = (title: string, description: string) => {
