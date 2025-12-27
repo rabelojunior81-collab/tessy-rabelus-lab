@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import SavePromptModal from './SavePromptModal';
 import FilePreview from './FilePreview';
@@ -331,14 +330,8 @@ const Canvas: React.FC<CanvasProps> = ({
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Digite sua mensagem para a Tessy... (Ctrl+Enter para enviar)"
-            className="flex-1 bg-transparent border-none py-3 px-2 focus:outline-none text-sm text-slate-100 placeholder-slate-500 font-medium resize-none overflow-y-auto max-h-32 custom-scrollbar"
-            rows={1}
+            className="flex-1 bg-transparent border-none py-3 px-2 focus:outline-none text-sm text-slate-100 placeholder-slate-500 font-medium resize-y h-[72px] overflow-y-auto custom-scrollbar"
             disabled={isLoading}
-            onInput={(e) => {
-              const target = e.target as HTMLTextAreaElement;
-              target.style.height = 'auto';
-              target.style.height = `${Math.min(target.scrollHeight, 128)}px`;
-            }}
           />
           <button
             onClick={() => handleInterpret()}

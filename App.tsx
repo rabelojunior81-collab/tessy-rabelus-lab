@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import RepositoryBrowser from './components/RepositoryBrowser';
 import Canvas from './components/Canvas';
@@ -59,12 +58,35 @@ const App: React.FC = () => {
   const textInputRef = useRef<HTMLTextAreaElement | HTMLInputElement>(null);
   const saveFactorsTimerRef = useRef<number | null>(null);
 
-  // Keyboard Shortcuts (Ctrl+K to focus)
+  const handleNewConversation = () => {
+    setCurrentConversation({
+      id: generateUUID(),
+      title: 'Nova Conversa',
+      turns: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    });
+    setResult('');
+    setInputText('');
+    setAttachedFiles([]);
+    setPendingUserMessage(null);
+    setPendingFiles([]);
+    setStatusMessage('READY');
+    setTimeout(() => textInputRef.current?.focus(), 10);
+  };
+
+  // Keyboard Shortcuts
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+K to focus
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         textInputRef.current?.focus();
+      }
+      // Ctrl+N for new conversation
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        handleNewConversation();
       }
     };
 
@@ -162,22 +184,6 @@ const App: React.FC = () => {
       setPendingUserMessage(null);
       setPendingFiles([]);
     }
-  };
-
-  const handleNewConversation = () => {
-    setCurrentConversation({
-      id: generateUUID(),
-      title: 'Nova Conversa',
-      turns: [],
-      createdAt: Date.now(),
-      updatedAt: Date.now()
-    });
-    setResult('');
-    setInputText('');
-    setAttachedFiles([]);
-    setPendingUserMessage(null);
-    setPendingFiles([]);
-    setStatusMessage('READY');
   };
 
   const handleOptimize = async () => {
