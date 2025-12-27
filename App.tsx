@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import RepositoryBrowser from './components/RepositoryBrowser';
 import Canvas from './components/Canvas';
 import FactorPanel from './components/FactorPanel';
@@ -79,7 +80,7 @@ const App: React.FC = () => {
   const textInputRef = useRef<HTMLTextAreaElement | HTMLInputElement>(null);
   const saveFactorsTimerRef = useRef<number | null>(null);
 
-  const handleNewConversation = () => {
+  const handleNewConversation = useCallback(() => {
     setCurrentConversation({
       id: generateUUID(),
       title: 'Nova Conversa',
@@ -94,27 +95,37 @@ const App: React.FC = () => {
     setPendingFiles([]);
     setStatusMessage('PRONTO');
     setTimeout(() => textInputRef.current?.focus(), 10);
-  };
+  }, []);
 
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+      const isCtrlOrMeta = e.ctrlKey || e.metaKey;
+      
+      // Ctrl+K: Focus Input
+      if (isCtrlOrMeta && e.key.toLowerCase() === 'k') {
         e.preventDefault();
+        e.stopPropagation();
         textInputRef.current?.focus();
       }
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n') {
+      
+      // Ctrl+N: New Conversation
+      if (isCtrlOrMeta && e.key.toLowerCase() === 'n') {
         e.preventDefault();
+        e.stopPropagation();
         handleNewConversation();
       }
     };
-    window.addEventListener('keydown', handleGlobalKeyDown);
-    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, []);
+    
+    // Use capture phase for more aggressive shortcut interception (true parameter)
+    window.addEventListener('keydown', handleGlobalKeyDown, true);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown, true);
+  }, [handleNewConversation]);
 
   useEffect(() => {
     if (saveFactorsTimerRef.current) {
       window.clearTimeout(saveFactorsTimerRef.current);
     }
+    // This debounce effect already handles all factor updates, including the 'context' (Contexto Adicional) field.
     saveFactorsTimerRef.current = window.setTimeout(() => {
       saveFactors(factors);
     }, 500);
