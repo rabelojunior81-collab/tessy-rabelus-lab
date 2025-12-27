@@ -28,12 +28,12 @@ const RepositoryBrowser: React.FC<RepositoryBrowserProps> = ({ onSelectItem, ref
   return (
     <div className="h-full flex flex-col p-6 bg-transparent">
       <h2 className="text-xl font-black mb-8 text-white uppercase tracking-widest flex items-center gap-3">
-        <div className="w-3 h-3 bg-cyan-500 animate-pulse"></div>
+        <div className="w-3 h-3 bg-emerald-500 animate-pulse"></div>
         Biblioteca
       </h2>
       <div className="space-y-4 overflow-y-auto flex-1 pr-2 custom-scrollbar">
         {items.length === 0 ? (
-          <div className="border-2 border-dashed border-white/10 p-8 text-center">
+          <div className="border-2 border-dashed border-emerald-500/10 p-8 text-center bg-slate-900/20">
             <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Arquivo Vazio</p>
           </div>
         ) : (
@@ -41,10 +41,10 @@ const RepositoryBrowser: React.FC<RepositoryBrowserProps> = ({ onSelectItem, ref
             <div
               key={item.id}
               onClick={() => onSelectItem(item)}
-              className="relative w-full text-left p-4 bg-slate-900/40 border-2 border-white/10 hover:border-cyan-500/50 hover:bg-cyan-900/20 transition-all cursor-pointer group shadow-[4px_4px_0_rgba(0,0,0,0.3)]"
+              className="relative w-full text-left p-4 bg-slate-900/40 border-2 border-emerald-500/10 hover:border-emerald-500/50 hover:bg-emerald-900/20 transition-all cursor-pointer group shadow-[4px_4px_0_rgba(0,0,0,0.3)]"
             >
               <div className="flex justify-between items-start mb-2">
-                <h3 className="text-xs font-black text-white uppercase truncate pr-8 tracking-wider group-hover:text-cyan-400 transition-colors">
+                <h3 className="text-xs font-black text-white uppercase truncate pr-8 tracking-wider group-hover:text-emerald-400 transition-colors">
                   {item.title}
                 </h3>
                 <button
@@ -64,8 +64,8 @@ const RepositoryBrowser: React.FC<RepositoryBrowserProps> = ({ onSelectItem, ref
           ))
         )}
       </div>
-      <div className="mt-8 pt-6 border-t-2 border-white/10">
-        <p className="text-[10px] uppercase tracking-[0.4em] text-cyan-500/50 font-black">
+      <div className="mt-8 pt-6 border-t-2 border-emerald-500/10">
+        <p className="text-[10px] uppercase tracking-[0.4em] text-emerald-500/50 font-black">
           RABELUS ASSET CORE
         </p>
       </div>

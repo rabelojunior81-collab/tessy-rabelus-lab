@@ -10,16 +10,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #0ea5e9;
-            --secondary: #6366f1;
-            --accent: #8b5cf6;
+            --primary: #10b981;
+            --secondary: #14b8a6;
+            --accent: #84cc16;
+            --bg-dark: #0f172a;
         }
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #0f172a;
+            background-color: var(--bg-dark);
             color: #ffffff;
-            /* Imagem de rede neural abstrata tecnológica */
-            background-image: linear-gradient(rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.95)), url('https://images.unsplash.com/photo-1509228468518-180dd4864904?q=80&w=2070&auto=format&fit=crop');
+            /* Imagem de rede neural tech em tons de verde */
+            background-image: linear-gradient(rgba(15, 23, 42, 0.75), rgba(15, 23, 42, 0.85)), url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2070&auto=format&fit=crop');
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
@@ -27,21 +28,22 @@
             height: 100vh;
         }
         .glass-panel {
-            background: rgba(15, 23, 42, 0.7);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 2px solid rgba(255, 255, 255, 0.1);
+            background: rgba(15, 23, 42, 0.5);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 2px solid rgba(16, 185, 129, 0.3);
             box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.5);
         }
         .brutalist-button {
             border-radius: 0 !important;
-            border: 2px solid rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(16, 185, 129, 0.4);
             box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.5);
             transition: all 0.2s ease;
         }
         .brutalist-button:hover:not(:disabled) {
             transform: translate(-2px, -2px);
             box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.6);
+            border-color: var(--primary);
         }
         .brutalist-button:active:not(:disabled) {
             transform: translate(1px, 1px);
@@ -54,14 +56,17 @@
             background: rgba(0, 0, 0, 0.1);
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: rgba(14, 165, 233, 0.5);
+            background: rgba(16, 185, 129, 0.5);
             border-radius: 0;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: rgba(14, 165, 233, 0.8);
+            background: rgba(16, 185, 129, 0.8);
         }
         pre, code {
             font-family: 'JetBrains Mono', monospace;
+        }
+        .glow-text-green {
+            text-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
         }
     </style>
 <script type="importmap">
