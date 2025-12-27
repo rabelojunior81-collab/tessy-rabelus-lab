@@ -14,11 +14,19 @@ export interface Factor {
 }
 
 export interface ConversationTurn {
-  id: string;
+  id: string; // UUID v4 format
   userMessage: string;
   tessyResponse: string;
-  timestamp: number;
+  timestamp: number; // ms since epoch
   attachedFiles?: AttachedFile[];
+}
+
+export interface Conversation {
+  id: string; // UUID v4 format
+  title: string;
+  turns: ConversationTurn[];
+  createdAt: number;
+  updatedAt: number;
 }
 
 export interface RepositoryItem {
@@ -54,4 +62,9 @@ export interface OptimizationResult {
   completeness_score: number;
   suggestions: OptimizationSuggestion[];
   optimized_prompt: string;
+}
+
+export interface AppPersistedState {
+  lastConversationId: string | null;
+  factors: Factor[];
 }

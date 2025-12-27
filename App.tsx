@@ -1,14 +1,24 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import RepositoryBrowser from './components/RepositoryBrowser';
 import Canvas from './components/Canvas';
 import FactorPanel from './components/FactorPanel';
 import OptimizationModal from './components/OptimizationModal';
 import { interpretIntent, applyFactorsAndGenerate, optimizePrompt } from './services/geminiService';
-import { addDoc } from './services/storageService';
-import { Factor, RepositoryItem, AttachedFile, OptimizationResult, ConversationTurn } from './types';
+import { addDoc, generateUUID, saveConversation, loadLastConversation, saveFactors, loadFactors } from './services/storageService';
+import { Factor, RepositoryItem, AttachedFile, OptimizationResult, ConversationTurn, Conversation } from './types';
+
+const INITIAL_FACTORS: Factor[] = [
+  { id: 'prof', type: 'toggle', label: 'Tom Profissional', enabled: false },
+  { id: 'flash', type: 'toggle', label: 'Modelo Flash', enabled: true },
+  { id: 'code', type: 'toggle', label: 'Formatação de Código', enabled: false },
+  { id: 'detail_level', type: 'slider', label: 'Nível de Detalhe', enabled: true, value: 3, min: 1, max: 5 },
+  { id: 'audience', type: 'dropdown', label: 'Público-Alvo', enabled: true, value: 'intermediario', options: ['iniciante', 'intermediario', 'avancado', 'especialista'] },
+  { id: 'context', type: 'text', label: 'Contexto Adicional', enabled: true, value: '' },
+];
 
 const App: React.FC = () => {
+  // State
   const [inputText, setInputText] = useState('');
   const [result, setResult] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -24,19 +34,53 @@ const App: React.FC = () => {
   const [pendingUserMessage, setPendingUserMessage] = useState<string | null>(null);
   const [pendingFiles, setPendingFiles] = useState<AttachedFile[]>([]);
   
-  // Multi-turn conversation state
-  const [conversationHistory, setConversationHistory] = useState<ConversationTurn[]>([]);
+  // Structured Multi-turn conversation state
+  const [currentConversation, setCurrentConversation] = useState<Conversation>(() => {
+    // Attempt to restore last conversation on init
+    const last = loadLastConversation();
+    if (last) return last;
+    
+    // Default new empty conversation
+    return {
+      id: generateUUID(),
+      title: 'Nova Conversa',
+      turns: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    };
+  });
+
+  const [factors, setFactors] = useState<Factor[]>(() => {
+    const saved = loadFactors();
+    return saved || INITIAL_FACTORS;
+  });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const saveFactorsTimerRef = useRef<number | null>(null);
 
-  const [factors, setFactors] = useState<Factor[]>([
-    { id: 'prof', type: 'toggle', label: 'Tom Profissional', enabled: false },
-    { id: 'flash', type: 'toggle', label: 'Modelo Flash', enabled: true },
-    { id: 'code', type: 'toggle', label: 'Formatação de Código', enabled: false },
-    { id: 'detail_level', type: 'slider', label: 'Nível de Detalhe', enabled: true, value: 3, min: 1, max: 5 },
-    { id: 'audience', type: 'dropdown', label: 'Público-Alvo', enabled: true, value: 'intermediario', options: ['iniciante', 'intermediario', 'avancado', 'especialista'] },
-    { id: 'context', type: 'text', label: 'Contexto Adicional', enabled: true, value: '' },
-  ]);
+  // Persistence Effects
+  
+  // Effect 1: Auto-save Factors (Debounced 500ms)
+  useEffect(() => {
+    if (saveFactorsTimerRef.current) {
+      window.clearTimeout(saveFactorsTimerRef.current);
+    }
+    
+    saveFactorsTimerRef.current = window.setTimeout(() => {
+      saveFactors(factors);
+    }, 500);
+    
+    return () => {
+      if (saveFactorsTimerRef.current) window.clearTimeout(saveFactorsTimerRef.current);
+    };
+  }, [factors]);
+
+  // Effect 2: Auto-save Current Conversation
+  useEffect(() => {
+    if (currentConversation.turns.length > 0) {
+      saveConversation(currentConversation);
+    }
+  }, [currentConversation]);
 
   const handleInterpret = async (forcedText?: string) => {
     const textToUse = forcedText ?? inputText;
@@ -56,7 +100,7 @@ const App: React.FC = () => {
     
     try {
       // Step 1: Interpret the user's intent using Gemini
-      const interpretation = await interpretIntent(currentInput, currentFiles, conversationHistory);
+      const interpretation = await interpretIntent(currentInput, currentFiles, currentConversation.turns);
       setLastInterpretation(interpretation);
       
       if (!interpretation) {
@@ -67,17 +111,33 @@ const App: React.FC = () => {
 
       // Step 2: Apply factors and generate the full professional response
       setStatusMessage('GERANDO RESPOSTA...');
-      const finalResponse = await applyFactorsAndGenerate(interpretation, factors, currentFiles, conversationHistory);
+      const finalResponse = await applyFactorsAndGenerate(interpretation, factors, currentFiles, currentConversation.turns);
       
       const newTurn: ConversationTurn = {
-        id: `turn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id: generateUUID(),
         userMessage: currentInput,
         tessyResponse: finalResponse,
         timestamp: Date.now(),
         attachedFiles: currentFiles.length > 0 ? currentFiles : undefined
       };
 
-      setConversationHistory(prev => [...prev, newTurn]);
+      setCurrentConversation(prev => {
+        const isFirstMessage = prev.turns.length === 0;
+        let newTitle = prev.title;
+        
+        if (isFirstMessage) {
+          const rawTitle = currentInput.trim();
+          newTitle = rawTitle.substring(0, 50) + (rawTitle.length > 50 ? '...' : '');
+        }
+
+        return {
+          ...prev,
+          title: newTitle,
+          turns: [...prev.turns, newTurn],
+          updatedAt: Date.now()
+        };
+      });
+      
       setStatusMessage('READY');
     } catch (error) {
       console.error(error);
@@ -91,7 +151,13 @@ const App: React.FC = () => {
   };
 
   const handleNewConversation = () => {
-    setConversationHistory([]);
+    setCurrentConversation({
+      id: generateUUID(),
+      title: 'Nova Conversa',
+      turns: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    });
     setResult('');
     setInputText('');
     setAttachedFiles([]);
@@ -101,8 +167,8 @@ const App: React.FC = () => {
   };
 
   const handleOptimize = async () => {
-    if (conversationHistory.length === 0) return;
-    const lastTurn = conversationHistory[conversationHistory.length - 1];
+    if (currentConversation.turns.length === 0) return;
+    const lastTurn = currentConversation.turns[currentConversation.turns.length - 1];
     
     setIsOptimizing(true);
     try {
@@ -143,7 +209,7 @@ const App: React.FC = () => {
       reader.onload = () => {
         const base64Data = (reader.result as string).split(',')[1];
         setAttachedFiles(prev => [...prev, {
-          id: `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          id: generateUUID(),
           name: file.name,
           mimeType: file.type,
           data: base64Data,
@@ -169,39 +235,40 @@ const App: React.FC = () => {
   };
 
   const handleSelectItem = (item: RepositoryItem) => {
-    // 1. Validar conteúdo
     if (!item.content) {
       alert("Este prompt não contém uma resposta salva.");
       return;
     }
 
-    // 2. Restaurar Fatores
     if (item.factors) {
       setFactors(item.factors);
     }
 
-    // 3. Adicionar ao Histórico (Previnindo duplicação exata consecutiva)
-    const isDuplicate = conversationHistory.length > 0 && 
-                      conversationHistory[conversationHistory.length - 1].userMessage === item.title &&
-                      conversationHistory[conversationHistory.length - 1].tessyResponse === item.content;
+    const isDuplicate = currentConversation.turns.length > 0 && 
+                      currentConversation.turns[currentConversation.turns.length - 1].userMessage === item.title &&
+                      currentConversation.turns[currentConversation.turns.length - 1].tessyResponse === item.content;
 
     if (!isDuplicate) {
       const newTurn: ConversationTurn = {
-        id: `turn_loaded_${Date.now()}_${item.id}`,
+        id: generateUUID(),
         userMessage: item.title,
         tessyResponse: item.content,
         timestamp: item.timestamp || Date.now()
       };
-      setConversationHistory(prev => [...prev, newTurn]);
+      
+      setCurrentConversation(prev => ({
+        ...prev,
+        turns: [...prev.turns, newTurn],
+        updatedAt: Date.now()
+      }));
     }
 
-    // 4. Limpar input e garantir status pronto
     setInputText('');
     setStatusMessage('READY');
   };
 
   const handleSaveToRepository = (title: string, description: string) => {
-    const lastTurn = conversationHistory[conversationHistory.length - 1];
+    const lastTurn = currentConversation.turns[currentConversation.turns.length - 1];
     const newPrompt = {
       title,
       description,
@@ -224,18 +291,21 @@ const App: React.FC = () => {
       <header className="h-16 flex items-center justify-between px-6 border-b border-slate-800 bg-slate-900/50 backdrop-blur-md z-20 shrink-0">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center font-bold text-xl text-white shadow-lg shadow-indigo-500/20">T</div>
-          <h1 className="text-xl font-bold tracking-tight">
-            tessy <span className="text-indigo-400 font-light italic">by Rabelus Lab</span>
-          </h1>
+          <div className="flex flex-col">
+            <h1 className="text-xl font-bold tracking-tight leading-none">
+              tessy <span className="text-indigo-400 font-light italic text-base">by Rabelus Lab</span>
+            </h1>
+            <span className="text-[9px] font-bold text-slate-500 tracking-widest uppercase mt-0.5">{currentConversation.title}</span>
+          </div>
         </div>
         
         <div className="flex items-center space-x-4">
           <div className="text-right hidden sm:block">
-            <p className="text-[10px] text-slate-500 uppercase font-bold leading-none">Status</p>
-            <p className="text-xs text-green-400 font-medium">System Online</p>
+            <p className="text-[10px] text-slate-500 uppercase font-bold leading-none">Session Status</p>
+            <p className="text-xs text-green-400 font-medium">Persistence Active</p>
           </div>
           <div className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 overflow-hidden shadow-inner p-0.5">
-            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=tessy&backgroundColor=b6e3f4`} alt="Avatar" className="w-full h-full object-cover rounded-full" />
+            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=tessy-v2&backgroundColor=b6e3f4`} alt="Avatar" className="w-full h-full object-cover rounded-full" />
           </div>
         </div>
       </header>
@@ -256,7 +326,7 @@ const App: React.FC = () => {
             onOptimize={handleOptimize}
             attachedFiles={attachedFiles}
             onRemoveFile={handleRemoveFile}
-            conversationHistory={conversationHistory}
+            conversationHistory={currentConversation.turns}
             onNewConversation={handleNewConversation}
             inputText={inputText}
             setInputText={setInputText}
@@ -280,12 +350,12 @@ const App: React.FC = () => {
           <span className="font-bold tracking-tighter">© 2024 RABELUS LAB</span>
           <span className="flex items-center space-x-1.5">
             <span className={`w-2 h-2 rounded-full ${isLoading ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'} shadow-[0_0_8px_rgba(34,197,94,0.6)]`}></span>
-            <span className="uppercase font-bold tracking-widest text-[9px]">Engine Status: {statusMessage}</span>
+            <span className="uppercase font-bold tracking-widest text-[9px]">Persistence Engine: {statusMessage}</span>
           </span>
         </div>
         <div className="flex items-center space-x-4 uppercase font-bold tracking-widest text-[9px]">
-          <span>Conversation Mode: Multi-Turn Intelligence</span>
-          <span>v2.5.0-CHRONOS</span>
+          <span>Protocol: Automatic Sync</span>
+          <span>v2.6.0-PULSE</span>
         </div>
       </footer>
 
