@@ -11,9 +11,6 @@ import { Factor, RepositoryItem, AttachedFile, OptimizationResult, ConversationT
 // Lazy Loaded Components
 const RepositoryBrowser = lazy(() => import('./components/RepositoryBrowser'));
 const OptimizationModal = lazy(() => import('./components/OptimizationModal'));
-const SavePromptModal = lazy(() => import('./components/SavePromptModal'));
-const TemplateLibraryModal = lazy(() => import('./components/TemplateLibraryModal'));
-const ShareModal = lazy(() => import('./components/ShareModal'));
 
 const INITIAL_FACTORS: Factor[] = [
   { id: 'prof', type: 'toggle', label: 'Tom Profissional', enabled: false },
@@ -26,7 +23,7 @@ const INITIAL_FACTORS: Factor[] = [
 ];
 
 const TessyLogo = React.memo(() => (
-  <div className="relative w-10 h-10 flex items-center justify-center">
+  <div className="relative w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center">
     <svg viewBox="0 0 100 100" className="w-full h-full filter drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]">
       <defs>
         <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -35,12 +32,8 @@ const TessyLogo = React.memo(() => (
         </linearGradient>
       </defs>
       <circle cx="50" cy="50" r="45" fill="none" stroke="url(#logoGrad)" strokeWidth="0.5" strokeDasharray="2 2" className="animate-[spin_20s_linear_infinite]" />
-      <path d="M20 30 L50 15 L80 30" fill="none" stroke="url(#logoGrad)" strokeWidth="1" strokeOpacity="0.3" />
-      <path d="M20 70 L50 85 L80 70" fill="none" stroke="url(#logoGrad)" strokeWidth="1" strokeOpacity="0.3" />
-      <path d="M25 25 H75 V35 H55 V80 H45 V35 H25 Z" fill="url(#logoGrad)" className="drop-shadow-sm" />
+      <path d="M25 25 H75 V35 H55 V80 H45 V35 H25 Z" fill="url(#logoGrad)" />
       <circle cx="50" cy="15" r="3" fill="#84cc16" className="animate-pulse" />
-      <circle cx="80" cy="30" r="2.5" fill="#10b981" />
-      <circle cx="20" cy="30" r="2.5" fill="#10b981" />
       <circle cx="50" cy="85" r="3" fill="#14b8a6" className="animate-pulse" />
     </svg>
   </div>
@@ -53,7 +46,11 @@ const App: React.FC = () => {
     return 'dark';
   });
 
-  const [activeTab, setActiveTab] = useState<'library' | 'history'>('history');
+  const [activeSideTab, setActiveSideTab] = useState<'library' | 'history'>('history');
+  const [isHistoryMobileOpen, setIsHistoryMobileOpen] = useState(false);
+  const [isLibraryMobileOpen, setIsLibraryMobileOpen] = useState(false);
+  const [isFactorsMobileOpen, setIsFactorsMobileOpen] = useState(false);
+  
   const [inputText, setInputText] = useState('');
   const [result, setResult] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -94,11 +91,9 @@ const App: React.FC = () => {
     localStorage.setItem('tessy-theme', theme);
   }, [theme]);
 
-  // Cleanup old conversations on mount
   useEffect(() => {
     const removed = cleanOldConversations();
     if (removed > 0) {
-      console.log(`Sistema: ${removed} conversas antigas foram removidas do histórico local.`);
       setHistoryRefreshKey(prev => prev + 1);
     }
   }, []);
@@ -120,6 +115,9 @@ const App: React.FC = () => {
     setPendingFiles([]);
     setStatusMessage('PRONTO');
     setHistoryRefreshKey(p => p + 1);
+    setIsHistoryMobileOpen(false);
+    setIsLibraryMobileOpen(false);
+    setIsFactorsMobileOpen(false);
     setTimeout(() => textInputRef.current?.focus(), 10);
   }, []);
 
@@ -133,10 +131,6 @@ const App: React.FC = () => {
       if (isCtrlOrMeta && e.key.toLowerCase() === 'n') {
         e.preventDefault();
         handleNewConversation();
-      }
-      if (isCtrlOrMeta && e.key.toLowerCase() === 'h') {
-        e.preventDefault();
-        setActiveTab(prev => prev === 'history' ? 'library' : 'history');
       }
     };
     window.addEventListener('keydown', handleGlobalKeyDown, true);
@@ -226,7 +220,6 @@ const App: React.FC = () => {
       setIsOptModalOpen(true);
     } catch (error) {
       console.error(error);
-      alert("Erro ao otimizar prompt. Tente novamente.");
     } finally {
       setIsOptimizing(false);
     }
@@ -243,14 +236,8 @@ const App: React.FC = () => {
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
     const maxSize = 4 * 1024 * 1024;
     (Array.from(files) as File[]).forEach(file => {
-      if (!allowedTypes.includes(file.type)) {
-        alert(`Arquivo ${file.name} ignorado.`);
-        return;
-      }
-      if (file.size > maxSize) {
-        alert(`Arquivo muito grande (máximo 4MB).`);
-        return;
-      }
+      if (!allowedTypes.includes(file.type)) return;
+      if (file.size > maxSize) return;
       const reader = new FileReader();
       reader.onload = () => {
         const base64Data = (reader.result as string).split(',')[1];
@@ -295,6 +282,7 @@ const App: React.FC = () => {
     }));
     setInputText('');
     setStatusMessage('PRONTO');
+    setIsLibraryMobileOpen(false);
   }, []);
 
   const handleLoadConversationFromHistory = useCallback((conversation: Conversation) => {
@@ -303,21 +291,19 @@ const App: React.FC = () => {
     setInputText('');
     setAttachedFiles([]);
     setStatusMessage('PRONTO');
+    setIsHistoryMobileOpen(false);
     localStorage.setItem('tessy_last_conv_id', conversation.id);
   }, []);
 
   const handleDeleteConversationFromHistory = useCallback((id: string) => {
-    if (currentConversation.id === id) {
-      handleNewConversation();
-    }
+    if (currentConversation.id === id) handleNewConversation();
     setHistoryRefreshKey(p => p + 1);
   }, [currentConversation.id, handleNewConversation]);
 
   const handleSaveToRepository = useCallback((title: string, description: string, tags: string[]) => {
     const lastTurn = currentConversation.turns[currentConversation.turns.length - 1];
     const newPrompt = {
-      title,
-      description,
+      title, description,
       content: lastTurn?.tessyResponse || result,
       factors: [...factors],
       tags: tags
@@ -328,94 +314,94 @@ const App: React.FC = () => {
 
   return (
     <div className="h-screen w-full flex flex-col overflow-hidden font-sans selection:bg-emerald-600/30">
-      <header className="h-16 flex items-center justify-between px-8 border-b-2 border-emerald-600/25 bg-white/85 dark:bg-slate-900/60 backdrop-blur-2xl z-20 shrink-0">
-        <div className="flex items-center space-x-4">
+      <header className="h-14 sm:h-16 flex items-center justify-between px-4 sm:px-8 border-b-2 border-emerald-600/25 bg-white/85 dark:bg-slate-900/60 backdrop-blur-2xl z-40 shrink-0">
+        <div className="flex items-center space-x-2 sm:space-x-4">
+          <button 
+            onClick={() => setIsHistoryMobileOpen(true)}
+            className="md:hidden brutalist-button w-10 h-10 bg-emerald-600/10 text-emerald-600 border-emerald-600/20"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          </button>
           <TessyLogo />
           <div className="flex flex-col">
-            <h1 className="text-2xl font-black tracking-tight leading-none text-slate-800 dark:text-white uppercase glow-text-green">
-              tessy <span className="text-emerald-600 dark:text-emerald-400 font-light italic text-lg lowercase">by rabelus lab</span>
+            <h1 className="text-lg sm:text-2xl font-black tracking-tight leading-none text-slate-800 dark:text-white uppercase glow-text-green">
+              tessy <span className="hidden xs:inline text-emerald-600 dark:text-emerald-400 font-light italic text-xs sm:text-lg lowercase">by rabelus lab</span>
             </h1>
-            <span className="text-[10px] font-black text-slate-600 dark:text-slate-400 tracking-[0.2em] uppercase mt-1">{currentConversation.title}</span>
+            <span className="text-[8px] sm:text-[10px] font-black text-slate-600 dark:text-slate-400 tracking-[0.2em] uppercase mt-0.5 line-clamp-1 max-w-[120px] sm:max-w-none">
+              {currentConversation.title}
+            </span>
           </div>
         </div>
 
-        <DateAnchor 
-          groundingEnabled={factors.find(f => f.id === 'grounding')?.enabled || false} 
-        />
+        <div className="hidden lg:block">
+          <DateAnchor groundingEnabled={factors.find(f => f.id === 'grounding')?.enabled || false} />
+        </div>
         
-        <div className="flex items-center space-x-6">
+        <div className="flex items-center space-x-2 sm:space-x-6">
           <button 
-            onClick={toggleTheme}
-            className="w-10 h-10 flex items-center justify-center brutalist-button bg-emerald-600/15 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-600/25 border-emerald-600/25 transition-transform duration-300 active:scale-90"
-            title={theme === 'dark' ? 'Mudar para Modo Claro' : 'Mudar para Modo Escuro'}
+            onClick={() => setIsFactorsMobileOpen(true)}
+            className="md:hidden brutalist-button w-10 h-10 bg-teal-600/10 text-teal-600 border-teal-600/20"
           >
-            <div className={`transition-transform duration-500 ${theme === 'dark' ? 'rotate-180' : 'rotate-0'}`}>
-              {theme === 'dark' ? (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" /></svg>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" /></svg>
-              )}
-            </div>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>
           </button>
-          <div className="text-right hidden sm:block">
-            <p className="text-[10px] text-emerald-600/70 dark:text-emerald-500/50 uppercase font-black leading-none tracking-widest">Protocolo Seguro</p>
-            <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold uppercase mt-1">v2.7.5-Optimized</p>
-          </div>
-          <div className="w-11 h-11 border-2 border-emerald-600/25 p-0.5 shadow-[4px_4px_0_rgba(16,185,129,0.15)] bg-white/85 dark:bg-slate-950/40">
+          
+          <button onClick={toggleTheme} className="w-10 h-10 flex items-center justify-center brutalist-button bg-emerald-600/15 text-emerald-600 dark:text-emerald-400 border-emerald-600/25 active:scale-90">
+            {theme === 'dark' ? (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" /></svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" /></svg>
+            )}
+          </button>
+          
+          <div className="w-9 h-9 sm:w-11 sm:h-11 border-2 border-emerald-600/25 p-0.5 shadow-[4px_4px_0_rgba(16,185,129,0.15)] bg-white/85 dark:bg-slate-950/40 shrink-0">
             <img src={`https://api.dicebear.com/7.x/identicon/svg?seed=tessy-green&backgroundColor=10b981`} alt="Avatar" className="w-full h-full object-cover" />
           </div>
         </div>
       </header>
 
-      <main className="flex-1 flex overflow-hidden">
-        <aside className="w-[18%] min-w-[250px] border-r-2 border-emerald-600/15 glass-panel shadow-none border-t-0 border-b-0 flex flex-col">
+      <main className="flex-1 flex overflow-hidden relative">
+        {/* Mobile History Drawer */}
+        <div className={`fixed inset-0 z-50 transition-opacity duration-300 md:hidden ${isHistoryMobileOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+          <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setIsHistoryMobileOpen(false)}></div>
+          <div className={`absolute top-0 left-0 h-full w-[85%] max-w-sm bg-white dark:bg-slate-900 shadow-2xl transition-transform duration-300 ${isHistoryMobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+            <HistorySidebar 
+              activeId={currentConversation.id} 
+              onLoad={handleLoadConversationFromHistory}
+              onDelete={handleDeleteConversationFromHistory}
+              refreshKey={historyRefreshKey}
+              onClose={() => setIsHistoryMobileOpen(false)}
+            />
+          </div>
+        </div>
+
+        {/* Desktop Sidebars Wrapper */}
+        <aside className="hidden md:flex flex-col w-[20%] lg:w-[18%] border-r-2 border-emerald-600/15 glass-panel !border-t-0 !border-b-0">
           <div className="flex border-b-2 border-emerald-600/15 shrink-0">
-            <button 
-              onClick={() => setActiveTab('history')}
-              className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'history' ? 'bg-emerald-600/15 text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-600' : 'text-slate-600 hover:text-slate-800'}`}
-            >
-              Histórico
-            </button>
-            <button 
-              onClick={() => setActiveTab('library')}
-              className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'library' ? 'bg-emerald-600/15 text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-600' : 'text-slate-600 hover:text-slate-800'}`}
-            >
-              Biblioteca
-            </button>
+            <button onClick={() => setActiveSideTab('history')} className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest transition-all ${activeSideTab === 'history' ? 'bg-emerald-600/10 text-emerald-600 border-b-2 border-emerald-600' : 'text-slate-500'}`}>Histórico</button>
+            <button onClick={() => setActiveSideTab('library')} className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest transition-all ${activeSideTab === 'library' ? 'bg-emerald-600/10 text-emerald-600 border-b-2 border-emerald-600' : 'text-slate-500'}`}>Biblioteca</button>
           </div>
           <div className="flex-1 overflow-hidden">
             <Suspense fallback={<LoadingSpinner />}>
-              {activeTab === 'library' ? (
+              {activeSideTab === 'library' ? (
                 <RepositoryBrowser onSelectItem={handleSelectItem} refreshKey={refreshKey} />
               ) : (
-                <HistorySidebar 
-                  activeId={currentConversation.id} 
-                  onLoad={handleLoadConversationFromHistory}
-                  onDelete={handleDeleteConversationFromHistory}
-                  refreshKey={historyRefreshKey}
-                />
+                <HistorySidebar activeId={currentConversation.id} onLoad={handleLoadConversationFromHistory} onDelete={handleDeleteConversationFromHistory} refreshKey={historyRefreshKey} />
               )}
             </Suspense>
           </div>
         </aside>
 
-        <section className="w-[57%] min-w-[500px] flex-1">
+        {/* Main Section */}
+        <section className="flex-1 flex flex-col min-w-0">
           <Canvas 
-            result={result} 
-            isLoading={isLoading} 
-            isOptimizing={isOptimizing}
-            onSavePrompt={handleSaveToRepository} 
-            onOptimize={handleOptimize}
-            attachedFiles={attachedFiles}
-            onRemoveFile={handleRemoveFile}
+            result={result} isLoading={isLoading} isOptimizing={isOptimizing}
+            onSavePrompt={handleSaveToRepository} onOptimize={handleOptimize}
+            attachedFiles={attachedFiles} onRemoveFile={handleRemoveFile}
             conversationHistory={currentConversation.turns}
             onNewConversation={handleNewConversation}
-            inputText={inputText}
-            setInputText={setInputText}
-            fileInputRef={fileInputRef}
-            textInputRef={textInputRef}
-            handleFileUpload={handleFileUpload}
-            handleInterpret={handleInterpret}
+            inputText={inputText} setInputText={setInputText}
+            fileInputRef={fileInputRef} textInputRef={textInputRef}
+            handleFileUpload={handleFileUpload} handleInterpret={handleInterpret}
             handleKeyDown={(e) => {
               if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
                 e.preventDefault();
@@ -431,33 +417,45 @@ const App: React.FC = () => {
           />
         </section>
 
-        <aside className="w-[25%] min-w-[300px] border-l-2 border-emerald-600/15 glass-panel shadow-none border-t-0 border-b-0">
+        {/* Mobile Factors Drawer */}
+        <div className={`fixed inset-0 z-50 transition-opacity duration-300 md:hidden ${isFactorsMobileOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+          <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setIsFactorsMobileOpen(false)}></div>
+          <div className={`absolute top-0 right-0 h-full w-[85%] max-w-sm bg-white dark:bg-slate-900 shadow-2xl transition-transform duration-300 ${isFactorsMobileOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+             <div className="h-full flex flex-col">
+                <div className="p-4 border-b border-emerald-600/20 flex justify-between items-center">
+                  <span className="text-xs font-black uppercase tracking-widest">Controles</span>
+                  <button onClick={() => setIsFactorsMobileOpen(false)} className="p-2"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+                </div>
+                <div className="flex-1 overflow-hidden">
+                   <FactorPanel factors={factors} onToggle={handleToggleFactor} />
+                </div>
+             </div>
+          </div>
+        </div>
+
+        {/* Desktop Factors Panel */}
+        <aside className="hidden md:block w-[25%] lg:w-[22%] border-l-2 border-emerald-600/15 glass-panel !border-t-0 !border-b-0">
           <FactorPanel factors={factors} onToggle={handleToggleFactor} />
         </aside>
       </main>
 
-      <footer className="h-10 border-t-2 border-emerald-600/25 bg-white/85 dark:bg-slate-900/80 px-8 flex items-center justify-between text-[10px] text-slate-600 dark:text-slate-400 font-black tracking-[0.2em] shrink-0 z-20">
-        <div className="flex items-center space-x-6">
-          <span className="text-emerald-600/70 dark:text-emerald-500/70">© 2024 RABELUS LAB</span>
+      <footer className="h-8 sm:h-10 border-t-2 border-emerald-600/25 bg-white/85 dark:bg-slate-900/80 px-4 sm:px-8 flex items-center justify-between text-[8px] sm:text-[10px] text-slate-600 dark:text-slate-400 font-black tracking-[0.2em] shrink-0 z-40">
+        <div className="flex items-center space-x-2 sm:space-x-6">
+          <span className="hidden xs:inline">© 2024 RABELUS LAB</span>
           <span className="flex items-center space-x-2">
-            <span className={`w-2.5 h-2.5 ${isLoading ? 'bg-amber-500 animate-pulse' : 'bg-emerald-600'} shadow-[0_0_10px_rgba(16,185,129,0.5)]`}></span>
-            <span className="uppercase text-slate-800 dark:text-white">MOTOR: {statusMessage}</span>
+            <span className={`w-2 h-2 sm:w-2.5 sm:h-2.5 ${isLoading ? 'bg-amber-500 animate-pulse' : 'bg-emerald-600'}`}></span>
+            <span className="uppercase text-slate-800 dark:text-white truncate">MOTOR: {statusMessage}</span>
           </span>
         </div>
-        <div className="flex items-center space-x-8">
-          <span className="text-emerald-600/40 dark:text-emerald-500/40">SINC SEGURA: ATIVA</span>
-          <span className="text-emerald-600 dark:text-emerald-400">PULSE PROTOCOL 2.7.5</span>
+        <div className="flex items-center space-x-4 sm:space-x-8">
+          <span className="hidden sm:inline">PULSE PROTOCOL v2.8.0</span>
+          <span className="text-emerald-600 dark:text-emerald-400">STATUS: SEGURO</span>
         </div>
       </footer>
 
       <Suspense fallback={null}>
         {isOptModalOpen && optimizationResult && (
-          <OptimizationModal 
-            isOpen={isOptModalOpen}
-            result={optimizationResult}
-            onClose={() => setIsOptModalOpen(false)}
-            onApply={handleApplyOptimization}
-          />
+          <OptimizationModal isOpen={isOptModalOpen} result={optimizationResult} onClose={() => setIsOptModalOpen(false)} onApply={handleApplyOptimization} />
         )}
       </Suspense>
     </div>

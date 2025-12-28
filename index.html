@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>tessy by Rabelus Lab</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -14,6 +14,9 @@
               sans: ['Inter', 'sans-serif'],
               mono: ['JetBrains Mono', 'monospace'],
             },
+            screens: {
+              'xs': '480px',
+            }
           },
         },
       }
@@ -37,6 +40,7 @@
         }
         * {
             transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+            -webkit-tap-highlight-color: transparent;
         }
         body {
             font-family: 'Inter', sans-serif;
@@ -48,7 +52,10 @@
             background-attachment: fixed;
             margin: 0;
             height: 100vh;
+            overflow: hidden;
         }
+        
+        /* Safari & Firefox Glassmorphism Fixes */
         .glass-panel {
             background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(30px);
@@ -57,15 +64,24 @@
             box-shadow: 6px 6px 0 rgba(16, 185, 129, 0.15);
         }
         .dark .glass-panel {
-            background: rgba(15, 23, 42, 0.5);
+            background: rgba(15, 23, 42, 0.6);
             border: 2px solid rgba(16, 185, 129, 0.3);
             box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.5);
         }
+        @supports not (backdrop-filter: blur(30px)) {
+            .glass-panel { background: rgba(255, 255, 255, 0.98); }
+            .dark .glass-panel { background: rgba(15, 23, 42, 0.98); }
+        }
+
         .brutalist-button {
             border-radius: 0 !important;
             border: 2px solid rgba(5, 150, 105, 0.4);
             box-shadow: 4px 4px 0 rgba(16, 185, 129, 0.2);
             transition: all 0.2s ease;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         .dark .brutalist-button {
             border: 2px solid rgba(16, 185, 129, 0.4);
@@ -83,67 +99,38 @@
             transform: translate(1px, 1px);
             box-shadow: 2px 2px 0 rgba(16, 185, 129, 0.15);
         }
-        .dark .brutalist-button:active:not(:disabled) {
-            box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.4);
-        }
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: rgba(16, 185, 129, 0.08);
-        }
-        .dark .custom-scrollbar::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.05);
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: rgba(5, 150, 105, 0.4);
-            border-radius: 0;
-        }
-        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: rgba(16, 185, 129, 0.5);
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: rgba(16, 185, 129, 0.6);
-        }
-        pre, code {
-            font-family: 'JetBrains Mono', monospace;
-        }
-        .glow-text-green {
-            text-shadow: 0 0 8px rgba(5, 150, 105, 0.25);
-        }
-        .dark .glow-text-green {
-            text-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
-        }
 
-        /* --- Custom Animations --- */
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        @keyframes zoomIn {
-            from { transform: scale(0.95); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-        }
-        @keyframes slideInLeft {
-            from { transform: translateX(-20px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        @keyframes slideInRight {
-            from { transform: translateX(20px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        @keyframes pulseSoft {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-        }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(16, 185, 129, 0.08); }
+        .dark .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.05); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(5, 150, 105, 0.4); }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(16, 185, 129, 0.5); }
+
+        pre, code { font-family: 'JetBrains Mono', monospace; }
+        .glow-text-green { text-shadow: 0 0 8px rgba(5, 150, 105, 0.25); }
+        .dark .glow-text-green { text-shadow: 0 0 10px rgba(16, 185, 129, 0.5); }
+
+        /* Animations */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes zoomIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes slideInLeft { from { transform: translateX(-100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes pulseSoft { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
 
         .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
         .animate-zoom-in { animation: zoomIn 0.2s ease-out forwards; }
-        .animate-slide-in-left { animation: slideInLeft 0.3s ease-out forwards; }
-        .animate-slide-in-right { animation: slideInRight 0.3s ease-out forwards; }
+        .animate-slide-in-left { animation: slideInLeft 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .animate-slide-in-right { animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         .animate-pulse-soft { animation: pulseSoft 2s infinite ease-in-out; }
 
         .stagger-item { opacity: 0; }
+        
+        /* Mobile Touch Targets */
+        @media (max-width: 768px) {
+            .brutalist-button, button, select, input, textarea {
+                min-height: 44px;
+            }
+        }
     </style>
 <script type="importmap">
 {

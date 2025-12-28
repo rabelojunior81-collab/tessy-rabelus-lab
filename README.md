@@ -1,20 +1,41 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Tessy by Rabelus Lab 🧪
 
-# Run and deploy your AI Studio app
+![Tessy Interface Placeholder](https://via.placeholder.com/1200x600/0f172a/10b981?text=Tessy+by+Rabelus+Lab+Interface)
 
-This contains everything you need to run your app locally.
+**Tessy** é uma assistente avançada de engenharia de prompts e gerenciamento de intenções, projetada para o **Rabelus Lab**. Construída com React, TypeScript e a poderosa API Gemini, Tessy oferece uma interface brutalista moderna e fluxos de trabalho otimizados para profissionais de IA.
 
-View your app in AI Studio: https://ai.studio/apps/drive/1jatMovri7P-U-MhLB370b4QO3mQmjuJM
+## 🚀 Funcionalidades Principais
 
-## Run Locally
+- **Interpretação Semântica**: Traduz linguagem natural em intenções estruturadas.
+- **Grounding Transparente**: Busca em tempo real via Google Search integrada diretamente no fluxo de conversação.
+- **Controle de Fatores**: Ajuste tom, nível de detalhe, público-alvo e formatação via painel lateral.
+- **Otimização de Prompts**: Diagnóstico avançado com Gemini Pro para refinar seus comandos.
+- **Biblioteca de Templates**: Salve e carregue protocolos pré-definidos para tarefas repetitivas.
+- **Exportação Multiformato**: Gere relatórios profissionais em PDF, HTML ou Markdown.
+- **Compartilhamento via Código**: Sincronize conversas entre instâncias através de códigos de 6 dígitos.
+- **Persistência Local**: Histórico completo e biblioteca salvos de forma segura no navegador.
+- **Interface Adaptativa**: Design responsivo (mobile-ready) com temas Escuro e Claro.
 
-**Prerequisites:**  Node.js
+## 🛠️ Tecnologias
 
+- **Frontend**: React 19, TypeScript, Tailwind CSS.
+- **IA**: @google/genai (Gemini 2.5/3 Flash & Pro).
+- **Utilitários**: jsPDF (exportação), LocalStorage (persistência), Webkit Backdrop Filters.
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## ⌨️ Atalhos de Teclado
+
+- `Ctrl + K`: Focar no campo de entrada.
+- `Ctrl + Enter`: Transmitir comando atual.
+- `Ctrl + N`: Iniciar novo protocolo (conversa).
+
+## 📦 Instalação
+
+Como este projeto utiliza módulos ES6 diretamente:
+
+1. Clone o repositório.
+2. Certifique-se de ter uma chave de API válida configurada no ambiente (`process.env.API_KEY`).
+3. Abra o `index.html` em um servidor local.
+
+---
+
+*Desenvolvido com excelência por Rabelus Lab.*
