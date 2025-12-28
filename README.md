@@ -1,6 +1,7 @@
 # Tessy by Rabelus Lab 🧪
 
-![Tessy Interface Placeholder]<img width="1600" height="692" alt="image" src="https://github.com/user-attachments/assets/f914d2da-1d5e-445d-a066-dafea77bdae6" />
+<img width="1600" height="692" alt="image" src="https://github.com/user-attachments/assets/f914d2da-1d5e-445d-a066-dafea77bdae6" /> <img width="705" height="1257" alt="image" src="https://github.com/user-attachments/assets/3f5ac5fa-a4b6-46a8-b17b-12d605fa1d9c" />
+
 
 
 **Tessy** é uma assistente avançada de engenharia de prompts e gerenciamento de intenções, projetada para o **Rabelus Lab**. Construída com React, TypeScript e a poderosa API Gemini, Tessy oferece uma interface brutalista moderna e fluxos de trabalho otimizados para profissionais de IA.
