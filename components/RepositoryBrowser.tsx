@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { RepositoryItem } from '../types';
 import { getDocs, deleteDoc, getAllTags } from '../services/storageService';
@@ -75,7 +76,7 @@ const RepositoryBrowser: React.FC<RepositoryBrowserProps> = ({ onSelectItem, ref
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder="BUSCAR PROMPTS..."
-          className="w-full bg-white/80 dark:bg-slate-900/60 border-2 border-emerald-600/25 py-2.5 px-4 text-[9px] sm:text-[10px] font-black text-slate-800 dark:text-white placeholder-emerald-900/30 focus:outline-none focus:border-emerald-600 transition-all !rounded-none uppercase tracking-widest"
+          className="w-full bg-white/80 dark:bg-slate-900/60 border-2 border-emerald-600/25 py-2.5 px-4 text-[9px] sm:text-[10px] font-black text-slate-800 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:border-emerald-600 transition-all !rounded-none uppercase tracking-widest"
         />
       </div>
 

@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useCallback, Suspense, lazy } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import HistorySidebar from './components/HistorySidebar';
@@ -23,18 +24,46 @@ const INITIAL_FACTORS: Factor[] = [
 ];
 
 const TessyLogo = React.memo(() => (
-  <div className="relative w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center">
+  <div className="relative w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center">
     <svg viewBox="0 0 100 100" className="w-full h-full filter drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]">
       <defs>
         <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" style={{ stopColor: '#059669', stopOpacity: 1 }} />
           <stop offset="100%" style={{ stopColor: '#10b981', stopOpacity: 1 }} />
         </linearGradient>
+        <linearGradient id="logoGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style={{ stopColor: '#14b8a6', stopOpacity: 1 }} />
+          <stop offset="100%" style={{ stopColor: '#059669', stopOpacity: 1 }} />
+        </linearGradient>
+        <radialGradient id="centerGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" style={{ stopColor: '#84cc16', stopOpacity: 0.8 }} />
+          <stop offset="100%" style={{ stopColor: '#84cc16', stopOpacity: 0 }} />
+        </radialGradient>
       </defs>
-      <circle cx="50" cy="50" r="45" fill="none" stroke="url(#logoGrad)" strokeWidth="0.5" strokeDasharray="2 2" className="animate-[spin_20s_linear_infinite]" />
+      
+      {/* Outer Rotating Circles */}
+      <circle cx="50" cy="50" r="46" fill="none" stroke="url(#logoGrad)" strokeWidth="0.8" strokeDasharray="2 2" className="animate-[spin_25s_linear_infinite]" />
+      <circle cx="50" cy="50" r="40" fill="none" stroke="url(#logoGrad2)" strokeWidth="0.5" strokeDasharray="3 1" className="animate-[spin_18s_linear_infinite_reverse]" />
+      <circle cx="50" cy="50" r="34" fill="none" stroke="#10b981" strokeWidth="0.3" strokeDasharray="1 3" className="animate-[spin_12s_linear_infinite]" />
+      
+      {/* Central Glow */}
+      <circle cx="50" cy="50" r="10" fill="url(#centerGlow)" className="animate-pulse-soft" />
+
+      {/* Connection Lines (Constellation) */}
+      <path d="M50 15 L50 25 M50 85 L50 80 M30 30 L45 35 M70 30 L55 35 M30 70 L45 75 M70 70 L55 75" stroke="#10b981" strokeWidth="0.3" strokeDasharray="1 2" opacity="0.4" className="animate-pulse" />
+
+      {/* Main Letter T */}
       <path d="M25 25 H75 V35 H55 V80 H45 V35 H25 Z" fill="url(#logoGrad)" />
-      <circle cx="50" cy="15" r="3" fill="#84cc16" className="animate-pulse" />
-      <circle cx="50" cy="85" r="3" fill="#14b8a6" className="animate-pulse" />
+      
+      {/* Pulsing Nodes */}
+      <circle cx="50" cy="15" r="3.5" fill="#84cc16" className="animate-pulse" />
+      <circle cx="50" cy="85" r="3.5" fill="#14b8a6" className="animate-pulse" />
+      
+      {/* Smaller Constellation Nodes */}
+      <circle cx="30" cy="30" r="1.5" fill="#10b981" className="animate-pulse" style={{ animationDelay: '0s' }} />
+      <circle cx="70" cy="30" r="1.5" fill="#14b8a6" className="animate-pulse" style={{ animationDelay: '0.5s' }} />
+      <circle cx="30" cy="70" r="1.5" fill="#84cc16" className="animate-pulse" style={{ animationDelay: '1s' }} />
+      <circle cx="70" cy="70" r="1.5" fill="#059669" className="animate-pulse" style={{ animationDelay: '1.5s' }} />
     </svg>
   </div>
 ));
@@ -47,8 +76,7 @@ const App: React.FC = () => {
   });
 
   const [activeSideTab, setActiveSideTab] = useState<'library' | 'history'>('history');
-  const [isHistoryMobileOpen, setIsHistoryMobileOpen] = useState(false);
-  const [isLibraryMobileOpen, setIsLibraryMobileOpen] = useState(false);
+  const [isSidebarMobileOpen, setIsSidebarMobileOpen] = useState(false);
   const [isFactorsMobileOpen, setIsFactorsMobileOpen] = useState(false);
   
   const [inputText, setInputText] = useState('');
@@ -115,8 +143,7 @@ const App: React.FC = () => {
     setPendingFiles([]);
     setStatusMessage('PRONTO');
     setHistoryRefreshKey(p => p + 1);
-    setIsHistoryMobileOpen(false);
-    setIsLibraryMobileOpen(false);
+    setIsSidebarMobileOpen(false);
     setIsFactorsMobileOpen(false);
     setTimeout(() => textInputRef.current?.focus(), 10);
   }, []);
@@ -282,7 +309,7 @@ const App: React.FC = () => {
     }));
     setInputText('');
     setStatusMessage('PRONTO');
-    setIsLibraryMobileOpen(false);
+    setIsSidebarMobileOpen(false);
   }, []);
 
   const handleLoadConversationFromHistory = useCallback((conversation: Conversation) => {
@@ -291,7 +318,7 @@ const App: React.FC = () => {
     setInputText('');
     setAttachedFiles([]);
     setStatusMessage('PRONTO');
-    setIsHistoryMobileOpen(false);
+    setIsSidebarMobileOpen(false);
     localStorage.setItem('tessy_last_conv_id', conversation.id);
   }, []);
 
@@ -317,7 +344,7 @@ const App: React.FC = () => {
       <header className="h-14 sm:h-16 flex items-center justify-between px-4 sm:px-8 border-b-2 border-emerald-600/25 bg-white/85 dark:bg-slate-900/60 backdrop-blur-2xl z-40 shrink-0">
         <div className="flex items-center space-x-2 sm:space-x-4">
           <button 
-            onClick={() => setIsHistoryMobileOpen(true)}
+            onClick={() => { setIsSidebarMobileOpen(true); setActiveSideTab('history'); }}
             className="md:hidden brutalist-button w-10 h-10 bg-emerald-600/10 text-emerald-600 border-emerald-600/20"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -360,17 +387,26 @@ const App: React.FC = () => {
       </header>
 
       <main className="flex-1 flex overflow-hidden relative">
-        {/* Mobile History Drawer */}
-        <div className={`fixed inset-0 z-50 transition-opacity duration-300 md:hidden ${isHistoryMobileOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-          <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setIsHistoryMobileOpen(false)}></div>
-          <div className={`absolute top-0 left-0 h-full w-[85%] max-w-sm bg-white dark:bg-slate-900 shadow-2xl transition-transform duration-300 ${isHistoryMobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-            <HistorySidebar 
-              activeId={currentConversation.id} 
-              onLoad={handleLoadConversationFromHistory}
-              onDelete={handleDeleteConversationFromHistory}
-              refreshKey={historyRefreshKey}
-              onClose={() => setIsHistoryMobileOpen(false)}
-            />
+        {/* Mobile Sidebar Drawer (Consolidated History & Library) */}
+        <div className={`fixed inset-0 z-50 transition-opacity duration-300 md:hidden ${isSidebarMobileOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+          <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setIsSidebarMobileOpen(false)}></div>
+          <div className={`absolute top-0 left-0 h-full w-[85%] max-w-sm bg-white dark:bg-slate-900 shadow-2xl transition-transform duration-300 ${isSidebarMobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+            <div className="h-full flex flex-col">
+              <div className="flex border-b-2 border-emerald-600/15 shrink-0 bg-white/95 dark:bg-slate-900/95">
+                <button onClick={() => setActiveSideTab('history')} className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest transition-all ${activeSideTab === 'history' ? 'bg-emerald-600/10 text-emerald-600 border-b-2 border-emerald-600' : 'text-slate-500'}`}>Histórico</button>
+                <button onClick={() => setActiveSideTab('library')} className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest transition-all ${activeSideTab === 'library' ? 'bg-emerald-600/10 text-emerald-600 border-b-2 border-emerald-600' : 'text-slate-500'}`}>Biblioteca</button>
+                <button onClick={() => setIsSidebarMobileOpen(false)} className="p-4 text-slate-500"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+              </div>
+              <div className="flex-1 overflow-hidden">
+                <Suspense fallback={<LoadingSpinner />}>
+                  {activeSideTab === 'library' ? (
+                    <RepositoryBrowser onSelectItem={handleSelectItem} refreshKey={refreshKey} />
+                  ) : (
+                    <HistorySidebar activeId={currentConversation.id} onLoad={handleLoadConversationFromHistory} onDelete={handleDeleteConversationFromHistory} refreshKey={historyRefreshKey} />
+                  )}
+                </Suspense>
+              </div>
+            </div>
           </div>
         </div>
 
