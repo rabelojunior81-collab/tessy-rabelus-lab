@@ -1,11 +1,12 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import RepositoryBrowser from './components/RepositoryBrowser';
+import HistorySidebar from './components/HistorySidebar';
 import Canvas from './components/Canvas';
 import FactorPanel from './components/FactorPanel';
 import OptimizationModal from './components/OptimizationModal';
 import { interpretIntent, applyFactorsAndGenerate, optimizePrompt } from './services/geminiService';
-import { addDoc, generateUUID, saveConversation, loadLastConversation, saveFactors, loadFactors } from './services/storageService';
+import { addDoc, generateUUID, saveConversation, loadLastConversation, saveFactors, loadFactors, getAllConversations } from './services/storageService';
 import { Factor, RepositoryItem, AttachedFile, OptimizationResult, ConversationTurn, Conversation } from './types';
 
 const INITIAL_FACTORS: Factor[] = [
@@ -46,18 +47,21 @@ const App: React.FC = () => {
     return 'dark';
   });
 
+  const [activeTab, setActiveTab] = useState<'library' | 'history'>('history');
   const [inputText, setInputText] = useState('');
   const [result, setResult] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [statusMessage, setStatusMessage] = useState('PRONTO');
   const [refreshKey, setRefreshKey] = useState(0);
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
   const [optimizationResult, setOptimizationResult] = useState<OptimizationResult | null>(null);
   const [isOptModalOpen, setIsOptModalOpen] = useState(false);
   const [lastInterpretation, setLastInterpretation] = useState<any>(null);
   const [pendingUserMessage, setPendingUserMessage] = useState<string | null>(null);
   const [pendingFiles, setPendingFiles] = useState<AttachedFile[]>([]);
+  
   const [currentConversation, setCurrentConversation] = useState<Conversation>(() => {
     const last = loadLastConversation();
     if (last) return last;
@@ -69,6 +73,7 @@ const App: React.FC = () => {
       updatedAt: Date.now()
     };
   });
+  
   const [factors, setFactors] = useState<Factor[]>(() => {
     const saved = loadFactors();
     return saved || INITIAL_FACTORS;
@@ -99,6 +104,7 @@ const App: React.FC = () => {
     setPendingUserMessage(null);
     setPendingFiles([]);
     setStatusMessage('PRONTO');
+    setHistoryRefreshKey(p => p + 1);
     setTimeout(() => textInputRef.current?.focus(), 10);
   }, []);
 
@@ -113,6 +119,10 @@ const App: React.FC = () => {
         e.preventDefault();
         handleNewConversation();
       }
+      if (isCtrlOrMeta && e.key.toLowerCase() === 'h') {
+        e.preventDefault();
+        setActiveTab(prev => prev === 'history' ? 'library' : 'history');
+      }
     };
     window.addEventListener('keydown', handleGlobalKeyDown, true);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown, true);
@@ -125,8 +135,11 @@ const App: React.FC = () => {
   }, [factors]);
 
   useEffect(() => {
-    if (currentConversation.turns.length > 0) saveConversation(currentConversation);
-  }, [currentConversation]);
+    if (currentConversation.turns.length > 0) {
+      saveConversation(currentConversation);
+      setHistoryRefreshKey(p => p + 1);
+    }
+  }, [currentConversation.turns.length, currentConversation.updatedAt]);
 
   const handleInterpret = async (forcedText?: string) => {
     const textToUse = forcedText ?? inputText;
@@ -161,6 +174,7 @@ const App: React.FC = () => {
         attachedFiles: currentFiles.length > 0 ? currentFiles : undefined,
         groundingChunks: generationResult.groundingChunks
       };
+      
       setCurrentConversation(prev => {
         const isFirstMessage = prev.turns.length === 0;
         let newTitle = prev.title;
@@ -168,7 +182,12 @@ const App: React.FC = () => {
           const rawTitle = currentInput.trim();
           newTitle = rawTitle.substring(0, 50) + (rawTitle.length > 50 ? '...' : '');
         }
-        return { ...prev, title: newTitle, turns: [...prev.turns, newTurn], updatedAt: Date.now() };
+        return { 
+          ...prev, 
+          title: newTitle, 
+          turns: [...prev.turns, newTurn], 
+          updatedAt: Date.now() 
+        };
       });
       setStatusMessage('PRONTO');
     } catch (error) {
@@ -263,6 +282,23 @@ const App: React.FC = () => {
     setStatusMessage('PRONTO');
   };
 
+  const handleLoadConversationFromHistory = (conversation: Conversation) => {
+    setCurrentConversation(conversation);
+    setResult('');
+    setInputText('');
+    setAttachedFiles([]);
+    setStatusMessage('PRONTO');
+    // Save to last conv id manually to persist selection
+    localStorage.setItem('tessy_last_conv_id', conversation.id);
+  };
+
+  const handleDeleteConversationFromHistory = (id: string) => {
+    if (currentConversation.id === id) {
+      handleNewConversation();
+    }
+    setHistoryRefreshKey(p => p + 1);
+  };
+
   const handleSaveToRepository = (title: string, description: string, tags: string[]) => {
     const lastTurn = currentConversation.turns[currentConversation.turns.length - 1];
     const newPrompt = {
@@ -312,11 +348,36 @@ const App: React.FC = () => {
       </header>
 
       <main className="flex-1 flex overflow-hidden">
-        <aside className="w-[15%] min-w-[200px] border-r-2 border-emerald-500/10 glass-panel shadow-none border-t-0 border-b-0">
-          <RepositoryBrowser onSelectItem={handleSelectItem} refreshKey={refreshKey} />
+        <aside className="w-[18%] min-w-[250px] border-r-2 border-emerald-500/10 glass-panel shadow-none border-t-0 border-b-0 flex flex-col">
+          <div className="flex border-b-2 border-emerald-500/10 shrink-0">
+            <button 
+              onClick={() => setActiveTab('history')}
+              className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'history' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-500' : 'text-slate-400 hover:text-slate-600'}`}
+            >
+              Histórico
+            </button>
+            <button 
+              onClick={() => setActiveTab('library')}
+              className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'library' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-500' : 'text-slate-400 hover:text-slate-600'}`}
+            >
+              Biblioteca
+            </button>
+          </div>
+          <div className="flex-1 overflow-hidden">
+            {activeTab === 'library' ? (
+              <RepositoryBrowser onSelectItem={handleSelectItem} refreshKey={refreshKey} />
+            ) : (
+              <HistorySidebar 
+                activeId={currentConversation.id} 
+                onLoad={handleLoadConversationFromHistory}
+                onDelete={handleDeleteConversationFromHistory}
+                refreshKey={historyRefreshKey}
+              />
+            )}
+          </div>
         </aside>
 
-        <section className="w-[60%] min-w-[500px] flex-1">
+        <section className="w-[57%] min-w-[500px] flex-1">
           <Canvas 
             result={result} 
             isLoading={isLoading} 
