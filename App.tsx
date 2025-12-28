@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import RepositoryBrowser from './components/RepositoryBrowser';
 import HistorySidebar from './components/HistorySidebar';
@@ -289,7 +288,6 @@ const App: React.FC = () => {
     setInputText('');
     setAttachedFiles([]);
     setStatusMessage('PRONTO');
-    // Save to last conv id manually to persist selection
     localStorage.setItem('tessy_last_conv_id', conversation.id);
   };
 
@@ -315,10 +313,6 @@ const App: React.FC = () => {
 
   return (
     <div className="h-screen w-full flex flex-col overflow-hidden font-sans selection:bg-emerald-500/30">
-      <DateAnchor 
-        groundingEnabled={factors.find(f => f.id === 'grounding')?.enabled || false} 
-      />
-      
       <header className="h-16 flex items-center justify-between px-8 border-b-2 border-emerald-500/20 bg-white/60 dark:bg-slate-900/60 backdrop-blur-2xl z-20 shrink-0">
         <div className="flex items-center space-x-4">
           <TessyLogo />
@@ -329,6 +323,10 @@ const App: React.FC = () => {
             <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 tracking-[0.2em] uppercase mt-1">{currentConversation.title}</span>
           </div>
         </div>
+
+        <DateAnchor 
+          groundingEnabled={factors.find(f => f.id === 'grounding')?.enabled || false} 
+        />
         
         <div className="flex items-center space-x-6">
           <button 
@@ -407,6 +405,8 @@ const App: React.FC = () => {
             }}
             pendingUserMessage={pendingUserMessage}
             pendingFiles={pendingFiles}
+            factors={factors}
+            conversationTitle={currentConversation.title}
           />
         </section>
 

@@ -1,9 +1,9 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import SavePromptModal from './SavePromptModal';
 import FilePreview from './FilePreview';
 import TemplateLibraryModal from './TemplateLibraryModal';
-import { AttachedFile, ConversationTurn, Template } from '../types';
+import { AttachedFile, ConversationTurn, Template, Factor } from '../types';
+import { exportToMarkdown, exportToHTML, exportToPDF, downloadFile } from '../services/exportService';
 
 interface CanvasProps {
   result: string;
@@ -24,18 +24,22 @@ interface CanvasProps {
   handleKeyDown: (e: React.KeyboardEvent) => void;
   pendingUserMessage?: string | null;
   pendingFiles?: AttachedFile[];
+  factors: Factor[];
+  conversationTitle: string;
 }
 
 const Canvas: React.FC<CanvasProps> = ({ 
   result, isLoading, isOptimizing, onSavePrompt, onOptimize, attachedFiles, onRemoveFile,
   conversationHistory, onNewConversation, inputText, setInputText, fileInputRef, textInputRef,
-  handleFileUpload, handleInterpret, handleKeyDown, pendingUserMessage, pendingFiles
+  handleFileUpload, handleInterpret, handleKeyDown, pendingUserMessage, pendingFiles,
+  factors, conversationTitle
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const exportDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (scrollContainerRef.current) {
@@ -46,6 +50,16 @@ const Canvas: React.FC<CanvasProps> = ({
     }
   }, [conversationHistory, isLoading, result, pendingUserMessage]);
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (exportDropdownRef.current && !exportDropdownRef.current.contains(event.target as Node)) {
+        setShowExportMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const handleCopy = () => {
     const textToCopy = result || (conversationHistory.length > 0 ? conversationHistory[conversationHistory.length-1].tessyResponse : "");
     if (!textToCopy) return;
@@ -55,29 +69,22 @@ const Canvas: React.FC<CanvasProps> = ({
     });
   };
 
-  const handleExport = (format: 'markdown' | 'json' | 'text') => {
-    const lastResponse = result || (conversationHistory.length > 0 ? conversationHistory[conversationHistory.length-1].tessyResponse : "");
-    if (!lastResponse) return;
-    let content = '';
-    let filename = '';
-    let mimeType = '';
-    if (format === 'markdown') {
-      content = `# Histórico de Conversa Tessy\n\n`;
-      conversationHistory.forEach(turn => content += `### Usuário\n${turn.userMessage}\n\n### Tessy\n${turn.tessyResponse}\n\n---\n\n`);
-      if (result) content += `### Usuário (Atual)\n\n### Tessy\n${result}`;
-      filename = 'tessy-chat.md'; mimeType = 'text/markdown';
-    } else if (format === 'json') {
-      content = JSON.stringify({ timestamp: new Date().toISOString(), history: conversationHistory, currentResult: result }, null, 2);
-      filename = 'tessy-chat.json'; mimeType = 'application/json';
-    } else {
-      content = conversationHistory.map(t => `Usuário: ${t.userMessage}\nTessy: ${t.tessyResponse}`).join("\n\n");
-      if (result) content += `\n\nTessy: ${result}`;
-      filename = 'tessy-chat.txt'; mimeType = 'text/plain';
-    }
-    const blob = new Blob([content], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
-    URL.revokeObjectURL(url); setShowExportMenu(false);
+  const handleExportMarkdown = () => {
+    const content = exportToMarkdown(conversationHistory, factors, conversationTitle);
+    downloadFile(content, `${conversationTitle.replace(/\s+/g, '_')}.md`, 'text/markdown');
+    setShowExportMenu(false);
+  };
+
+  const handleExportHTML = () => {
+    const content = exportToHTML(conversationHistory, factors, conversationTitle);
+    downloadFile(content, `${conversationTitle.replace(/\s+/g, '_')}.html`, 'text/html');
+    setShowExportMenu(false);
+  };
+
+  const handleExportPDF = async () => {
+    const blob = await exportToPDF(conversationHistory, factors, conversationTitle);
+    downloadFile(blob, `${conversationTitle.replace(/\s+/g, '_')}.pdf`, 'application/pdf');
+    setShowExportMenu(false);
   };
 
   const handleSelectTemplate = (template: Template) => {
@@ -88,12 +95,14 @@ const Canvas: React.FC<CanvasProps> = ({
     }, 100);
   };
 
+  const hasContent = conversationHistory.length > 0;
+
   return (
     <div className="h-full flex flex-col p-8 bg-transparent overflow-hidden relative">
       <div className="flex items-center justify-between mb-6 z-10 shrink-0">
         <div className="flex items-center gap-4">
           <h2 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter glow-text-green">Saída do Canvas</h2>
-          {conversationHistory.length > 0 && (
+          {hasContent && (
             <button onClick={onNewConversation} className="brutalist-button text-[10px] px-3 py-1.5 bg-red-600/10 text-red-600 dark:text-red-400 font-black uppercase tracking-widest flex items-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" /></svg>
               Novo Protocolo
@@ -101,7 +110,7 @@ const Canvas: React.FC<CanvasProps> = ({
           )}
         </div>
         
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button 
             onClick={() => setIsTemplateModalOpen(true)}
             className="brutalist-button text-[10px] px-3 py-2 bg-emerald-600/10 text-emerald-700 dark:text-emerald-300 font-black uppercase tracking-widest flex items-center gap-2 border-emerald-500/30"
@@ -110,7 +119,7 @@ const Canvas: React.FC<CanvasProps> = ({
             Templates
           </button>
 
-          {(result || conversationHistory.length > 0) && !isLoading && (
+          {(result || hasContent) && !isLoading && (
             <>
               <button onClick={onOptimize} disabled={isOptimizing} className={`brutalist-button text-[10px] px-3 py-2 font-black uppercase tracking-widest flex items-center gap-2 ${isOptimizing ? 'bg-lime-600/50 text-white cursor-not-allowed' : 'bg-lime-600/10 text-lime-700 dark:text-lime-400'}`}>
                 <svg xmlns="http://www.w3.org/2000/svg" className={`h-3 w-3 ${isOptimizing ? 'animate-spin' : ''}`} viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" /></svg>
@@ -120,23 +129,28 @@ const Canvas: React.FC<CanvasProps> = ({
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">{copied ? <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /> : <><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" /><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" /></>}</svg>
                 {copied ? 'Copiado' : 'Copiar'}
               </button>
-              <div className="relative">
-                <button onClick={() => setShowExportMenu(!showExportMenu)} className="brutalist-button text-[10px] px-3 py-2 bg-teal-600/10 text-teal-700 dark:text-teal-400 font-black uppercase tracking-widest flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
-                  Exportar
-                </button>
-                {showExportMenu && (
-                  <div className="absolute top-full mt-2 right-0 glass-panel !shadow-lg py-1 z-20 min-w-[140px] !rounded-none !bg-white/95 dark:!bg-slate-950/90 !border-emerald-500/40">
-                    <button onClick={() => handleExport('markdown')} className="w-full text-left px-4 py-2 text-xs text-slate-800 dark:text-white font-bold hover:bg-emerald-500 hover:text-white transition-colors uppercase">Markdown</button>
-                    <button onClick={() => handleExport('json')} className="w-full text-left px-4 py-2 text-xs text-slate-800 dark:text-white font-bold hover:bg-emerald-500 hover:text-white transition-colors uppercase">JSON</button>
-                    <button onClick={() => handleExport('text')} className="w-full text-left px-4 py-2 text-xs text-slate-800 dark:text-white font-bold hover:bg-emerald-500 hover:text-white transition-colors uppercase">Txt</button>
-                  </div>
-                )}
-              </div>
               <button onClick={() => setIsModalOpen(true)} className="brutalist-button text-[10px] px-3 py-2 bg-emerald-600/10 text-emerald-700 dark:text-emerald-400 font-black uppercase tracking-widest flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h5a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h5v5.586l-1.293-1.293z" /></svg>
                 Salvar
               </button>
+
+              <div className="relative" ref={exportDropdownRef}>
+                <button 
+                  onClick={() => setShowExportMenu(!showExportMenu)} 
+                  disabled={!hasContent}
+                  className="brutalist-button text-[10px] px-3 py-2 bg-teal-600/10 text-teal-700 dark:text-teal-400 font-black uppercase tracking-widest flex items-center gap-2 disabled:opacity-50"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                  Exportar
+                </button>
+                {showExportMenu && (
+                  <div className="absolute top-full mt-2 right-0 glass-panel !shadow-[4px_4px_0_rgba(16,185,129,0.5)] py-1 z-50 min-w-[200px] !rounded-none !bg-slate-900/95 !backdrop-blur-xl !border-emerald-500 animate-in slide-in-from-top-2">
+                    <button onClick={handleExportMarkdown} className="w-full text-left px-4 py-3 text-[10px] text-emerald-400 font-black hover:bg-emerald-500/20 transition-colors uppercase tracking-widest border-b border-emerald-500/10">📄 Markdown (.md)</button>
+                    <button onClick={handleExportHTML} className="w-full text-left px-4 py-3 text-[10px] text-emerald-400 font-black hover:bg-emerald-500/20 transition-colors uppercase tracking-widest border-b border-emerald-500/10">🌐 HTML (.html)</button>
+                    <button onClick={handleExportPDF} className="w-full text-left px-4 py-3 text-[10px] text-emerald-400 font-black hover:bg-emerald-500/20 transition-colors uppercase tracking-widest">📕 PDF (.pdf)</button>
+                  </div>
+                )}
+              </div>
             </>
           )}
         </div>
