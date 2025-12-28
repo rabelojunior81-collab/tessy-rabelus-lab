@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { loadConversation } from '../services/storageService';
 import { Conversation } from '../types';
 
@@ -21,6 +21,11 @@ const ShareModal: React.FC<ShareModalProps> = ({
   const [shareCode, setShareCode] = useState('');
   const [importCode, setImportCode] = useState('');
   const [statusMessage, setStatusMessage] = useState({ text: '', type: 'info' as 'success' | 'error' | 'info' });
+
+  useEffect(() => {
+    setShareCode('');
+    setStatusMessage({ text: '', type: 'info' });
+  }, [conversationId]);
 
   if (!isOpen) return null;
 
