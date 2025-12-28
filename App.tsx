@@ -1,13 +1,19 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import RepositoryBrowser from './components/RepositoryBrowser';
+import React, { useState, useRef, useEffect, useCallback, Suspense, lazy } from 'react';
+import LoadingSpinner from './components/LoadingSpinner';
 import HistorySidebar from './components/HistorySidebar';
 import Canvas from './components/Canvas';
 import FactorPanel from './components/FactorPanel';
-import OptimizationModal from './components/OptimizationModal';
 import { DateAnchor } from './components/DateAnchor';
 import { interpretIntent, applyFactorsAndGenerate, optimizePrompt } from './services/geminiService';
-import { addDoc, generateUUID, saveConversation, loadLastConversation, saveFactors, loadFactors, getAllConversations } from './services/storageService';
+import { addDoc, generateUUID, saveConversation, loadLastConversation, saveFactors, loadFactors, cleanOldConversations } from './services/storageService';
 import { Factor, RepositoryItem, AttachedFile, OptimizationResult, ConversationTurn, Conversation } from './types';
+
+// Lazy Loaded Components
+const RepositoryBrowser = lazy(() => import('./components/RepositoryBrowser'));
+const OptimizationModal = lazy(() => import('./components/OptimizationModal'));
+const SavePromptModal = lazy(() => import('./components/SavePromptModal'));
+const TemplateLibraryModal = lazy(() => import('./components/TemplateLibraryModal'));
+const ShareModal = lazy(() => import('./components/ShareModal'));
 
 const INITIAL_FACTORS: Factor[] = [
   { id: 'prof', type: 'toggle', label: 'Tom Profissional', enabled: false },
@@ -19,7 +25,7 @@ const INITIAL_FACTORS: Factor[] = [
   { id: 'context', type: 'text', label: 'Contexto Adicional', enabled: true, value: '' },
 ];
 
-const TessyLogo = () => (
+const TessyLogo = React.memo(() => (
   <div className="relative w-10 h-10 flex items-center justify-center">
     <svg viewBox="0 0 100 100" className="w-full h-full filter drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]">
       <defs>
@@ -28,7 +34,6 @@ const TessyLogo = () => (
           <stop offset="100%" style={{ stopColor: '#10b981', stopOpacity: 1 }} />
         </linearGradient>
       </defs>
-      <circle cx="50" cy="50" r="45" fill="none" stroke="url(#logoGrad)" strokeWidth="0.5" strokeDasharray="2 2" className="animate-[spin_20s_linear_infinite]" />
       <circle cx="50" cy="50" r="45" fill="none" stroke="url(#logoGrad)" strokeWidth="0.5" strokeDasharray="2 2" className="animate-[spin_20s_linear_infinite]" />
       <path d="M20 30 L50 15 L80 30" fill="none" stroke="url(#logoGrad)" strokeWidth="1" strokeOpacity="0.3" />
       <path d="M20 70 L50 85 L80 70" fill="none" stroke="url(#logoGrad)" strokeWidth="1" strokeOpacity="0.3" />
@@ -39,7 +44,7 @@ const TessyLogo = () => (
       <circle cx="50" cy="85" r="3" fill="#14b8a6" className="animate-pulse" />
     </svg>
   </div>
-);
+));
 
 const App: React.FC = () => {
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
@@ -89,7 +94,16 @@ const App: React.FC = () => {
     localStorage.setItem('tessy-theme', theme);
   }, [theme]);
 
-  const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  // Cleanup old conversations on mount
+  useEffect(() => {
+    const removed = cleanOldConversations();
+    if (removed > 0) {
+      console.log(`Sistema: ${removed} conversas antigas foram removidas do histórico local.`);
+      setHistoryRefreshKey(prev => prev + 1);
+    }
+  }, []);
+
+  const toggleTheme = useCallback(() => setTheme(prev => prev === 'dark' ? 'light' : 'dark'), []);
 
   const handleNewConversation = useCallback(() => {
     setCurrentConversation({
@@ -140,9 +154,9 @@ const App: React.FC = () => {
       saveConversation(currentConversation);
       setHistoryRefreshKey(p => p + 1);
     }
-  }, [currentConversation.turns.length, currentConversation.updatedAt]);
+  }, [currentConversation.turns.length, currentConversation.updatedAt, currentConversation.id]);
 
-  const handleInterpret = async (forcedText?: string) => {
+  const handleInterpret = useCallback(async (forcedText?: string) => {
     const textToUse = forcedText ?? inputText;
     if (!textToUse.trim() && attachedFiles.length === 0) return;
     const currentInput = textToUse;
@@ -200,9 +214,9 @@ const App: React.FC = () => {
       setPendingUserMessage(null);
       setPendingFiles([]);
     }
-  };
+  }, [inputText, attachedFiles, currentConversation.turns, factors]);
 
-  const handleOptimize = async () => {
+  const handleOptimize = useCallback(async () => {
     if (currentConversation.turns.length === 0) return;
     const lastTurn = currentConversation.turns[currentConversation.turns.length - 1];
     setIsOptimizing(true);
@@ -216,14 +230,14 @@ const App: React.FC = () => {
     } finally {
       setIsOptimizing(false);
     }
-  };
+  }, [currentConversation.turns, lastInterpretation]);
 
-  const handleApplyOptimization = (optimizedPrompt: string) => {
+  const handleApplyOptimization = useCallback((optimizedPrompt: string) => {
     setIsOptModalOpen(false);
     handleInterpret(optimizedPrompt);
-  };
+  }, [handleInterpret]);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
@@ -251,21 +265,21 @@ const App: React.FC = () => {
       reader.readAsDataURL(file);
     });
     if (fileInputRef.current) fileInputRef.current.value = '';
-  };
+  }, []);
 
-  const handleRemoveFile = (id: string) => {
+  const handleRemoveFile = useCallback((id: string) => {
     setAttachedFiles(prev => prev.filter(f => f.id !== id));
-  };
+  }, []);
 
-  const handleToggleFactor = (id: string, value?: any) => {
+  const handleToggleFactor = useCallback((id: string, value?: any) => {
     setFactors(prev => prev.map(f => 
       f.id === id 
         ? { ...f, enabled: value !== undefined ? true : !f.enabled, value: value !== undefined ? value : f.value }
         : f
     ));
-  };
+  }, []);
 
-  const handleSelectItem = (item: RepositoryItem) => {
+  const handleSelectItem = useCallback((item: RepositoryItem) => {
     if (!item.content) return;
     if (item.factors) setFactors(item.factors);
     const newTurn: ConversationTurn = {
@@ -281,25 +295,25 @@ const App: React.FC = () => {
     }));
     setInputText('');
     setStatusMessage('PRONTO');
-  };
+  }, []);
 
-  const handleLoadConversationFromHistory = (conversation: Conversation) => {
+  const handleLoadConversationFromHistory = useCallback((conversation: Conversation) => {
     setCurrentConversation(conversation);
     setResult('');
     setInputText('');
     setAttachedFiles([]);
     setStatusMessage('PRONTO');
     localStorage.setItem('tessy_last_conv_id', conversation.id);
-  };
+  }, []);
 
-  const handleDeleteConversationFromHistory = (id: string) => {
+  const handleDeleteConversationFromHistory = useCallback((id: string) => {
     if (currentConversation.id === id) {
       handleNewConversation();
     }
     setHistoryRefreshKey(p => p + 1);
-  };
+  }, [currentConversation.id, handleNewConversation]);
 
-  const handleSaveToRepository = (title: string, description: string, tags: string[]) => {
+  const handleSaveToRepository = useCallback((title: string, description: string, tags: string[]) => {
     const lastTurn = currentConversation.turns[currentConversation.turns.length - 1];
     const newPrompt = {
       title,
@@ -310,7 +324,7 @@ const App: React.FC = () => {
     };
     addDoc('prompts', newPrompt);
     setRefreshKey(prev => prev + 1);
-  };
+  }, [currentConversation.turns, result, factors]);
 
   return (
     <div className="h-screen w-full flex flex-col overflow-hidden font-sans selection:bg-emerald-600/30">
@@ -345,7 +359,7 @@ const App: React.FC = () => {
           </button>
           <div className="text-right hidden sm:block">
             <p className="text-[10px] text-emerald-600/70 dark:text-emerald-500/50 uppercase font-black leading-none tracking-widest">Protocolo Seguro</p>
-            <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold uppercase mt-1">v2.7.0-Adaptive</p>
+            <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold uppercase mt-1">v2.7.5-Optimized</p>
           </div>
           <div className="w-11 h-11 border-2 border-emerald-600/25 p-0.5 shadow-[4px_4px_0_rgba(16,185,129,0.15)] bg-white/85 dark:bg-slate-950/40">
             <img src={`https://api.dicebear.com/7.x/identicon/svg?seed=tessy-green&backgroundColor=10b981`} alt="Avatar" className="w-full h-full object-cover" />
@@ -370,16 +384,18 @@ const App: React.FC = () => {
             </button>
           </div>
           <div className="flex-1 overflow-hidden">
-            {activeTab === 'library' ? (
-              <RepositoryBrowser onSelectItem={handleSelectItem} refreshKey={refreshKey} />
-            ) : (
-              <HistorySidebar 
-                activeId={currentConversation.id} 
-                onLoad={handleLoadConversationFromHistory}
-                onDelete={handleDeleteConversationFromHistory}
-                refreshKey={historyRefreshKey}
-              />
-            )}
+            <Suspense fallback={<LoadingSpinner />}>
+              {activeTab === 'library' ? (
+                <RepositoryBrowser onSelectItem={handleSelectItem} refreshKey={refreshKey} />
+              ) : (
+                <HistorySidebar 
+                  activeId={currentConversation.id} 
+                  onLoad={handleLoadConversationFromHistory}
+                  onDelete={handleDeleteConversationFromHistory}
+                  refreshKey={historyRefreshKey}
+                />
+              )}
+            </Suspense>
           </div>
         </aside>
 
@@ -430,16 +446,20 @@ const App: React.FC = () => {
         </div>
         <div className="flex items-center space-x-8">
           <span className="text-emerald-600/40 dark:text-emerald-500/40">SINC SEGURA: ATIVA</span>
-          <span className="text-emerald-600 dark:text-emerald-400">PULSE PROTOCOL 2.7.0</span>
+          <span className="text-emerald-600 dark:text-emerald-400">PULSE PROTOCOL 2.7.5</span>
         </div>
       </footer>
 
-      <OptimizationModal 
-        isOpen={isOptModalOpen}
-        result={optimizationResult}
-        onClose={() => setIsOptModalOpen(false)}
-        onApply={handleApplyOptimization}
-      />
+      <Suspense fallback={null}>
+        {isOptModalOpen && optimizationResult && (
+          <OptimizationModal 
+            isOpen={isOptModalOpen}
+            result={optimizationResult}
+            onClose={() => setIsOptModalOpen(false)}
+            onApply={handleApplyOptimization}
+          />
+        )}
+      </Suspense>
     </div>
   );
 };

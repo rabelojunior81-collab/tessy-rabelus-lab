@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Conversation } from '../types';
 import { getAllConversations, deleteConversation } from '../services/storageService';
 
@@ -9,26 +9,36 @@ interface HistorySidebarProps {
   refreshKey: number;
 }
 
+const ITEMS_PER_PAGE = 20;
+
 const HistorySidebar: React.FC<HistorySidebarProps> = ({ activeId, onLoad, onDelete, refreshKey }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const conversations = useMemo(() => {
+  const allConversationsSorted = useMemo(() => {
     const all = getAllConversations();
-    // Sort by updatedAt descending
     return all.sort((a, b) => b.updatedAt - a.updatedAt);
   }, [refreshKey]);
 
   const filteredConversations = useMemo(() => {
-    if (!searchTerm.trim()) return conversations;
+    if (!searchTerm.trim()) return allConversationsSorted;
     const term = searchTerm.toLowerCase();
-    return conversations.filter(c => 
+    return allConversationsSorted.filter(c => 
       c.title.toLowerCase().includes(term) || 
       c.turns.some(t => t.userMessage.toLowerCase().includes(term) || t.tessyResponse.toLowerCase().includes(term))
     );
-  }, [conversations, searchTerm]);
+  }, [allConversationsSorted, searchTerm]);
 
-  const formatDate = (timestamp: number) => {
+  const displayedConversations = useMemo(() => {
+    return filteredConversations.slice(0, currentPage * ITEMS_PER_PAGE);
+  }, [filteredConversations, currentPage]);
+
+  const hasMore = useMemo(() => {
+    return displayedConversations.length < filteredConversations.length;
+  }, [displayedConversations.length, filteredConversations.length]);
+
+  const formatDate = useCallback((timestamp: number) => {
     const date = new Date(timestamp);
     return date.toLocaleString('pt-BR', {
       day: '2-digit',
@@ -37,23 +47,27 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ activeId, onLoad, onDel
       hour: '2-digit',
       minute: '2-digit'
     });
-  };
+  }, []);
 
-  const handleDeleteClick = (e: React.MouseEvent, id: string) => {
+  const handleDeleteClick = useCallback((e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     setConfirmDeleteId(id);
-  };
+  }, []);
 
-  const confirmDelete = () => {
+  const confirmDelete = useCallback(() => {
     if (confirmDeleteId) {
       deleteConversation(confirmDeleteId);
       onDelete(confirmDeleteId);
       setConfirmDeleteId(null);
     }
-  };
+  }, [confirmDeleteId, onDelete]);
+
+  const handleLoadMore = useCallback(() => {
+    setCurrentPage(prev => prev + 1);
+  }, []);
 
   return (
-    <div className="h-full flex flex-col p-6 bg-transparent animate-fade-in">
+    <div className="h-full flex flex-col p-6 bg-transparent animate-fade-in relative">
       <h2 className="text-xl font-black mb-6 text-slate-800 dark:text-white uppercase tracking-widest flex items-center gap-3">
         <div className="w-3 h-3 bg-teal-600 animate-pulse"></div>
         Histórico
@@ -64,7 +78,10 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ activeId, onLoad, onDel
           <input
             type="text"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
             placeholder="BUSCAR CONVERSAS..."
             className="w-full bg-white/80 dark:bg-slate-900/60 border-2 border-teal-600/25 py-2.5 pl-4 pr-10 text-[10px] font-black text-slate-800 dark:text-white placeholder-teal-900/30 focus:outline-none focus:border-teal-600/50 transition-all !rounded-none uppercase tracking-widest"
           />
@@ -76,52 +93,63 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ activeId, onLoad, onDel
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 pr-2">
-        {filteredConversations.length === 0 ? (
+      <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 pr-2 pb-10">
+        {displayedConversations.length === 0 ? (
           <div className="border-2 border-dashed border-teal-600/25 p-8 text-center bg-white/80 dark:bg-transparent">
             <p className="text-[10px] text-slate-600 font-black uppercase tracking-widest leading-relaxed">
               {searchTerm ? 'Nenhuma conversa encontrada' : 'Nenhum registro no histórico'}
             </p>
           </div>
         ) : (
-          filteredConversations.map((conv, index) => {
-            const isActive = conv.id === activeId;
-            const firstTurn = conv.turns[0];
-            const preview = firstTurn ? firstTurn.tessyResponse.substring(0, 60) + '...' : 'Sem conteúdo';
-            
-            return (
-              <div
-                key={conv.id}
-                onClick={() => onLoad(conv)}
-                style={{ animationDelay: `${index * 50}ms` }}
-                className={`relative w-full text-left p-4 transition-all cursor-pointer group border-2 animate-slide-in-left stagger-item ${
-                  isActive 
-                    ? 'bg-emerald-600/15 border-emerald-600 shadow-[4px_4px_0_rgba(16,185,129,0.25)]' 
-                    : 'bg-white/80 dark:bg-slate-900/40 border-teal-600/25 hover:border-teal-600/40'
-                } shadow-[4px_4px_0_rgba(16,185,129,0.05)]`}
-              >
-                <div className="flex justify-between items-start mb-1">
-                  <h3 className={`text-[11px] font-black uppercase truncate pr-6 tracking-wider ${isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-800 dark:text-white'}`}>
-                    {conv.title}
-                  </h3>
-                  <button
-                    onClick={(e) => handleDeleteClick(e, conv.id)}
-                    className="absolute top-3 right-3 text-slate-600 hover:text-red-500 transition-colors p-1"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                  </button>
+          <>
+            {displayedConversations.map((conv, index) => {
+              const isActive = conv.id === activeId;
+              const firstTurn = conv.turns[0];
+              const preview = firstTurn ? firstTurn.tessyResponse.substring(0, 60) + '...' : 'Sem conteúdo';
+              
+              return (
+                <div
+                  key={conv.id}
+                  onClick={() => onLoad(conv)}
+                  style={{ animationDelay: `${(index % ITEMS_PER_PAGE) * 20}ms` }}
+                  className={`relative w-full text-left p-4 transition-all cursor-pointer group border-2 animate-slide-in-left stagger-item ${
+                    isActive 
+                      ? 'bg-emerald-600/15 border-emerald-600 shadow-[4px_4px_0_rgba(16,185,129,0.25)]' 
+                      : 'bg-white/80 dark:bg-slate-900/40 border-teal-600/25 hover:border-teal-600/40'
+                  } shadow-[4px_4px_0_rgba(16,185,129,0.05)]`}
+                >
+                  <div className="flex justify-between items-start mb-1">
+                    <h3 className={`text-[11px] font-black uppercase truncate pr-6 tracking-wider ${isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-800 dark:text-white'}`}>
+                      {conv.title}
+                    </h3>
+                    <button
+                      onClick={(e) => handleDeleteClick(e, conv.id)}
+                      className="absolute top-3 right-3 text-slate-600 hover:text-red-500 transition-colors p-1"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  </div>
+                  <p className="text-[9px] text-slate-600 font-bold uppercase tracking-tighter mb-2">
+                    {formatDate(conv.updatedAt)} • {conv.turns.length} ETAPAS
+                  </p>
+                  <p className="text-[10px] text-slate-800 dark:text-slate-400 font-medium line-clamp-2 italic">
+                    {preview}
+                  </p>
                 </div>
-                <p className="text-[9px] text-slate-600 font-bold uppercase tracking-tighter mb-2">
-                  {formatDate(conv.updatedAt)} • {conv.turns.length} ETAPAS
-                </p>
-                <p className="text-[10px] text-slate-800 dark:text-slate-400 font-medium line-clamp-2 italic">
-                  {preview}
-                </p>
-              </div>
-            );
-          })
+              );
+            })}
+            
+            {hasMore && (
+              <button 
+                onClick={handleLoadMore}
+                className="w-full py-4 border-2 border-emerald-600/20 text-[10px] font-black uppercase text-emerald-600 hover:bg-emerald-600/5 transition-all brutalist-button"
+              >
+                Carregar Mais Protocolos
+              </button>
+            )}
+          </>
         )}
       </div>
 
@@ -146,13 +174,13 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ activeId, onLoad, onDel
         </div>
       )}
 
-      <div className="mt-6 pt-4 border-t-2 border-teal-600/25">
+      <div className="mt-6 pt-4 border-t-2 border-teal-600/25 shrink-0">
         <p className="text-[9px] uppercase tracking-widest text-teal-600/40 font-black">
-          SESSÕES ARQUIVADAS
+          SESSÕES ARQUIVADAS: {filteredConversations.length}
         </p>
       </div>
     </div>
   );
 };
 
-export default HistorySidebar;
+export default React.memo(HistorySidebar);

@@ -18,9 +18,67 @@ const STORAGE_KEYS = {
   CONVERSATIONS: 'tessy_conversations_v2',
   FACTORS: 'tessy_factors_v2',
   LAST_CONV_ID: 'tessy_last_conv_id',
-  PROMPTS: 'prompts', // Compatibility with RepositoryBrowser
-  OLD_HISTORY: 'conversation_history', // For migration
+  PROMPTS: 'prompts',
+  OLD_HISTORY: 'conversation_history',
   CUSTOM_TEMPLATES: 'tessy_custom_templates'
+};
+
+// --- Simple Compression (LZW Implementation) ---
+
+const compress = (uncompressed: string): string => {
+  const dictionary: { [key: string]: number } = {};
+  for (let i = 0; i < 256; i++) dictionary[String.fromCharCode(i)] = i;
+
+  let w = "";
+  const result: number[] = [];
+  let dictSize = 256;
+
+  for (let i = 0; i < uncompressed.length; i++) {
+    const c = uncompressed.charAt(i);
+    const wc = w + c;
+    if (dictionary.hasOwnProperty(wc)) {
+      w = wc;
+    } else {
+      result.push(dictionary[w]);
+      dictionary[wc] = dictSize++;
+      w = c;
+    }
+  }
+
+  if (w !== "") result.push(dictionary[w]);
+  return btoa(result.map(n => String.fromCharCode(n >> 8, n & 0xff)).join(''));
+};
+
+const decompress = (compressed: string): string => {
+  const binary = atob(compressed);
+  const compressedData: number[] = [];
+  for (let i = 0; i < binary.length; i += 2) {
+    compressedData.push((binary.charCodeAt(i) << 8) | binary.charCodeAt(i + 1));
+  }
+
+  const dictionary: { [key: number]: string } = {};
+  for (let i = 0; i < 256; i++) dictionary[i] = String.fromCharCode(i);
+
+  let w = String.fromCharCode(compressedData[0]);
+  let result = w;
+  let dictSize = 256;
+
+  for (let i = 1; i < compressedData.length; i++) {
+    const k = compressedData[i];
+    let entry = "";
+    if (dictionary.hasOwnProperty(k)) {
+      entry = dictionary[k];
+    } else if (k === dictSize) {
+      entry = w + w.charAt(0);
+    } else {
+      throw new Error("Decompression failure");
+    }
+
+    result += entry;
+    dictionary[dictSize++] = w + entry.charAt(0);
+    w = entry;
+  }
+  return result;
 };
 
 // --- Repository (Legacy/Static Prompts) ---
@@ -71,7 +129,7 @@ export const getAllTags = (): string[] => {
   return Array.from(tagSet).sort();
 };
 
-// --- New Centralized Persistence (Conversations) ---
+// --- Centralized Persistence (Conversations) ---
 
 export const saveConversation = (conv: Conversation): void => {
   try {
@@ -84,7 +142,8 @@ export const saveConversation = (conv: Conversation): void => {
       conversations.unshift(conv);
     }
     
-    localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(conversations));
+    const compressedData = compress(JSON.stringify(conversations));
+    localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, compressedData);
     localStorage.setItem(STORAGE_KEYS.LAST_CONV_ID, conv.id);
   } catch (error) {
     console.error('Error saving conversation:', error);
@@ -94,28 +153,16 @@ export const saveConversation = (conv: Conversation): void => {
 export const getAllConversations = (): Conversation[] => {
   try {
     const data = localStorage.getItem(STORAGE_KEYS.CONVERSATIONS);
-    const convs: Conversation[] = data ? JSON.parse(data) : [];
+    if (!data) return [];
     
-    // Check for migration from Day 4 (Old history was a flat array of turns in some implementations)
-    const oldData = localStorage.getItem(STORAGE_KEYS.OLD_HISTORY);
-    if (oldData && convs.length === 0) {
-      const turns = JSON.parse(oldData);
-      if (Array.isArray(turns) && turns.length > 0) {
-        const migratedConv: Conversation = {
-          id: generateUUID(),
-          title: "Conversa Migrada",
-          turns: turns.map(t => ({
-            ...t,
-            id: t.id || generateUUID(),
-            timestamp: t.timestamp || Date.now()
-          })),
-          createdAt: Date.now(),
-          updatedAt: Date.now()
-        };
-        localStorage.removeItem(STORAGE_KEYS.OLD_HISTORY);
-        saveConversation(migratedConv);
-        return [migratedConv];
-      }
+    let convs: Conversation[];
+    try {
+      // Try decompressing
+      const decompressed = decompress(data);
+      convs = JSON.parse(decompressed);
+    } catch (e) {
+      // Fallback to legacy uncompressed format
+      convs = JSON.parse(data);
     }
     
     return convs;
@@ -125,31 +172,49 @@ export const getAllConversations = (): Conversation[] => {
   }
 };
 
-export const getConversationById = (id: string): Conversation | null => {
-  const convs = getAllConversations();
-  return convs.find(c => c.id === id) || null;
-};
-
-/**
- * Loads a conversation by its ID.
- */
 export const loadConversation = (conversationId: string): Conversation | null => {
-  return getConversationById(conversationId);
+  const convs = getAllConversations();
+  return convs.find(c => c.id === conversationId) || null;
 };
 
 export const loadLastConversation = (): Conversation | null => {
   const lastId = localStorage.getItem(STORAGE_KEYS.LAST_CONV_ID);
   if (!lastId) return null;
-  return getConversationById(lastId);
+  return loadConversation(lastId);
 };
 
 export const deleteConversation = (id: string): void => {
   const convs = getAllConversations();
   const updated = convs.filter(c => c.id !== id);
-  localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(updated));
+  const compressedData = compress(JSON.stringify(updated));
+  localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, compressedData);
   
   if (localStorage.getItem(STORAGE_KEYS.LAST_CONV_ID) === id) {
     localStorage.removeItem(STORAGE_KEYS.LAST_CONV_ID);
+  }
+};
+
+// --- Cleanup Logic ---
+
+export const cleanOldConversations = (): number => {
+  try {
+    const conversations = getAllConversations();
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    
+    const initialCount = conversations.length;
+    const filtered = conversations.filter(c => (now - c.updatedAt) < THIRTY_DAYS_MS);
+    const removedCount = initialCount - filtered.length;
+    
+    if (removedCount > 0) {
+      const compressedData = compress(JSON.stringify(filtered));
+      localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, compressedData);
+    }
+    
+    return removedCount;
+  } catch (error) {
+    console.error('Error cleaning old conversations:', error);
+    return 0;
   }
 };
 

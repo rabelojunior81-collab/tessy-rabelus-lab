@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { RepositoryItem } from '../types';
 import { getDocs, deleteDoc, getAllTags } from '../services/storageService';
 
@@ -13,27 +13,27 @@ const RepositoryBrowser: React.FC<RepositoryBrowserProps> = ({ onSelectItem, ref
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const loadItems = () => {
+  const loadItems = useCallback(() => {
     const localItems = getDocs('prompts') as RepositoryItem[];
     setItems(localItems);
     setAvailableTags(getAllTags());
-  };
+  }, []);
 
   useEffect(() => {
     loadItems();
-  }, [refreshKey]);
+  }, [refreshKey, loadItems]);
 
-  const handleDelete = (e: React.MouseEvent, id: string) => {
+  const handleDelete = useCallback((e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     deleteDoc('prompts', id);
     loadItems();
-  };
+  }, [loadItems]);
 
-  const toggleTag = (tag: string) => {
+  const toggleTag = useCallback((tag: string) => {
     setSelectedTags(prev => 
       prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
     );
-  };
+  }, []);
 
   const filteredItems = useMemo(() => {
     let results = items;
@@ -57,10 +57,10 @@ const RepositoryBrowser: React.FC<RepositoryBrowserProps> = ({ onSelectItem, ref
     return results;
   }, [items, selectedTags, searchTerm]);
 
-  const handleResetFilters = () => {
+  const handleResetFilters = useCallback(() => {
     setSearchTerm('');
     setSelectedTags([]);
-  };
+  }, []);
 
   return (
     <div className="h-full flex flex-col p-6 bg-transparent animate-fade-in">
@@ -198,7 +198,7 @@ const RepositoryBrowser: React.FC<RepositoryBrowserProps> = ({ onSelectItem, ref
           ))
         )}
       </div>
-      <div className="mt-8 pt-6 border-t-2 border-emerald-600/25">
+      <div className="mt-8 pt-6 border-t-2 border-emerald-600/25 shrink-0">
         <p className="text-[10px] uppercase tracking-[0.4em] text-emerald-600/50 dark:text-emerald-500/50 font-black">
           RABELUS ASSET CORE
         </p>
@@ -207,4 +207,4 @@ const RepositoryBrowser: React.FC<RepositoryBrowserProps> = ({ onSelectItem, ref
   );
 };
 
-export default RepositoryBrowser;
+export default React.memo(RepositoryBrowser);

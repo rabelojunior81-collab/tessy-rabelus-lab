@@ -1,10 +1,12 @@
-import React, { useState, useRef, useEffect } from 'react';
-import SavePromptModal from './SavePromptModal';
+import React, { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import FilePreview from './FilePreview';
-import TemplateLibraryModal from './TemplateLibraryModal';
-import ShareModal from './ShareModal';
 import { AttachedFile, ConversationTurn, Template, Factor, Conversation } from '../types';
 import { exportToMarkdown, exportToHTML, exportToPDF, downloadFile } from '../services/exportService';
+
+// Lazy load modals used in Canvas
+const SavePromptModal = lazy(() => import('./SavePromptModal'));
+const TemplateLibraryModal = lazy(() => import('./TemplateLibraryModal'));
+const ShareModal = lazy(() => import('./ShareModal'));
 
 interface CanvasProps {
   result: string;
@@ -65,7 +67,7 @@ const Canvas: React.FC<CanvasProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleCopy = () => {
+  const handleCopy = useCallback(() => {
     const textToCopy = result || (conversationHistory.length > 0 ? conversationHistory[conversationHistory.length-1].tessyResponse : "");
     if (!textToCopy) return;
     
@@ -76,35 +78,35 @@ const Canvas: React.FC<CanvasProps> = ({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
-  };
+  }, [result, conversationHistory]);
 
-  const handleExportMarkdown = () => {
+  const handleExportMarkdown = useCallback(() => {
     const content = exportToMarkdown(conversationHistory, factors, conversationTitle);
     downloadFile(content, `${conversationTitle.replace(/\s+/g, '_')}.md`, 'text/markdown');
     setShowExportMenu(false);
-  };
+  }, [conversationHistory, factors, conversationTitle]);
 
-  const handleExportHTML = () => {
+  const handleExportHTML = useCallback(() => {
     const content = exportToHTML(conversationHistory, factors, conversationTitle);
     downloadFile(content, `${conversationTitle.replace(/\s+/g, '_')}.html`, 'text/html');
     setShowExportMenu(false);
-  };
+  }, [conversationHistory, factors, conversationTitle]);
 
-  const handleExportPDF = async () => {
+  const handleExportPDF = useCallback(async () => {
     const blob = await exportToPDF(conversationHistory, factors, conversationTitle);
     downloadFile(blob, `${conversationTitle.replace(/\s+/g, '_')}.pdf`, 'application/pdf');
     setShowExportMenu(false);
-  };
+  }, [conversationHistory, factors, conversationTitle]);
 
-  const handleSelectTemplate = (template: Template) => {
+  const handleSelectTemplate = useCallback((template: Template) => {
     setInputText(template.content);
     setIsTemplateModalOpen(false);
     setTimeout(() => {
       textInputRef.current?.focus();
     }, 100);
-  };
+  }, [setInputText, textInputRef]);
 
-  const hasContent = conversationHistory.length > 0;
+  const hasContent = useMemo(() => conversationHistory.length > 0, [conversationHistory]);
 
   return (
     <div className="h-full flex flex-col p-8 bg-transparent overflow-hidden relative">
@@ -274,17 +276,21 @@ const Canvas: React.FC<CanvasProps> = ({
         <span className="text-emerald-600/50 dark:text-emerald-500/50">LINK SEGURO ESTABELECIDO</span>
       </div>
 
-      <SavePromptModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={onSavePrompt} />
-      <TemplateLibraryModal isOpen={isTemplateModalOpen} onClose={() => setIsTemplateModalOpen(false)} onSelect={handleSelectTemplate} />
-      <ShareModal 
-        isOpen={isShareModalOpen} 
-        onClose={() => setIsShareModalOpen(false)} 
-        conversationId={conversationId} 
-        conversationTitle={conversationTitle} 
-        onImportSuccess={onImportSuccess}
-      />
+      <Suspense fallback={null}>
+        {isModalOpen && <SavePromptModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={onSavePrompt} />}
+        {isTemplateModalOpen && <TemplateLibraryModal isOpen={isTemplateModalOpen} onClose={() => setIsTemplateModalOpen(false)} onSelect={handleSelectTemplate} />}
+        {isShareModalOpen && (
+          <ShareModal 
+            isOpen={isShareModalOpen} 
+            onClose={() => setIsShareModalOpen(false)} 
+            conversationId={conversationId} 
+            conversationTitle={conversationTitle} 
+            onImportSuccess={onImportSuccess}
+          />
+        )}
+      </Suspense>
     </div>
   );
 };
 
-export default Canvas;
+export default React.memo(Canvas);
