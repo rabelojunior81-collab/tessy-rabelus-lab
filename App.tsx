@@ -116,7 +116,6 @@ const App: React.FC = () => {
       }
     };
     
-    // Use capture phase for more aggressive shortcut interception (true parameter)
     window.addEventListener('keydown', handleGlobalKeyDown, true);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown, true);
   }, [handleNewConversation]);
@@ -125,7 +124,6 @@ const App: React.FC = () => {
     if (saveFactorsTimerRef.current) {
       window.clearTimeout(saveFactorsTimerRef.current);
     }
-    // This debounce effect already handles all factor updates, including the 'context' (Contexto Adicional) field.
     saveFactorsTimerRef.current = window.setTimeout(() => {
       saveFactors(factors);
     }, 500);
@@ -161,13 +159,14 @@ const App: React.FC = () => {
         return;
       }
       setStatusMessage('GERANDO RESPOSTA...');
-      const finalResponse = await applyFactorsAndGenerate(interpretation, factors, currentFiles, currentConversation.turns);
+      const generationResult = await applyFactorsAndGenerate(interpretation, factors, currentFiles, currentConversation.turns);
       const newTurn: ConversationTurn = {
         id: generateUUID(),
         userMessage: currentInput,
-        tessyResponse: finalResponse,
+        tessyResponse: generationResult.text,
         timestamp: Date.now(),
-        attachedFiles: currentFiles.length > 0 ? currentFiles : undefined
+        attachedFiles: currentFiles.length > 0 ? currentFiles : undefined,
+        groundingChunks: generationResult.groundingChunks
       };
       setCurrentConversation(prev => {
         const isFirstMessage = prev.turns.length === 0;
@@ -300,7 +299,7 @@ const App: React.FC = () => {
         <div className="flex items-center space-x-6">
           <div className="text-right hidden sm:block">
             <p className="text-[10px] text-emerald-500/50 uppercase font-black leading-none tracking-widest">Protocolo Seguro</p>
-            <p className="text-xs text-emerald-400 font-bold uppercase mt-1">v2.6.0-Emerald</p>
+            <p className="text-xs text-emerald-400 font-bold uppercase mt-1">v2.6.0-Grounding</p>
           </div>
           <div className="w-11 h-11 border-2 border-emerald-500/30 p-0.5 shadow-[4px_4px_0_rgba(0,0,0,0.5)] bg-slate-950/40">
             <img src={`https://api.dicebear.com/7.x/identicon/svg?seed=tessy-green&backgroundColor=10b981`} alt="Avatar" className="w-full h-full object-cover" />

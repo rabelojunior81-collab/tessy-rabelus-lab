@@ -1,9 +1,14 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { Factor, AttachedFile, OptimizationResult, ConversationTurn } from "../types";
+import { Factor, AttachedFile, OptimizationResult, ConversationTurn, GroundingChunk } from "../types";
 
 const MODEL_FLASH = 'gemini-3-flash-preview';
 const MODEL_PRO = 'gemini-3-pro-preview';
+
+interface GenerateResponse {
+  text: string;
+  groundingChunks?: GroundingChunk[];
+}
 
 /**
  * Step 1: Interpret the user's raw text into a structured JSON intent, considering context.
@@ -85,13 +90,14 @@ export const applyFactorsAndGenerate = async (
   factors: Factor[], 
   files: AttachedFile[] = [],
   history: ConversationTurn[] = []
-): Promise<string> => {
-  if (!interpretation) return "Interpretação inválida.";
+): Promise<GenerateResponse> => {
+  if (!interpretation) return { text: "Interpretação inválida." };
 
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
     let systemInstruction = "Você é Tessy, uma assistente avançada do Rabelus Lab. ";
+    systemInstruction += "Use busca em tempo real do Google quando necessário para fornecer informações atualizadas sobre tecnologias, modelos LLM e melhores práticas. ";
     
     const isProfessional = factors.find(f => f.id === 'prof' && f.enabled);
     const wantsCode = factors.find(f => f.id === 'code' && f.enabled);
@@ -153,13 +159,19 @@ export const applyFactorsAndGenerate = async (
       config: {
         systemInstruction: systemInstruction,
         temperature: 0.7,
+        tools: [{ googleSearch: {} }]
       },
     });
 
-    return response.text || "Sem resposta do modelo.";
+    const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+
+    return {
+      text: response.text || "Sem resposta do modelo.",
+      groundingChunks: groundingChunks
+    };
   } catch (error) {
     console.error("Gemini Generation Error:", error);
-    return "Ocorreu um erro ao gerar a resposta final.";
+    return { text: "Ocorreu um erro ao gerar a resposta final." };
   }
 };
 

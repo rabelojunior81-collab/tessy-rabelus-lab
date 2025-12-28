@@ -2,7 +2,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import SavePromptModal from './SavePromptModal';
 import FilePreview from './FilePreview';
-import { AttachedFile, ConversationTurn } from '../types';
+import TemplateLibraryModal from './TemplateLibraryModal';
+import { AttachedFile, ConversationTurn, Template } from '../types';
 
 interface CanvasProps {
   result: string;
@@ -31,6 +32,7 @@ const Canvas: React.FC<CanvasProps> = ({
   handleFileUpload, handleInterpret, handleKeyDown, pendingUserMessage, pendingFiles
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -78,6 +80,14 @@ const Canvas: React.FC<CanvasProps> = ({
     URL.revokeObjectURL(url); setShowExportMenu(false);
   };
 
+  const handleSelectTemplate = (template: Template) => {
+    setInputText(template.content);
+    setIsTemplateModalOpen(false);
+    setTimeout(() => {
+      textInputRef.current?.focus();
+    }, 100);
+  };
+
   return (
     <div className="h-full flex flex-col p-8 bg-transparent overflow-hidden relative">
       <div className="flex items-center justify-between mb-6 z-10 shrink-0">
@@ -92,6 +102,14 @@ const Canvas: React.FC<CanvasProps> = ({
         </div>
         
         <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setIsTemplateModalOpen(true)}
+            className="brutalist-button text-[10px] px-3 py-2 bg-emerald-600/10 text-emerald-300 font-black uppercase tracking-widest flex items-center gap-2 border-emerald-500/30"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z" /></svg>
+            Templates
+          </button>
+
           {(result || conversationHistory.length > 0) && !isLoading && (
             <>
               <button onClick={onOptimize} disabled={isOptimizing} className={`brutalist-button text-[10px] px-3 py-2 font-black uppercase tracking-widest flex items-center gap-2 ${isOptimizing ? 'bg-lime-600/50 text-white cursor-not-allowed' : 'bg-lime-600/20 text-lime-400'}`}>
@@ -145,7 +163,31 @@ const Canvas: React.FC<CanvasProps> = ({
               )}
             </div>
             <div className="self-start max-w-[90%] bg-slate-800/60 backdrop-blur-xl border-2 border-emerald-500/20 p-5 rounded-none text-sm text-emerald-50 leading-relaxed shadow-[6px_6px_0_rgba(0,0,0,0.3)]">
-              <div className="whitespace-pre-wrap">{turn.tessyResponse}</div>
+              <div className="whitespace-pre-wrap mb-4">{turn.tessyResponse}</div>
+              
+              {/* Google Search Grounding Chunks */}
+              {turn.groundingChunks && turn.groundingChunks.length > 0 && (
+                <div className="mt-6 pt-4 border-t border-emerald-500/20">
+                  <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" /></svg>
+                    Fontes de Consulta (Google Search)
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {turn.groundingChunks.map((chunk, i) => chunk.web ? (
+                      <a 
+                        key={i} 
+                        href={chunk.web.uri} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-[9px] bg-slate-900 border border-emerald-500/30 px-3 py-1.5 text-emerald-100/70 hover:text-emerald-300 hover:border-emerald-500 transition-all font-bold uppercase truncate max-w-[200px]"
+                        title={chunk.web.title}
+                      >
+                        {chunk.web.title || "Ver Fonte"}
+                      </a>
+                    ) : null)}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -201,6 +243,7 @@ const Canvas: React.FC<CanvasProps> = ({
       </div>
 
       <SavePromptModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={onSavePrompt} />
+      <TemplateLibraryModal isOpen={isTemplateModalOpen} onClose={() => setIsTemplateModalOpen(false)} onSelect={handleSelectTemplate} />
     </div>
   );
 };

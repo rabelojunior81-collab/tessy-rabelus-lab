@@ -13,12 +13,20 @@ export interface Factor {
   description?: string;
 }
 
+export interface GroundingChunk {
+  web?: {
+    uri: string;
+    title: string;
+  };
+}
+
 export interface ConversationTurn {
   id: string; // UUID v4 format
   userMessage: string;
   tessyResponse: string;
   timestamp: number; // ms since epoch
   attachedFiles?: AttachedFile[];
+  groundingChunks?: GroundingChunk[];
 }
 
 export interface Conversation {
@@ -37,11 +45,6 @@ export interface RepositoryItem {
   factors?: Factor[];
   timestamp: number;
   tags?: string[];
-}
-
-export interface GeminiResponse {
-  text: string;
-  error?: string;
 }
 
 export interface AttachedFile {
@@ -63,6 +66,13 @@ export interface OptimizationResult {
   completeness_score: number;
   suggestions: OptimizationSuggestion[];
   optimized_prompt: string;
+}
+
+export interface Template {
+  id: string;
+  category: 'Código' | 'Escrita' | 'Análise' | 'Ensino' | 'Criativo';
+  label: string;
+  content: string;
 }
 
 export interface AppPersistedState {
