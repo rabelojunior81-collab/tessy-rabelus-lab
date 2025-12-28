@@ -12,8 +12,8 @@ const OptimizationModal: React.FC<OptimizationModalProps> = ({ isOpen, result, o
   if (!isOpen || !result) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-8 bg-slate-950/30 dark:bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300">
-      <div className="glass-panel !rounded-none w-full max-w-3xl flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in duration-200 !bg-white/95 dark:!bg-slate-900/60 !backdrop-blur-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-8 bg-slate-950/30 dark:bg-slate-950/80 backdrop-blur-md animate-fade-in">
+      <div className="glass-panel !rounded-none w-full max-w-3xl flex flex-col max-h-[90vh] overflow-hidden !bg-white/95 dark:!bg-slate-900/60 !backdrop-blur-2xl animate-zoom-in [animation-delay:75ms]">
         <div className="px-8 py-6 border-b-2 border-emerald-500/20 flex justify-between items-center bg-emerald-500/5 dark:bg-slate-900/40">
           <div>
             <h3 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter glow-text-green">Otimização de Lógica</h3>

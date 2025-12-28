@@ -68,8 +68,8 @@ const ShareModal: React.FC<ShareModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-8 bg-slate-950/40 dark:bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300">
-      <div className="glass-panel !rounded-none w-full max-w-lg flex flex-col animate-in zoom-in duration-200 !bg-white/95 dark:!bg-slate-900/60 !backdrop-blur-2xl !border-emerald-500/40">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-8 bg-slate-950/40 dark:bg-slate-950/80 backdrop-blur-md animate-fade-in">
+      <div className="glass-panel !rounded-none w-full max-w-lg flex flex-col animate-zoom-in [animation-delay:75ms] !bg-white/95 dark:!bg-slate-900/60 !backdrop-blur-2xl !border-emerald-500/40">
         
         {/* Header */}
         <div className="px-8 py-6 border-b-2 border-emerald-500/20 flex justify-between items-center bg-emerald-500/5 dark:bg-slate-900/40 shrink-0">

@@ -63,7 +63,7 @@ const RepositoryBrowser: React.FC<RepositoryBrowserProps> = ({ onSelectItem, ref
   };
 
   return (
-    <div className="h-full flex flex-col p-6 bg-transparent">
+    <div className="h-full flex flex-col p-6 bg-transparent animate-fade-in">
       <h2 className="text-xl font-black mb-6 text-slate-800 dark:text-white uppercase tracking-widest flex items-center gap-3">
         <div className="w-3 h-3 bg-emerald-600 animate-pulse"></div>
         Biblioteca
@@ -117,7 +117,7 @@ const RepositoryBrowser: React.FC<RepositoryBrowserProps> = ({ onSelectItem, ref
               <button
                 key={tag}
                 onClick={() => toggleTag(tag)}
-                className={`px-2 py-0.5 text-[9px] font-black uppercase transition-all border ${
+                className={`px-2 py-0.5 text-[9px] font-black uppercase transition-all border transition-all active:scale-95 ${
                   selectedTags.includes(tag) 
                     ? 'bg-emerald-600 border-emerald-300 text-white shadow-[2px_2px_0_rgba(16,185,129,0.3)]' 
                     : 'bg-white/80 dark:bg-slate-900/40 border-emerald-600/25 text-slate-600 hover:border-emerald-600/40'
@@ -151,18 +151,19 @@ const RepositoryBrowser: React.FC<RepositoryBrowserProps> = ({ onSelectItem, ref
             {(searchTerm || selectedTags.length > 0) && (
               <button 
                 onClick={handleResetFilters}
-                className="mt-4 text-[9px] text-emerald-600 dark:text-emerald-400 font-black uppercase border border-emerald-600/40 px-3 py-1 hover:bg-emerald-600/10 transition-all"
+                className="mt-4 text-[9px] text-emerald-600 dark:text-emerald-400 font-black uppercase border border-emerald-600/40 px-3 py-1 hover:bg-emerald-600/10 transition-all active:scale-95"
               >
                 Resetar Filtros
               </button>
             )}
           </div>
         ) : (
-          filteredItems.map((item) => (
+          filteredItems.map((item, index) => (
             <div
               key={item.id}
               onClick={() => onSelectItem(item)}
-              className="relative w-full text-left p-4 bg-white/80 dark:bg-slate-900/40 border-2 border-emerald-600/25 hover:border-emerald-600/60 hover:bg-emerald-600/5 dark:hover:bg-emerald-900/20 transition-all cursor-pointer group shadow-[4px_4px_0_rgba(16,185,129,0.05)] dark:shadow-[4px_4px_0_rgba(0,0,0,0.3)]"
+              style={{ animationDelay: `${index * 50}ms` }}
+              className="relative w-full text-left p-4 bg-white/80 dark:bg-slate-900/40 border-2 border-emerald-600/25 hover:border-emerald-600/60 hover:bg-emerald-600/5 dark:hover:bg-emerald-900/20 transition-all cursor-pointer group shadow-[4px_4px_0_rgba(16,185,129,0.05)] dark:shadow-[4px_4px_0_rgba(0,0,0,0.3)] animate-slide-in-right stagger-item"
             >
               <div className="flex justify-between items-start mb-2">
                 <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase truncate pr-8 tracking-wider group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">

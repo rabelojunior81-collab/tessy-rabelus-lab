@@ -53,7 +53,7 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ activeId, onLoad, onDel
   };
 
   return (
-    <div className="h-full flex flex-col p-6 bg-transparent animate-in slide-in-from-left duration-300">
+    <div className="h-full flex flex-col p-6 bg-transparent animate-fade-in">
       <h2 className="text-xl font-black mb-6 text-slate-800 dark:text-white uppercase tracking-widest flex items-center gap-3">
         <div className="w-3 h-3 bg-teal-600 animate-pulse"></div>
         Histórico
@@ -84,7 +84,7 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ activeId, onLoad, onDel
             </p>
           </div>
         ) : (
-          filteredConversations.map((conv) => {
+          filteredConversations.map((conv, index) => {
             const isActive = conv.id === activeId;
             const firstTurn = conv.turns[0];
             const preview = firstTurn ? firstTurn.tessyResponse.substring(0, 60) + '...' : 'Sem conteúdo';
@@ -93,7 +93,8 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ activeId, onLoad, onDel
               <div
                 key={conv.id}
                 onClick={() => onLoad(conv)}
-                className={`relative w-full text-left p-4 transition-all cursor-pointer group border-2 ${
+                style={{ animationDelay: `${index * 50}ms` }}
+                className={`relative w-full text-left p-4 transition-all cursor-pointer group border-2 animate-slide-in-left stagger-item ${
                   isActive 
                     ? 'bg-emerald-600/15 border-emerald-600 shadow-[4px_4px_0_rgba(16,185,129,0.25)]' 
                     : 'bg-white/80 dark:bg-slate-900/40 border-teal-600/25 hover:border-teal-600/40'
@@ -126,18 +127,18 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ activeId, onLoad, onDel
 
       {/* Confirmation Overlay */}
       {confirmDeleteId && (
-        <div className="absolute inset-0 z-50 bg-white/95 dark:bg-slate-950/90 flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-200">
+        <div className="absolute inset-0 z-50 bg-white/95 dark:bg-slate-950/90 flex flex-col items-center justify-center p-6 text-center animate-fade-in">
           <p className="text-[10px] font-black text-red-600 uppercase tracking-widest mb-4">Confirmar exclusão?</p>
           <div className="flex gap-4 w-full">
             <button 
               onClick={() => setConfirmDeleteId(null)}
-              className="flex-1 py-2 bg-slate-200 dark:bg-slate-800 text-[9px] font-black uppercase text-slate-600"
+              className="flex-1 py-2 bg-slate-200 dark:bg-slate-800 text-[9px] font-black uppercase text-slate-600 transition-transform active:scale-95"
             >
               Não
             </button>
             <button 
               onClick={confirmDelete}
-              className="flex-1 py-2 bg-red-600 text-white text-[9px] font-black uppercase"
+              className="flex-1 py-2 bg-red-600 text-white text-[9px] font-black uppercase transition-transform active:scale-95"
             >
               Sim
             </button>
