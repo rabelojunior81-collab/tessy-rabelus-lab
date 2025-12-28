@@ -89,7 +89,8 @@ export const applyFactorsAndGenerate = async (
   interpretation: any, 
   factors: Factor[], 
   files: AttachedFile[] = [],
-  history: ConversationTurn[] = []
+  history: ConversationTurn[] = [],
+  groundingEnabled: boolean = true
 ): Promise<GenerateResponse> => {
   if (!interpretation) return { text: "Interpretação inválida." };
 
@@ -97,7 +98,10 @@ export const applyFactorsAndGenerate = async (
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
     let systemInstruction = "Você é Tessy, uma assistente avançada do Rabelus Lab. ";
-    systemInstruction += "Use busca em tempo real do Google quando necessário para fornecer informações atualizadas sobre tecnologias, modelos LLM e melhores práticas. ";
+    
+    if (groundingEnabled) {
+      systemInstruction += "Use busca em tempo real do Google (grounding) para fornecer informações ATUALIZADAS sobre tecnologias, modelos LLM e melhores práticas. Sempre cite fontes quando usar dados externos. ";
+    }
     
     const isProfessional = factors.find(f => f.id === 'prof' && f.enabled);
     const wantsCode = factors.find(f => f.id === 'code' && f.enabled);
@@ -159,7 +163,7 @@ export const applyFactorsAndGenerate = async (
       config: {
         systemInstruction: systemInstruction,
         temperature: 0.7,
-        tools: [{ googleSearch: {} }]
+        tools: groundingEnabled ? [{ googleSearch: {} }] : []
       },
     });
 

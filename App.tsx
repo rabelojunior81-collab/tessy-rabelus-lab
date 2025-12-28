@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import RepositoryBrowser from './components/RepositoryBrowser';
 import Canvas from './components/Canvas';
@@ -11,6 +12,7 @@ const INITIAL_FACTORS: Factor[] = [
   { id: 'prof', type: 'toggle', label: 'Tom Profissional', enabled: false },
   { id: 'flash', type: 'toggle', label: 'Modelo Flash', enabled: true },
   { id: 'code', type: 'toggle', label: 'Formatação de Código', enabled: false },
+  { id: 'grounding', type: 'toggle', label: 'Busca em Tempo Real', enabled: true },
   { id: 'detail_level', type: 'slider', label: 'Nível de Detalhe', enabled: true, value: 3, min: 1, max: 5 },
   { id: 'audience', type: 'dropdown', label: 'Público-Alvo', enabled: true, value: 'intermediario', options: ['iniciante', 'intermediario', 'avancado', 'especialista'] },
   { id: 'context', type: 'text', label: 'Contexto Adicional', enabled: true, value: '' },
@@ -146,8 +148,11 @@ const App: React.FC = () => {
         setStatusMessage('ERRO');
         return;
       }
+      
+      const groundingEnabled = factors.find(f => f.id === 'grounding')?.enabled ?? true;
       setStatusMessage('GERANDO RESPOSTA...');
-      const generationResult = await applyFactorsAndGenerate(interpretation, factors, currentFiles, currentConversation.turns);
+      const generationResult = await applyFactorsAndGenerate(interpretation, factors, currentFiles, currentConversation.turns, groundingEnabled);
+      
       const newTurn: ConversationTurn = {
         id: generateUUID(),
         userMessage: currentInput,

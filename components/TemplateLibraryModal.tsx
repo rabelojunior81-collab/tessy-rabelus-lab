@@ -32,6 +32,16 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({ isOpen, onC
     }
   }, [isOpen]);
 
+  // Grouping system templates by category for better display
+  const systemTemplatesGrouped = useMemo(() => {
+    const grouped: Record<string, Template[]> = {};
+    PROMPT_TEMPLATES.forEach(t => {
+      if (!grouped[t.category]) grouped[t.category] = [];
+      grouped[t.category].push(t);
+    });
+    return grouped;
+  }, []);
+
   if (!isOpen) return null;
 
   const categories: Template['category'][] = ['Código', 'Escrita', 'Análise', 'Ensino', 'Criativo', 'Personalizado'];
@@ -88,16 +98,6 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({ isOpen, onC
     setConfirmDeleteId(null);
     loadCustomTemplates();
   };
-
-  // Explicitly type the useMemo return value to assist the compiler
-  const systemTemplatesGrouped = useMemo<Record<string, Template[]>>(() => {
-    const grouped: Record<string, Template[]> = {};
-    PROMPT_TEMPLATES.forEach(t => {
-      if (!grouped[t.category]) grouped[t.category] = [];
-      grouped[t.category].push(t);
-    });
-    return grouped;
-  }, []);
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-8 bg-slate-950/30 dark:bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300">
@@ -188,36 +188,38 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({ isOpen, onC
               <div className="h-0.5 flex-1 bg-slate-500/20"></div>
             </div>
             <div className="space-y-10">
-              {/* Fix: Explicitly cast Object.entries to ensure templates is typed as Template[] array and map exists */}
-              {(Object.entries(systemTemplatesGrouped) as [string, Template[]][]).map(([category, templates]) => (
-                <div key={category}>
-                  <h6 className="text-[10px] font-black text-emerald-600/60 dark:text-emerald-400/50 uppercase tracking-[0.4em] mb-4">{category}</h6>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {templates.map(template => (
-                      <div 
-                        key={template.id}
-                        className="group relative p-6 bg-slate-50 dark:bg-slate-900/40 border-2 border-emerald-500/5 hover:border-emerald-500/40 transition-all shadow-[4px_4px_0_rgba(0,0,0,0.02)] dark:shadow-[4px_4px_0_rgba(0,0,0,0.2)] cursor-pointer flex flex-col"
-                        onClick={() => onSelect(template)}
-                      >
-                        <div className="mb-3">
-                           <span className="px-2 py-0.5 bg-slate-200 dark:bg-slate-800 text-slate-500 text-[8px] font-black uppercase tracking-tighter">Sistema</span>
+              {Object.entries(systemTemplatesGrouped).map(([category, templates]) => {
+                const typedTemplates = templates as Template[];
+                return (
+                  <div key={category}>
+                    <h6 className="text-[10px] font-black text-emerald-600/60 dark:text-emerald-400/50 uppercase tracking-[0.4em] mb-4">{category}</h6>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {typedTemplates.map(template => (
+                        <div 
+                          key={template.id}
+                          className="group relative p-6 bg-slate-50 dark:bg-slate-900/40 border-2 border-emerald-500/5 hover:border-emerald-500/40 transition-all shadow-[4px_4px_0_rgba(0,0,0,0.02)] dark:shadow-[4px_4px_0_rgba(0,0,0,0.2)] cursor-pointer flex flex-col"
+                          onClick={() => onSelect(template)}
+                        >
+                          <div className="mb-3">
+                             <span className="px-2 py-0.5 bg-slate-200 dark:bg-slate-800 text-slate-500 text-[8px] font-black uppercase tracking-tighter">Sistema</span>
+                          </div>
+                          <h5 className="text-sm font-black text-slate-800 dark:text-white uppercase mb-2 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors tracking-wider">
+                            {template.label}
+                          </h5>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 italic font-medium flex-1">
+                            {template.content}
+                          </p>
+                          <div className="mt-4 flex justify-end">
+                            <span className="text-[9px] font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+                              Carregar Protocolo →
+                            </span>
+                          </div>
                         </div>
-                        <h5 className="text-sm font-black text-slate-800 dark:text-white uppercase mb-2 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors tracking-wider">
-                          {template.label}
-                        </h5>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 italic font-medium flex-1">
-                          {template.content}
-                        </p>
-                        <div className="mt-4 flex justify-end">
-                          <span className="text-[9px] font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
-                            Carregar Protocolo →
-                          </span>
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
