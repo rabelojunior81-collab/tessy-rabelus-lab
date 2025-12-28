@@ -5,6 +5,7 @@ import HistorySidebar from './components/HistorySidebar';
 import Canvas from './components/Canvas';
 import FactorPanel from './components/FactorPanel';
 import OptimizationModal from './components/OptimizationModal';
+import { DateAnchor } from './components/DateAnchor';
 import { interpretIntent, applyFactorsAndGenerate, optimizePrompt } from './services/geminiService';
 import { addDoc, generateUUID, saveConversation, loadLastConversation, saveFactors, loadFactors, getAllConversations } from './services/storageService';
 import { Factor, RepositoryItem, AttachedFile, OptimizationResult, ConversationTurn, Conversation } from './types';
@@ -314,6 +315,10 @@ const App: React.FC = () => {
 
   return (
     <div className="h-screen w-full flex flex-col overflow-hidden font-sans selection:bg-emerald-500/30">
+      <DateAnchor 
+        groundingEnabled={factors.find(f => f.id === 'grounding')?.enabled || false} 
+      />
+      
       <header className="h-16 flex items-center justify-between px-8 border-b-2 border-emerald-500/20 bg-white/60 dark:bg-slate-900/60 backdrop-blur-2xl z-20 shrink-0">
         <div className="flex items-center space-x-4">
           <TessyLogo />

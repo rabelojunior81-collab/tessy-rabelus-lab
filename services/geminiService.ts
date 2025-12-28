@@ -97,7 +97,21 @@ export const applyFactorsAndGenerate = async (
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
-    let systemInstruction = "Você é Tessy, uma assistente avançada do Rabelus Lab. ";
+    const currentDate = new Date().toLocaleDateString('pt-BR', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'America/Sao_Paulo'
+    });
+
+    let systemInstruction = `Você é Tessy, uma assistente avançada do Rabelus Lab.
+
+**DATA E HORA ATUAL**: ${currentDate} (Horário de Brasília, GMT-3)
+
+IMPORTANTE: Ao responder sobre eventos, notícias, lançamentos ou qualquer informação temporal, SEMPRE considere que AGORA é ${currentDate}. Se a pergunta envolver informações recentes ou eventos após esta data, você DEVE usar grounding (busca em tempo real) para obter dados atualizados. `;
     
     if (groundingEnabled) {
       systemInstruction += "Use busca em tempo real do Google (grounding) para fornecer informações ATUALIZADAS sobre tecnologias, modelos LLM e melhores práticas. Sempre cite fontes quando usar dados externos. ";
@@ -137,13 +151,23 @@ export const applyFactorsAndGenerate = async (
       });
     }
 
+    const currentDateShort = new Date().toLocaleDateString('pt-BR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
     // Add current request
     const parts: any[] = [{
-      text: `Execute a seguinte tarefa:
-      TAREFA: ${interpretation.task}
-      ASSUNTO: ${interpretation.subject}
-      DETALHES: ${interpretation.details || 'Nenhum detalhe'}
-      LINGUAGEM: ${interpretation.language || 'Não especificado'}${contextSection}`
+      text: `**CONTEXTO TEMPORAL**: Hoje é ${currentDateShort}.
+
+Execute a seguinte tarefa:
+TAREFA: ${interpretation.task}
+ASSUNTO: ${interpretation.subject}
+DETALHES: ${interpretation.details || 'Nenhum detalhe'}
+LINGUAGEM: ${interpretation.language || 'Não especificado'}${contextSection}
+
+NOTA: Se esta tarefa envolver informações temporais (notícias, eventos recentes, tecnologias lançadas recentemente), você DEVE usar grounding para buscar dados atualizados considerando que hoje é ${currentDateShort}.`
     }];
 
     for (const file of files) {

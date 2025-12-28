@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import SavePromptModal from './SavePromptModal';
 import FilePreview from './FilePreview';
@@ -165,22 +166,23 @@ const Canvas: React.FC<CanvasProps> = ({
               <div className="whitespace-pre-wrap mb-4">{turn.tessyResponse}</div>
               
               {turn.groundingChunks && turn.groundingChunks.length > 0 && (
-                <div className="mt-6 pt-4 border-t border-emerald-500/20">
-                  <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" /></svg>
-                    Fontes de Consulta (Google Search)
-                  </p>
+                <div className="mt-4 p-3 bg-emerald-500/10 backdrop-blur-sm border-2 border-emerald-500 rounded-none shadow-[4px_4px_0_rgba(16,185,129,0.3)]">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                    <span className="text-xs font-bold text-emerald-500 uppercase tracking-widest">
+                      ✓ FONTES DE CONSULTA (GOOGLE SEARCH)
+                    </span>
+                  </div>
                   <div className="flex flex-wrap gap-2">
-                    {turn.groundingChunks.map((chunk, i) => chunk.web ? (
-                      <a 
-                        key={i} 
-                        href={chunk.web.uri} 
-                        target="_blank" 
+                    {turn.groundingChunks.map((chunk, idx) => chunk.web ? (
+                      <a
+                        key={idx}
+                        href={chunk.web.uri}
+                        target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[9px] bg-white dark:bg-slate-900 border border-emerald-500/20 dark:border-emerald-500/30 px-3 py-1.5 text-slate-700 dark:text-emerald-100/70 hover:text-emerald-600 dark:hover:text-emerald-300 hover:border-emerald-500 transition-all font-bold uppercase truncate max-w-[200px]"
-                        title={chunk.web.title}
+                        className="text-xs px-3 py-1 bg-slate-800/80 border border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/20 hover:border-emerald-500 transition-all uppercase tracking-wide font-bold"
                       >
-                        {chunk.web.title || "Ver Fonte"}
+                        {chunk.web.title?.slice(0, 40) || `FONTE ${idx + 1}`}...
                       </a>
                     ) : null)}
                   </div>
