@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import RepositoryBrowser from './components/RepositoryBrowser';
 import Canvas from './components/Canvas';
@@ -26,19 +25,10 @@ const TessyLogo = () => (
           <stop offset="100%" style={{ stopColor: '#14b8a6', stopOpacity: 1 }} />
         </linearGradient>
       </defs>
-      {/* Neural Lines background */}
       <circle cx="50" cy="50" r="45" fill="none" stroke="url(#logoGrad)" strokeWidth="0.5" strokeDasharray="2 2" className="animate-[spin_20s_linear_infinite]" />
       <path d="M20 30 L50 15 L80 30" fill="none" stroke="url(#logoGrad)" strokeWidth="1" strokeOpacity="0.3" />
       <path d="M20 70 L50 85 L80 70" fill="none" stroke="url(#logoGrad)" strokeWidth="1" strokeOpacity="0.3" />
-      
-      {/* Main T shape */}
-      <path 
-        d="M25 25 H75 V35 H55 V80 H45 V35 H25 Z" 
-        fill="url(#logoGrad)" 
-        className="drop-shadow-sm"
-      />
-      
-      {/* Neural nodes */}
+      <path d="M25 25 H75 V35 H55 V80 H45 V35 H25 Z" fill="url(#logoGrad)" className="drop-shadow-sm" />
       <circle cx="50" cy="15" r="3" fill="#84cc16" className="animate-pulse" />
       <circle cx="80" cy="30" r="2.5" fill="#10b981" />
       <circle cx="20" cy="30" r="2.5" fill="#10b981" />
@@ -48,6 +38,12 @@ const TessyLogo = () => (
 );
 
 const App: React.FC = () => {
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    const saved = localStorage.getItem('tessy-theme');
+    if (saved === 'dark' || saved === 'light') return saved;
+    return 'dark';
+  });
+
   const [inputText, setInputText] = useState('');
   const [result, setResult] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -80,6 +76,13 @@ const App: React.FC = () => {
   const textInputRef = useRef<HTMLTextAreaElement | HTMLInputElement>(null);
   const saveFactorsTimerRef = useRef<number | null>(null);
 
+  useEffect(() => {
+    document.documentElement.className = theme;
+    localStorage.setItem('tessy-theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+
   const handleNewConversation = useCallback(() => {
     setCurrentConversation({
       id: generateUUID(),
@@ -100,42 +103,27 @@ const App: React.FC = () => {
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       const isCtrlOrMeta = e.ctrlKey || e.metaKey;
-      
-      // Ctrl+K: Focus Input
       if (isCtrlOrMeta && e.key.toLowerCase() === 'k') {
         e.preventDefault();
-        e.stopPropagation();
         textInputRef.current?.focus();
       }
-      
-      // Ctrl+N: New Conversation
       if (isCtrlOrMeta && e.key.toLowerCase() === 'n') {
         e.preventDefault();
-        e.stopPropagation();
         handleNewConversation();
       }
     };
-    
     window.addEventListener('keydown', handleGlobalKeyDown, true);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown, true);
   }, [handleNewConversation]);
 
   useEffect(() => {
-    if (saveFactorsTimerRef.current) {
-      window.clearTimeout(saveFactorsTimerRef.current);
-    }
-    saveFactorsTimerRef.current = window.setTimeout(() => {
-      saveFactors(factors);
-    }, 500);
-    return () => {
-      if (saveFactorsTimerRef.current) window.clearTimeout(saveFactorsTimerRef.current);
-    };
+    if (saveFactorsTimerRef.current) window.clearTimeout(saveFactorsTimerRef.current);
+    saveFactorsTimerRef.current = window.setTimeout(() => saveFactors(factors), 500);
+    return () => { if (saveFactorsTimerRef.current) window.clearTimeout(saveFactorsTimerRef.current); };
   }, [factors]);
 
   useEffect(() => {
-    if (currentConversation.turns.length > 0) {
-      saveConversation(currentConversation);
-    }
+    if (currentConversation.turns.length > 0) saveConversation(currentConversation);
   }, [currentConversation]);
 
   const handleInterpret = async (forcedText?: string) => {
@@ -285,35 +273,44 @@ const App: React.FC = () => {
 
   return (
     <div className="h-screen w-full flex flex-col overflow-hidden font-sans selection:bg-emerald-500/30">
-      <header className="h-16 flex items-center justify-between px-8 border-b-2 border-emerald-500/20 bg-slate-900/60 backdrop-blur-2xl z-20 shrink-0">
+      <header className="h-16 flex items-center justify-between px-8 border-b-2 border-emerald-500/20 bg-white/60 dark:bg-slate-900/60 backdrop-blur-2xl z-20 shrink-0">
         <div className="flex items-center space-x-4">
           <TessyLogo />
           <div className="flex flex-col">
-            <h1 className="text-2xl font-black tracking-tight leading-none text-white uppercase glow-text-green">
-              tessy <span className="text-emerald-400 font-light italic text-lg lowercase">by rabelus lab</span>
+            <h1 className="text-2xl font-black tracking-tight leading-none text-slate-900 dark:text-white uppercase glow-text-green">
+              tessy <span className="text-emerald-500 dark:text-emerald-400 font-light italic text-lg lowercase">by rabelus lab</span>
             </h1>
-            <span className="text-[10px] font-black text-slate-400 tracking-[0.2em] uppercase mt-1">{currentConversation.title}</span>
+            <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 tracking-[0.2em] uppercase mt-1">{currentConversation.title}</span>
           </div>
         </div>
         
         <div className="flex items-center space-x-6">
+          <button 
+            onClick={toggleTheme}
+            className="w-10 h-10 flex items-center justify-center brutalist-button bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border-emerald-500/30"
+            title={theme === 'dark' ? 'Mudar para Modo Claro' : 'Mudar para Modo Escuro'}
+          >
+            {theme === 'dark' ? (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" /></svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" /></svg>
+            )}
+          </button>
           <div className="text-right hidden sm:block">
-            <p className="text-[10px] text-emerald-500/50 uppercase font-black leading-none tracking-widest">Protocolo Seguro</p>
-            <p className="text-xs text-emerald-400 font-bold uppercase mt-1">v2.6.0-Grounding</p>
+            <p className="text-[10px] text-emerald-600/70 dark:text-emerald-500/50 uppercase font-black leading-none tracking-widest">Protocolo Seguro</p>
+            <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold uppercase mt-1">v2.7.0-Adaptive</p>
           </div>
-          <div className="w-11 h-11 border-2 border-emerald-500/30 p-0.5 shadow-[4px_4px_0_rgba(0,0,0,0.5)] bg-slate-950/40">
+          <div className="w-11 h-11 border-2 border-emerald-500/30 p-0.5 shadow-[4px_4px_0_rgba(0,0,0,0.5)] bg-white/40 dark:bg-slate-950/40">
             <img src={`https://api.dicebear.com/7.x/identicon/svg?seed=tessy-green&backgroundColor=10b981`} alt="Avatar" className="w-full h-full object-cover" />
           </div>
         </div>
       </header>
 
       <main className="flex-1 flex overflow-hidden">
-        {/* Coluna 1: RepositoryBrowser (15%) */}
         <aside className="w-[15%] min-w-[200px] border-r-2 border-emerald-500/10 glass-panel shadow-none border-t-0 border-b-0">
           <RepositoryBrowser onSelectItem={handleSelectItem} refreshKey={refreshKey} />
         </aside>
 
-        {/* Coluna 2: Canvas (60%) */}
         <section className="w-[60%] min-w-[500px] flex-1">
           <Canvas 
             result={result} 
@@ -342,23 +339,22 @@ const App: React.FC = () => {
           />
         </section>
 
-        {/* Coluna 3: FactorPanel (25%) */}
         <aside className="w-[25%] min-w-[300px] border-l-2 border-emerald-500/10 glass-panel shadow-none border-t-0 border-b-0">
           <FactorPanel factors={factors} onToggle={handleToggleFactor} />
         </aside>
       </main>
 
-      <footer className="h-10 border-t-2 border-emerald-500/20 bg-slate-900/80 px-8 flex items-center justify-between text-[10px] text-slate-400 font-black tracking-[0.2em] shrink-0 z-20">
+      <footer className="h-10 border-t-2 border-emerald-500/20 bg-white/80 dark:bg-slate-900/80 px-8 flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 font-black tracking-[0.2em] shrink-0 z-20">
         <div className="flex items-center space-x-6">
-          <span className="text-emerald-500/70">© 2024 RABELUS LAB</span>
+          <span className="text-emerald-600/70 dark:text-emerald-500/70">© 2024 RABELUS LAB</span>
           <span className="flex items-center space-x-2">
             <span className={`w-2.5 h-2.5 ${isLoading ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'} shadow-[0_0_10px_rgba(16,185,129,0.5)]`}></span>
-            <span className="uppercase text-white">MOTOR: {statusMessage}</span>
+            <span className="uppercase text-slate-900 dark:text-white">MOTOR: {statusMessage}</span>
           </span>
         </div>
         <div className="flex items-center space-x-8">
-          <span className="text-emerald-500/40">SINC SEGURA: ATIVA</span>
-          <span className="text-emerald-400">PULSE PROTOCOL 2.6.0</span>
+          <span className="text-emerald-600/40 dark:text-emerald-500/40">SINC SEGURA: ATIVA</span>
+          <span className="text-emerald-600 dark:text-emerald-400">PULSE PROTOCOL 2.7.0</span>
         </div>
       </footer>
 
