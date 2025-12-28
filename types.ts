@@ -70,9 +70,12 @@ export interface OptimizationResult {
 
 export interface Template {
   id: string;
-  category: 'Código' | 'Escrita' | 'Análise' | 'Ensino' | 'Criativo';
+  category: 'Código' | 'Escrita' | 'Análise' | 'Ensino' | 'Criativo' | 'Personalizado';
   label: string;
   content: string;
+  isCustom?: boolean;
+  createdAt?: number;
+  updatedAt?: number;
 }
 
 export interface AppPersistedState {

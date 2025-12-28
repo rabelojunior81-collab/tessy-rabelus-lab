@@ -1,5 +1,5 @@
 
-import { Conversation, Factor, RepositoryItem } from '../types';
+import { Conversation, Factor, RepositoryItem, Template } from '../types';
 
 /**
  * Generates a standard UUID v4
@@ -20,7 +20,8 @@ const STORAGE_KEYS = {
   FACTORS: 'tessy_factors_v2',
   LAST_CONV_ID: 'tessy_last_conv_id',
   PROMPTS: 'prompts', // Compatibility with RepositoryBrowser
-  OLD_HISTORY: 'conversation_history' // For migration
+  OLD_HISTORY: 'conversation_history', // For migration
+  CUSTOM_TEMPLATES: 'tessy_custom_templates'
 };
 
 // --- Repository (Legacy/Static Prompts) ---
@@ -163,5 +164,62 @@ export const loadFactors = (): Factor[] | null => {
   } catch (error) {
     console.error('Error loading factors:', error);
     return null;
+  }
+};
+
+// --- Custom Templates Persistence ---
+
+export const getCustomTemplates = (): Template[] => {
+  try {
+    const data = localStorage.getItem(STORAGE_KEYS.CUSTOM_TEMPLATES);
+    return data ? JSON.parse(data) : [];
+  } catch (error) {
+    console.error('Error getting custom templates:', error);
+    return [];
+  }
+};
+
+export const saveCustomTemplate = (template: Template): void => {
+  try {
+    const templates = getCustomTemplates();
+    const newTemplate = {
+      ...template,
+      id: template.id || generateUUID(),
+      isCustom: true,
+      createdAt: template.createdAt || Date.now(),
+      updatedAt: Date.now()
+    };
+    templates.push(newTemplate);
+    localStorage.setItem(STORAGE_KEYS.CUSTOM_TEMPLATES, JSON.stringify(templates));
+  } catch (error) {
+    console.error('Error saving custom template:', error);
+  }
+};
+
+export const updateCustomTemplate = (id: string, updatedTemplate: Template): void => {
+  try {
+    const templates = getCustomTemplates();
+    const index = templates.findIndex(t => t.id === id);
+    if (index !== -1) {
+      templates[index] = {
+        ...updatedTemplate,
+        id,
+        isCustom: true,
+        updatedAt: Date.now()
+      };
+      localStorage.setItem(STORAGE_KEYS.CUSTOM_TEMPLATES, JSON.stringify(templates));
+    }
+  } catch (error) {
+    console.error('Error updating custom template:', error);
+  }
+};
+
+export const deleteCustomTemplate = (id: string): void => {
+  try {
+    const templates = getCustomTemplates();
+    const filtered = templates.filter(t => t.id !== id);
+    localStorage.setItem(STORAGE_KEYS.CUSTOM_TEMPLATES, JSON.stringify(filtered));
+  } catch (error) {
+    console.error('Error deleting custom template:', error);
   }
 };

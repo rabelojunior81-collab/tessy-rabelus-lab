@@ -1,6 +1,9 @@
 
 import { Template } from '../types';
 
+/**
+ * System Predefined Templates (Non-editable)
+ */
 export const PROMPT_TEMPLATES: Template[] = [
   {
     id: 'explain-code',
