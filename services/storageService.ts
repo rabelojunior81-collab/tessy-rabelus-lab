@@ -1,4 +1,3 @@
-
 import { Conversation, Factor, RepositoryItem, Template } from '../types';
 
 /**
@@ -129,6 +128,13 @@ export const getAllConversations = (): Conversation[] => {
 export const getConversationById = (id: string): Conversation | null => {
   const convs = getAllConversations();
   return convs.find(c => c.id === id) || null;
+};
+
+/**
+ * Loads a conversation by its ID.
+ */
+export const loadConversation = (conversationId: string): Conversation | null => {
+  return getConversationById(conversationId);
 };
 
 export const loadLastConversation = (): Conversation | null => {

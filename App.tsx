@@ -24,10 +24,11 @@ const TessyLogo = () => (
     <svg viewBox="0 0 100 100" className="w-full h-full filter drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]">
       <defs>
         <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style={{ stopColor: '#10b981', stopOpacity: 1 }} />
-          <stop offset="100%" style={{ stopColor: '#14b8a6', stopOpacity: 1 }} />
+          <stop offset="0%" style={{ stopColor: '#059669', stopOpacity: 1 }} />
+          <stop offset="100%" style={{ stopColor: '#10b981', stopOpacity: 1 }} />
         </linearGradient>
       </defs>
+      <circle cx="50" cy="50" r="45" fill="none" stroke="url(#logoGrad)" strokeWidth="0.5" strokeDasharray="2 2" className="animate-[spin_20s_linear_infinite]" />
       <circle cx="50" cy="50" r="45" fill="none" stroke="url(#logoGrad)" strokeWidth="0.5" strokeDasharray="2 2" className="animate-[spin_20s_linear_infinite]" />
       <path d="M20 30 L50 15 L80 30" fill="none" stroke="url(#logoGrad)" strokeWidth="1" strokeOpacity="0.3" />
       <path d="M20 70 L50 85 L80 70" fill="none" stroke="url(#logoGrad)" strokeWidth="1" strokeOpacity="0.3" />
@@ -312,15 +313,15 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="h-screen w-full flex flex-col overflow-hidden font-sans selection:bg-emerald-500/30">
-      <header className="h-16 flex items-center justify-between px-8 border-b-2 border-emerald-500/20 bg-white/60 dark:bg-slate-900/60 backdrop-blur-2xl z-20 shrink-0">
+    <div className="h-screen w-full flex flex-col overflow-hidden font-sans selection:bg-emerald-600/30">
+      <header className="h-16 flex items-center justify-between px-8 border-b-2 border-emerald-600/25 bg-white/85 dark:bg-slate-900/60 backdrop-blur-2xl z-20 shrink-0">
         <div className="flex items-center space-x-4">
           <TessyLogo />
           <div className="flex flex-col">
-            <h1 className="text-2xl font-black tracking-tight leading-none text-slate-900 dark:text-white uppercase glow-text-green">
-              tessy <span className="text-emerald-500 dark:text-emerald-400 font-light italic text-lg lowercase">by rabelus lab</span>
+            <h1 className="text-2xl font-black tracking-tight leading-none text-slate-800 dark:text-white uppercase glow-text-green">
+              tessy <span className="text-emerald-600 dark:text-emerald-400 font-light italic text-lg lowercase">by rabelus lab</span>
             </h1>
-            <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 tracking-[0.2em] uppercase mt-1">{currentConversation.title}</span>
+            <span className="text-[10px] font-black text-slate-600 dark:text-slate-400 tracking-[0.2em] uppercase mt-1">{currentConversation.title}</span>
           </div>
         </div>
 
@@ -331,7 +332,7 @@ const App: React.FC = () => {
         <div className="flex items-center space-x-6">
           <button 
             onClick={toggleTheme}
-            className="w-10 h-10 flex items-center justify-center brutalist-button bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border-emerald-500/30"
+            className="w-10 h-10 flex items-center justify-center brutalist-button bg-emerald-600/15 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-600/25 border-emerald-600/25"
             title={theme === 'dark' ? 'Mudar para Modo Claro' : 'Mudar para Modo Escuro'}
           >
             {theme === 'dark' ? (
@@ -344,24 +345,24 @@ const App: React.FC = () => {
             <p className="text-[10px] text-emerald-600/70 dark:text-emerald-500/50 uppercase font-black leading-none tracking-widest">Protocolo Seguro</p>
             <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold uppercase mt-1">v2.7.0-Adaptive</p>
           </div>
-          <div className="w-11 h-11 border-2 border-emerald-500/30 p-0.5 shadow-[4px_4px_0_rgba(0,0,0,0.5)] bg-white/40 dark:bg-slate-950/40">
+          <div className="w-11 h-11 border-2 border-emerald-600/25 p-0.5 shadow-[4px_4px_0_rgba(16,185,129,0.15)] bg-white/85 dark:bg-slate-950/40">
             <img src={`https://api.dicebear.com/7.x/identicon/svg?seed=tessy-green&backgroundColor=10b981`} alt="Avatar" className="w-full h-full object-cover" />
           </div>
         </div>
       </header>
 
       <main className="flex-1 flex overflow-hidden">
-        <aside className="w-[18%] min-w-[250px] border-r-2 border-emerald-500/10 glass-panel shadow-none border-t-0 border-b-0 flex flex-col">
-          <div className="flex border-b-2 border-emerald-500/10 shrink-0">
+        <aside className="w-[18%] min-w-[250px] border-r-2 border-emerald-600/15 glass-panel shadow-none border-t-0 border-b-0 flex flex-col">
+          <div className="flex border-b-2 border-emerald-600/15 shrink-0">
             <button 
               onClick={() => setActiveTab('history')}
-              className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'history' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-500' : 'text-slate-400 hover:text-slate-600'}`}
+              className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'history' ? 'bg-emerald-600/15 text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-600' : 'text-slate-600 hover:text-slate-800'}`}
             >
               Histórico
             </button>
             <button 
               onClick={() => setActiveTab('library')}
-              className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'library' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-500' : 'text-slate-400 hover:text-slate-600'}`}
+              className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'library' ? 'bg-emerald-600/15 text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-600' : 'text-slate-600 hover:text-slate-800'}`}
             >
               Biblioteca
             </button>
@@ -407,20 +408,22 @@ const App: React.FC = () => {
             pendingFiles={pendingFiles}
             factors={factors}
             conversationTitle={currentConversation.title}
+            conversationId={currentConversation.id}
+            onImportSuccess={handleLoadConversationFromHistory}
           />
         </section>
 
-        <aside className="w-[25%] min-w-[300px] border-l-2 border-emerald-500/10 glass-panel shadow-none border-t-0 border-b-0">
+        <aside className="w-[25%] min-w-[300px] border-l-2 border-emerald-600/15 glass-panel shadow-none border-t-0 border-b-0">
           <FactorPanel factors={factors} onToggle={handleToggleFactor} />
         </aside>
       </main>
 
-      <footer className="h-10 border-t-2 border-emerald-500/20 bg-white/80 dark:bg-slate-900/80 px-8 flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 font-black tracking-[0.2em] shrink-0 z-20">
+      <footer className="h-10 border-t-2 border-emerald-600/25 bg-white/85 dark:bg-slate-900/80 px-8 flex items-center justify-between text-[10px] text-slate-600 dark:text-slate-400 font-black tracking-[0.2em] shrink-0 z-20">
         <div className="flex items-center space-x-6">
           <span className="text-emerald-600/70 dark:text-emerald-500/70">© 2024 RABELUS LAB</span>
           <span className="flex items-center space-x-2">
-            <span className={`w-2.5 h-2.5 ${isLoading ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'} shadow-[0_0_10px_rgba(16,185,129,0.5)]`}></span>
-            <span className="uppercase text-slate-900 dark:text-white">MOTOR: {statusMessage}</span>
+            <span className={`w-2.5 h-2.5 ${isLoading ? 'bg-amber-500 animate-pulse' : 'bg-emerald-600'} shadow-[0_0_10px_rgba(16,185,129,0.5)]`}></span>
+            <span className="uppercase text-slate-800 dark:text-white">MOTOR: {statusMessage}</span>
           </span>
         </div>
         <div className="flex items-center space-x-8">

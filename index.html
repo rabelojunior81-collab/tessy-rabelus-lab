@@ -26,9 +26,9 @@
             --primary: #10b981;
             --secondary: #14b8a6;
             --accent: #84cc16;
-            --bg-body: #f8f9fa;
+            --bg-body: #f0f4f8;
             --text-body: #1e293b;
-            --bg-overlay: linear-gradient(rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.95));
+            --bg-overlay: linear-gradient(rgba(240, 244, 248, 0.90), rgba(240, 244, 248, 0.95));
         }
         .dark {
             --bg-body: #0f172a;
@@ -50,11 +50,11 @@
             height: 100vh;
         }
         .glass-panel {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 2px solid rgba(16, 185, 129, 0.4);
-            box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.05);
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 2px solid rgba(16, 185, 129, 0.25);
+            box-shadow: 6px 6px 0 rgba(16, 185, 129, 0.15);
         }
         .dark .glass-panel {
             background: rgba(15, 23, 42, 0.5);
@@ -63,16 +63,17 @@
         }
         .brutalist-button {
             border-radius: 0 !important;
-            border: 2px solid rgba(16, 185, 129, 0.4);
-            box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.1);
+            border: 2px solid rgba(5, 150, 105, 0.4);
+            box-shadow: 4px 4px 0 rgba(16, 185, 129, 0.2);
             transition: all 0.2s ease;
         }
         .dark .brutalist-button {
+            border: 2px solid rgba(16, 185, 129, 0.4);
             box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.5);
         }
         .brutalist-button:hover:not(:disabled) {
             transform: translate(-2px, -2px);
-            box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.15);
+            box-shadow: 6px 6px 0 rgba(16, 185, 129, 0.3);
             border-color: var(--primary);
         }
         .dark .brutalist-button:hover:not(:disabled) {
@@ -80,7 +81,7 @@
         }
         .brutalist-button:active:not(:disabled) {
             transform: translate(1px, 1px);
-            box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.05);
+            box-shadow: 2px 2px 0 rgba(16, 185, 129, 0.15);
         }
         .dark .brutalist-button:active:not(:disabled) {
             box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.4);
@@ -89,10 +90,13 @@
             width: 6px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(16, 185, 129, 0.08);
+        }
+        .dark .custom-scrollbar::-webkit-scrollbar-track {
             background: rgba(0, 0, 0, 0.05);
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: rgba(16, 185, 129, 0.3);
+            background: rgba(5, 150, 105, 0.4);
             border-radius: 0;
         }
         .dark .custom-scrollbar::-webkit-scrollbar-thumb {
@@ -105,7 +109,7 @@
             font-family: 'JetBrains Mono', monospace;
         }
         .glow-text-green {
-            text-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+            text-shadow: 0 0 8px rgba(5, 150, 105, 0.25);
         }
         .dark .glow-text-green {
             text-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
