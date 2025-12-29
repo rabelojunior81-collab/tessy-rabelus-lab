@@ -1,4 +1,3 @@
-
 export type FactorType = 'toggle' | 'slider' | 'dropdown' | 'text';
 
 export interface Factor {
@@ -21,24 +20,33 @@ export interface GroundingChunk {
 }
 
 export interface ConversationTurn {
-  id: string; // UUID v4 format
+  id: string;
   userMessage: string;
   tessyResponse: string;
-  timestamp: number; // ms since epoch
+  timestamp: number;
   attachedFiles?: AttachedFile[];
   groundingChunks?: GroundingChunk[];
 }
 
 export interface Conversation {
-  id: string; // UUID v4 format
+  id: string;
+  projectId: string;
   title: string;
   turns: ConversationTurn[];
   createdAt: number;
   updatedAt: number;
 }
 
+export interface Project {
+  id: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface RepositoryItem {
   id: string;
+  projectId: string;
   title: string;
   description: string;
   content?: string;
@@ -49,10 +57,12 @@ export interface RepositoryItem {
 
 export interface AttachedFile {
   id: string;
+  projectId?: string;
   name: string;
   mimeType: string;
-  data: string; // base64
+  data: string; // base64 or blob
   size: number;
+  blob?: Blob;
 }
 
 export interface OptimizationSuggestion {

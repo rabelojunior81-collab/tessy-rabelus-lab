@@ -1,8 +1,9 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Conversation } from '../types';
-import { getAllConversations, deleteConversation } from '../services/storageService';
+import { db } from '../services/dbService';
 
 interface HistorySidebarProps {
+  currentProjectId: string;
   activeId: string;
   onLoad: (conversation: Conversation) => void;
   onDelete: (id: string) => void;
@@ -12,24 +13,41 @@ interface HistorySidebarProps {
 
 const ITEMS_PER_PAGE = 15;
 
-const HistorySidebar: React.FC<HistorySidebarProps> = ({ activeId, onLoad, onDelete, refreshKey, onClose }) => {
+const HistorySidebar: React.FC<HistorySidebarProps> = ({ currentProjectId, activeId, onLoad, onDelete, refreshKey, onClose }) => {
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const allConversationsSorted = useMemo(() => {
-    const all = getAllConversations();
-    return all.sort((a, b) => b.updatedAt - a.updatedAt);
-  }, [refreshKey]);
+  const loadConversations = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const all = await db.conversations
+        .where('projectId')
+        .equals(currentProjectId)
+        .reverse()
+        .sortBy('updatedAt');
+      setConversations(all);
+    } catch (err) {
+      console.error("Failed to load history:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentProjectId]);
+
+  useEffect(() => {
+    loadConversations();
+  }, [loadConversations, refreshKey]);
 
   const filteredConversations = useMemo(() => {
-    if (!searchTerm.trim()) return allConversationsSorted;
+    if (!searchTerm.trim()) return conversations;
     const term = searchTerm.toLowerCase();
-    return allConversationsSorted.filter(c => 
+    return conversations.filter(c => 
       c.title.toLowerCase().includes(term) || 
       c.turns.some(t => t.userMessage.toLowerCase().includes(term) || t.tessyResponse.toLowerCase().includes(term))
     );
-  }, [allConversationsSorted, searchTerm]);
+  }, [conversations, searchTerm]);
 
   const displayedConversations = useMemo(() => {
     return filteredConversations.slice(0, currentPage * ITEMS_PER_PAGE);
@@ -52,13 +70,14 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ activeId, onLoad, onDel
     setConfirmDeleteId(id);
   }, []);
 
-  const confirmDelete = useCallback(() => {
+  const confirmDelete = useCallback(async () => {
     if (confirmDeleteId) {
-      deleteConversation(confirmDeleteId);
+      await db.conversations.delete(confirmDeleteId);
       onDelete(confirmDeleteId);
       setConfirmDeleteId(null);
+      loadConversations();
     }
-  }, [confirmDeleteId, onDelete]);
+  }, [confirmDeleteId, onDelete, loadConversations]);
 
   const handleLoadMore = useCallback(() => {
     setCurrentPage(prev => prev + 1);
@@ -90,24 +109,21 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ activeId, onLoad, onDel
             placeholder="BUSCAR CONVERSAS..."
             className="w-full bg-white/80 dark:bg-slate-900/60 border-2 border-teal-600/25 py-2.5 pl-4 pr-10 text-[9px] sm:text-[10px] font-black text-slate-800 dark:text-white placeholder-teal-900/30 focus:outline-none focus:border-teal-600 transition-all !rounded-none uppercase tracking-widest"
           />
-          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-            <svg className="h-4 w-4 text-teal-600/50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
-            </svg>
-          </div>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 sm:space-y-4 pr-1 pb-10">
-        {displayedConversations.length === 0 ? (
+        {isLoading ? (
+          <div className="flex justify-center p-8"><div className="w-6 h-6 border-2 border-emerald-600 border-t-transparent animate-spin"></div></div>
+        ) : displayedConversations.length === 0 ? (
           <div className="border-2 border-dashed border-teal-600/25 p-8 text-center bg-white/40">
             <p className="text-[10px] text-slate-600 font-black uppercase tracking-widest italic">Nenhum registro localizado</p>
           </div>
         ) : (
           <>
-            {displayedConversations.map((conv, index) => {
+            {displayedConversations.map((conv) => {
               const isActive = conv.id === activeId;
-              const preview = conv.turns.length > 0 ? conv.turns[0].tessyResponse.substring(0, 50) + '...' : 'Vazio';
+              const preview = conv.turns.length > 0 ? conv.turns[conv.turns.length - 1].tessyResponse.substring(0, 50) + '...' : 'Vazio';
               
               return (
                 <div

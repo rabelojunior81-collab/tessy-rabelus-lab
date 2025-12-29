@@ -1,33 +1,51 @@
-
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { RepositoryItem } from '../types';
-import { getDocs, deleteDoc, getAllTags } from '../services/storageService';
+import { db } from '../services/dbService';
 
 interface RepositoryBrowserProps {
+  currentProjectId: string;
   onSelectItem: (item: RepositoryItem) => void;
   refreshKey: number;
   onClose?: () => void;
 }
 
-const RepositoryBrowser: React.FC<RepositoryBrowserProps> = ({ onSelectItem, refreshKey, onClose }) => {
+const RepositoryBrowser: React.FC<RepositoryBrowserProps> = ({ currentProjectId, onSelectItem, refreshKey, onClose }) => {
   const [items, setItems] = useState<RepositoryItem[]>([]);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
-  const loadItems = useCallback(() => {
-    const localItems = getDocs('prompts') as RepositoryItem[];
-    setItems(localItems);
-    setAvailableTags(getAllTags());
-  }, []);
+  const loadItems = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const localItems = await db.library
+        .where('projectId')
+        .equals(currentProjectId)
+        .reverse()
+        .sortBy('timestamp');
+        
+      setItems(localItems);
+      
+      const tagSet = new Set<string>();
+      localItems.forEach(item => {
+        if (item.tags) item.tags.forEach(tag => tagSet.add(tag.toLowerCase()));
+      });
+      setAvailableTags(Array.from(tagSet).sort());
+    } catch (err) {
+      console.error("Failed to load library:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentProjectId]);
 
   useEffect(() => {
     loadItems();
   }, [refreshKey, loadItems]);
 
-  const handleDelete = useCallback((e: React.MouseEvent, id: string) => {
+  const handleDelete = useCallback(async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    deleteDoc('prompts', id);
+    await db.library.delete(id);
     loadItems();
   }, [loadItems]);
 
@@ -76,7 +94,7 @@ const RepositoryBrowser: React.FC<RepositoryBrowserProps> = ({ onSelectItem, ref
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder="BUSCAR PROMPTS..."
-          className="w-full bg-white/80 dark:bg-slate-900/60 border-2 border-emerald-600/25 py-2.5 px-4 text-[9px] sm:text-[10px] font-black text-slate-800 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:border-emerald-600 transition-all !rounded-none uppercase tracking-widest"
+          className="w-full bg-white/80 dark:bg-slate-900/60 border-2 border-emerald-600/25 py-2.5 px-4 text-[9px] sm:text-[10px] font-black text-slate-800 dark:text-white placeholder-slate-500 focus:outline-none focus:border-emerald-600 transition-all !rounded-none uppercase tracking-widest"
         />
       </div>
 
@@ -99,7 +117,9 @@ const RepositoryBrowser: React.FC<RepositoryBrowserProps> = ({ onSelectItem, ref
       </div>
 
       <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-1 pb-10">
-        {filteredItems.length === 0 ? (
+        {isLoading ? (
+          <div className="flex justify-center p-8"><div className="w-6 h-6 border-2 border-emerald-600 border-t-transparent animate-spin"></div></div>
+        ) : filteredItems.length === 0 ? (
           <div className="border-2 border-dashed border-emerald-600/20 p-8 text-center bg-white/40">
             <p className="text-[10px] text-slate-500 font-black uppercase italic">Nenhum item na biblioteca</p>
           </div>

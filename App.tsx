@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useCallback, Suspense, lazy } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import HistorySidebar from './components/HistorySidebar';
@@ -6,7 +5,7 @@ import Canvas from './components/Canvas';
 import FactorPanel from './components/FactorPanel';
 import { DateAnchor } from './components/DateAnchor';
 import { interpretIntent, applyFactorsAndGenerate, optimizePrompt } from './services/geminiService';
-import { addDoc, generateUUID, saveConversation, loadLastConversation, saveFactors, loadFactors, cleanOldConversations } from './services/storageService';
+import { db, migrateToIndexedDB, generateUUID } from './services/dbService';
 import { Factor, RepositoryItem, AttachedFile, OptimizationResult, ConversationTurn, Conversation } from './types';
 
 // Lazy Loaded Components
@@ -40,41 +39,22 @@ const TessyLogo = React.memo(() => (
           <stop offset="100%" style={{ stopColor: '#84cc16', stopOpacity: 0 }} />
         </radialGradient>
       </defs>
-      
-      {/* Outer Rotating Circles */}
       <circle cx="50" cy="50" r="46" fill="none" stroke="url(#logoGrad)" strokeWidth="0.8" strokeDasharray="2 2" className="animate-[spin_25s_linear_infinite]" />
       <circle cx="50" cy="50" r="40" fill="none" stroke="url(#logoGrad2)" strokeWidth="0.5" strokeDasharray="3 1" className="animate-[spin_18s_linear_infinite_reverse]" />
       <circle cx="50" cy="50" r="34" fill="none" stroke="#10b981" strokeWidth="0.3" strokeDasharray="1 3" className="animate-[spin_12s_linear_infinite]" />
-      
-      {/* Central Glow */}
       <circle cx="50" cy="50" r="10" fill="url(#centerGlow)" className="animate-pulse-soft" />
-
-      {/* Connection Lines (Constellation) */}
       <path d="M50 15 L50 25 M50 85 L50 80 M30 30 L45 35 M70 30 L55 35 M30 70 L45 75 M70 70 L55 75" stroke="#10b981" strokeWidth="0.3" strokeDasharray="1 2" opacity="0.4" className="animate-pulse" />
-
-      {/* Main Letter T */}
       <path d="M25 25 H75 V35 H55 V80 H45 V35 H25 Z" fill="url(#logoGrad)" />
-      
-      {/* Pulsing Nodes */}
       <circle cx="50" cy="15" r="3.5" fill="#84cc16" className="animate-pulse" />
       <circle cx="50" cy="85" r="3.5" fill="#14b8a6" className="animate-pulse" />
-      
-      {/* Smaller Constellation Nodes */}
-      <circle cx="30" cy="30" r="1.5" fill="#10b981" className="animate-pulse" style={{ animationDelay: '0s' }} />
-      <circle cx="70" cy="30" r="1.5" fill="#14b8a6" className="animate-pulse" style={{ animationDelay: '0.5s' }} />
-      <circle cx="30" cy="70" r="1.5" fill="#84cc16" className="animate-pulse" style={{ animationDelay: '1s' }} />
-      <circle cx="70" cy="70" r="1.5" fill="#059669" className="animate-pulse" style={{ animationDelay: '1.5s' }} />
     </svg>
   </div>
 ));
 
 const App: React.FC = () => {
-  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    const saved = localStorage.getItem('tessy-theme');
-    if (saved === 'dark' || saved === 'light') return saved;
-    return 'dark';
-  });
-
+  const [isMigrating, setIsMigrating] = useState(true);
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [currentProjectId, setCurrentProjectId] = useState('default-project');
   const [activeSideTab, setActiveSideTab] = useState<'library' | 'history'>('history');
   const [isSidebarMobileOpen, setIsSidebarMobileOpen] = useState(false);
   const [isFactorsMobileOpen, setIsFactorsMobileOpen] = useState(false);
@@ -93,49 +73,70 @@ const App: React.FC = () => {
   const [pendingUserMessage, setPendingUserMessage] = useState<string | null>(null);
   const [pendingFiles, setPendingFiles] = useState<AttachedFile[]>([]);
   
-  const [currentConversation, setCurrentConversation] = useState<Conversation>(() => {
-    const last = loadLastConversation();
-    if (last) return last;
-    return {
+  const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
+  const [factors, setFactors] = useState<Factor[]>(INITIAL_FACTORS);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const textInputRef = useRef<HTMLTextAreaElement | HTMLInputElement>(null);
+
+  // Initial Boot Sequence
+  useEffect(() => {
+    const boot = async () => {
+      try {
+        await migrateToIndexedDB();
+        
+        // Load Settings
+        const themeSetting = await db.settings.get('tessy-theme');
+        if (themeSetting) setTheme(themeSetting.value);
+        
+        const factorsSetting = await db.settings.get('tessy-factors');
+        if (factorsSetting) setFactors(factorsSetting.value);
+
+        // Load Last Conversation
+        const lastConvIdSetting = await db.settings.get('tessy_last_conv_id');
+        let lastConv = null;
+        if (lastConvIdSetting) {
+          lastConv = await db.conversations.get(lastConvIdSetting.value);
+        }
+
+        if (lastConv) {
+          setCurrentConversation(lastConv);
+        } else {
+          setCurrentConversation({
+            id: generateUUID(),
+            projectId: currentProjectId,
+            title: 'Nova Conversa',
+            turns: [],
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+          });
+        }
+      } catch (err) {
+        console.error("Boot error:", err);
+      } finally {
+        setIsMigrating(false);
+      }
+    };
+    boot();
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.className = theme;
+    db.settings.put({ key: 'tessy-theme', value: theme });
+  }, [theme]);
+
+  const toggleTheme = useCallback(() => setTheme(prev => prev === 'dark' ? 'light' : 'dark'), []);
+
+  const handleNewConversation = useCallback(() => {
+    const newConv: Conversation = {
       id: generateUUID(),
+      projectId: currentProjectId,
       title: 'Nova Conversa',
       turns: [],
       createdAt: Date.now(),
       updatedAt: Date.now()
     };
-  });
-  
-  const [factors, setFactors] = useState<Factor[]>(() => {
-    const saved = loadFactors();
-    return saved || INITIAL_FACTORS;
-  });
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const textInputRef = useRef<HTMLTextAreaElement | HTMLInputElement>(null);
-  const saveFactorsTimerRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    document.documentElement.className = theme;
-    localStorage.setItem('tessy-theme', theme);
-  }, [theme]);
-
-  useEffect(() => {
-    const removed = cleanOldConversations();
-    if (removed > 0) {
-      setHistoryRefreshKey(prev => prev + 1);
-    }
-  }, []);
-
-  const toggleTheme = useCallback(() => setTheme(prev => prev === 'dark' ? 'light' : 'dark'), []);
-
-  const handleNewConversation = useCallback(() => {
-    setCurrentConversation({
-      id: generateUUID(),
-      title: 'Nova Conversa',
-      turns: [],
-      createdAt: Date.now(),
-      updatedAt: Date.now()
-    });
+    setCurrentConversation(newConv);
     setResult('');
     setInputText('');
     setAttachedFiles([]);
@@ -146,8 +147,9 @@ const App: React.FC = () => {
     setIsSidebarMobileOpen(false);
     setIsFactorsMobileOpen(false);
     setTimeout(() => textInputRef.current?.focus(), 10);
-  }, []);
+  }, [currentProjectId]);
 
+  // Global Hotkeys
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       const isCtrlOrMeta = e.ctrlKey || e.metaKey;
@@ -164,22 +166,26 @@ const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleGlobalKeyDown, true);
   }, [handleNewConversation]);
 
+  // Persist Factors and Conversation
   useEffect(() => {
-    if (saveFactorsTimerRef.current) window.clearTimeout(saveFactorsTimerRef.current);
-    saveFactorsTimerRef.current = window.setTimeout(() => saveFactors(factors), 500);
-    return () => { if (saveFactorsTimerRef.current) window.clearTimeout(saveFactorsTimerRef.current); };
-  }, [factors]);
+    if (!isMigrating) {
+      db.settings.put({ key: 'tessy-factors', value: factors });
+    }
+  }, [factors, isMigrating]);
 
   useEffect(() => {
-    if (currentConversation.turns.length > 0) {
-      saveConversation(currentConversation);
+    if (!isMigrating && currentConversation) {
+      db.conversations.put(currentConversation);
+      db.settings.put({ key: 'tessy_last_conv_id', value: currentConversation.id });
       setHistoryRefreshKey(p => p + 1);
     }
-  }, [currentConversation.turns.length, currentConversation.updatedAt, currentConversation.id]);
+  }, [currentConversation?.turns.length, currentConversation?.updatedAt, currentConversation?.id, isMigrating]);
 
   const handleInterpret = useCallback(async (forcedText?: string) => {
+    if (!currentConversation) return;
     const textToUse = forcedText ?? inputText;
     if (!textToUse.trim() && attachedFiles.length === 0) return;
+    
     const currentInput = textToUse;
     const currentFiles = [...attachedFiles];
     setPendingUserMessage(currentInput);
@@ -189,6 +195,7 @@ const App: React.FC = () => {
     setIsLoading(true);
     setStatusMessage('INTERPRETANDO...');
     setResult('');
+    
     try {
       const interpretation = await interpretIntent(currentInput, currentFiles, currentConversation.turns);
       setLastInterpretation(interpretation);
@@ -212,6 +219,7 @@ const App: React.FC = () => {
       };
       
       setCurrentConversation(prev => {
+        if (!prev) return null;
         const isFirstMessage = prev.turns.length === 0;
         let newTitle = prev.title;
         if (isFirstMessage) {
@@ -235,10 +243,10 @@ const App: React.FC = () => {
       setPendingUserMessage(null);
       setPendingFiles([]);
     }
-  }, [inputText, attachedFiles, currentConversation.turns, factors]);
+  }, [inputText, attachedFiles, currentConversation, factors]);
 
   const handleOptimize = useCallback(async () => {
-    if (currentConversation.turns.length === 0) return;
+    if (!currentConversation || currentConversation.turns.length === 0) return;
     const lastTurn = currentConversation.turns[currentConversation.turns.length - 1];
     setIsOptimizing(true);
     try {
@@ -250,7 +258,7 @@ const App: React.FC = () => {
     } finally {
       setIsOptimizing(false);
     }
-  }, [currentConversation.turns, lastInterpretation]);
+  }, [currentConversation, lastInterpretation]);
 
   const handleApplyOptimization = useCallback((optimizedPrompt: string) => {
     setIsOptModalOpen(false);
@@ -270,6 +278,7 @@ const App: React.FC = () => {
         const base64Data = (reader.result as string).split(',')[1];
         setAttachedFiles(prev => [...prev, {
           id: generateUUID(),
+          projectId: currentProjectId,
           name: file.name,
           mimeType: file.type,
           data: base64Data,
@@ -279,7 +288,7 @@ const App: React.FC = () => {
       reader.readAsDataURL(file);
     });
     if (fileInputRef.current) fileInputRef.current.value = '';
-  }, []);
+  }, [currentProjectId]);
 
   const handleRemoveFile = useCallback((id: string) => {
     setAttachedFiles(prev => prev.filter(f => f.id !== id));
@@ -303,8 +312,8 @@ const App: React.FC = () => {
       timestamp: item.timestamp || Date.now()
     };
     setCurrentConversation(prev => ({
-      ...prev,
-      turns: [...prev.turns, newTurn],
+      ...prev!,
+      turns: [...prev!.turns, newTurn],
       updatedAt: Date.now()
     }));
     setInputText('');
@@ -319,25 +328,39 @@ const App: React.FC = () => {
     setAttachedFiles([]);
     setStatusMessage('PRONTO');
     setIsSidebarMobileOpen(false);
-    localStorage.setItem('tessy_last_conv_id', conversation.id);
+    db.settings.put({ key: 'tessy_last_conv_id', value: conversation.id });
   }, []);
 
   const handleDeleteConversationFromHistory = useCallback((id: string) => {
-    if (currentConversation.id === id) handleNewConversation();
+    if (currentConversation?.id === id) handleNewConversation();
     setHistoryRefreshKey(p => p + 1);
-  }, [currentConversation.id, handleNewConversation]);
+  }, [currentConversation?.id, handleNewConversation]);
 
-  const handleSaveToRepository = useCallback((title: string, description: string, tags: string[]) => {
+  const handleSaveToRepository = useCallback(async (title: string, description: string, tags: string[]) => {
+    if (!currentConversation) return;
     const lastTurn = currentConversation.turns[currentConversation.turns.length - 1];
-    const newPrompt = {
-      title, description,
+    const newPrompt: RepositoryItem = {
+      id: generateUUID(),
+      projectId: currentProjectId,
+      title, 
+      description,
       content: lastTurn?.tessyResponse || result,
       factors: [...factors],
-      tags: tags
+      tags: tags,
+      timestamp: Date.now()
     };
-    addDoc('prompts', newPrompt);
+    await db.library.put(newPrompt);
     setRefreshKey(prev => prev + 1);
-  }, [currentConversation.turns, result, factors]);
+  }, [currentConversation, result, factors, currentProjectId]);
+
+  if (isMigrating) {
+    return (
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-900 text-emerald-500">
+        <LoadingSpinner />
+        <p className="mt-4 font-black uppercase tracking-widest text-xs animate-pulse">Migrando dados para IndexedDB...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen w-full flex flex-col overflow-hidden font-sans selection:bg-emerald-600/30">
@@ -355,7 +378,7 @@ const App: React.FC = () => {
               tessy <span className="hidden xs:inline text-emerald-600 dark:text-emerald-400 font-light italic text-xs sm:text-lg lowercase">by rabelus lab</span>
             </h1>
             <span className="text-[8px] sm:text-[10px] font-black text-slate-600 dark:text-slate-400 tracking-[0.2em] uppercase mt-0.5 line-clamp-1 max-w-[120px] sm:max-w-none">
-              {currentConversation.title}
+              {currentConversation?.title || 'Carregando...'}
             </span>
           </div>
         </div>
@@ -387,7 +410,6 @@ const App: React.FC = () => {
       </header>
 
       <main className="flex-1 flex overflow-hidden relative">
-        {/* Mobile Sidebar Drawer (Consolidated History & Library) */}
         <div className={`fixed inset-0 z-50 transition-opacity duration-300 md:hidden ${isSidebarMobileOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
           <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setIsSidebarMobileOpen(false)}></div>
           <div className={`absolute top-0 left-0 h-full w-[85%] max-w-sm bg-white dark:bg-slate-900 shadow-2xl transition-transform duration-300 ${isSidebarMobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
@@ -400,9 +422,9 @@ const App: React.FC = () => {
               <div className="flex-1 overflow-hidden">
                 <Suspense fallback={<LoadingSpinner />}>
                   {activeSideTab === 'library' ? (
-                    <RepositoryBrowser onSelectItem={handleSelectItem} refreshKey={refreshKey} />
+                    <RepositoryBrowser currentProjectId={currentProjectId} onSelectItem={handleSelectItem} refreshKey={refreshKey} />
                   ) : (
-                    <HistorySidebar activeId={currentConversation.id} onLoad={handleLoadConversationFromHistory} onDelete={handleDeleteConversationFromHistory} refreshKey={historyRefreshKey} />
+                    <HistorySidebar currentProjectId={currentProjectId} activeId={currentConversation?.id || ''} onLoad={handleLoadConversationFromHistory} onDelete={handleDeleteConversationFromHistory} refreshKey={historyRefreshKey} />
                   )}
                 </Suspense>
               </div>
@@ -410,7 +432,6 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        {/* Desktop Sidebars Wrapper */}
         <aside className="hidden md:flex flex-col w-[20%] lg:w-[18%] border-r-2 border-emerald-600/15 glass-panel !border-t-0 !border-b-0">
           <div className="flex border-b-2 border-emerald-600/15 shrink-0">
             <button onClick={() => setActiveSideTab('history')} className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest transition-all ${activeSideTab === 'history' ? 'bg-emerald-600/10 text-emerald-600 border-b-2 border-emerald-600' : 'text-slate-500'}`}>Histórico</button>
@@ -419,41 +440,41 @@ const App: React.FC = () => {
           <div className="flex-1 overflow-hidden">
             <Suspense fallback={<LoadingSpinner />}>
               {activeSideTab === 'library' ? (
-                <RepositoryBrowser onSelectItem={handleSelectItem} refreshKey={refreshKey} />
+                <RepositoryBrowser currentProjectId={currentProjectId} onSelectItem={handleSelectItem} refreshKey={refreshKey} />
               ) : (
-                <HistorySidebar activeId={currentConversation.id} onLoad={handleLoadConversationFromHistory} onDelete={handleDeleteConversationFromHistory} refreshKey={historyRefreshKey} />
+                <HistorySidebar currentProjectId={currentProjectId} activeId={currentConversation?.id || ''} onLoad={handleLoadConversationFromHistory} onDelete={handleDeleteConversationFromHistory} refreshKey={historyRefreshKey} />
               )}
             </Suspense>
           </div>
         </aside>
 
-        {/* Main Section */}
         <section className="flex-1 flex flex-col min-w-0">
-          <Canvas 
-            result={result} isLoading={isLoading} isOptimizing={isOptimizing}
-            onSavePrompt={handleSaveToRepository} onOptimize={handleOptimize}
-            attachedFiles={attachedFiles} onRemoveFile={handleRemoveFile}
-            conversationHistory={currentConversation.turns}
-            onNewConversation={handleNewConversation}
-            inputText={inputText} setInputText={setInputText}
-            fileInputRef={fileInputRef} textInputRef={textInputRef}
-            handleFileUpload={handleFileUpload} handleInterpret={handleInterpret}
-            handleKeyDown={(e) => {
-              if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                e.preventDefault();
-                handleInterpret();
-              }
-            }}
-            pendingUserMessage={pendingUserMessage}
-            pendingFiles={pendingFiles}
-            factors={factors}
-            conversationTitle={currentConversation.title}
-            conversationId={currentConversation.id}
-            onImportSuccess={handleLoadConversationFromHistory}
-          />
+          {currentConversation && (
+            <Canvas 
+              result={result} isLoading={isLoading} isOptimizing={isOptimizing}
+              onSavePrompt={handleSaveToRepository} onOptimize={handleOptimize}
+              attachedFiles={attachedFiles} onRemoveFile={handleRemoveFile}
+              conversationHistory={currentConversation.turns}
+              onNewConversation={handleNewConversation}
+              inputText={inputText} setInputText={setInputText}
+              fileInputRef={fileInputRef} textInputRef={textInputRef}
+              handleFileUpload={handleFileUpload} handleInterpret={handleInterpret}
+              handleKeyDown={(e) => {
+                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                  e.preventDefault();
+                  handleInterpret();
+                }
+              }}
+              pendingUserMessage={pendingUserMessage}
+              pendingFiles={pendingFiles}
+              factors={factors}
+              conversationTitle={currentConversation.title}
+              conversationId={currentConversation.id}
+              onImportSuccess={handleLoadConversationFromHistory}
+            />
+          )}
         </section>
 
-        {/* Mobile Factors Drawer */}
         <div className={`fixed inset-0 z-50 transition-opacity duration-300 md:hidden ${isFactorsMobileOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
           <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setIsFactorsMobileOpen(false)}></div>
           <div className={`absolute top-0 right-0 h-full w-[85%] max-w-sm bg-white dark:bg-slate-900 shadow-2xl transition-transform duration-300 ${isFactorsMobileOpen ? 'translate-x-0' : 'translate-x-full'}`}>
@@ -469,7 +490,6 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        {/* Desktop Factors Panel */}
         <aside className="hidden md:block w-[25%] lg:w-[22%] border-l-2 border-emerald-600/15 glass-panel !border-t-0 !border-b-0">
           <FactorPanel factors={factors} onToggle={handleToggleFactor} />
         </aside>
@@ -484,7 +504,7 @@ const App: React.FC = () => {
           </span>
         </div>
         <div className="flex items-center space-x-4 sm:space-x-8">
-          <span className="hidden sm:inline">PULSE PROTOCOL v2.8.0</span>
+          <span className="hidden sm:inline">PULSE PROTOCOL v2.9.0-INDEXEDDB</span>
           <span className="text-emerald-600 dark:text-emerald-400">STATUS: SEGURO</span>
         </div>
       </footer>
