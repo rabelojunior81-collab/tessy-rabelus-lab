@@ -1,8 +1,10 @@
+
 import React, { useState, useRef, useEffect, useCallback, Suspense, lazy } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import HistorySidebar from './components/HistorySidebar';
 import Canvas from './components/Canvas';
 import FactorPanel from './components/FactorPanel';
+import ProjectSwitcher from './components/ProjectSwitcher';
 import { DateAnchor } from './components/DateAnchor';
 import { interpretIntent, applyFactorsAndGenerate, optimizePrompt } from './services/geminiService';
 import { db, migrateToIndexedDB, generateUUID } from './services/dbService';
@@ -11,6 +13,7 @@ import { Factor, RepositoryItem, AttachedFile, OptimizationResult, ConversationT
 // Lazy Loaded Components
 const RepositoryBrowser = lazy(() => import('./components/RepositoryBrowser'));
 const OptimizationModal = lazy(() => import('./components/OptimizationModal'));
+const ProjectDashboard = lazy(() => import('./components/ProjectDashboard'));
 
 const INITIAL_FACTORS: Factor[] = [
   { id: 'prof', type: 'toggle', label: 'Tom Profissional', enabled: false },
@@ -23,7 +26,7 @@ const INITIAL_FACTORS: Factor[] = [
 ];
 
 const TessyLogo = React.memo(() => (
-  <div className="relative w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center">
+  <div className="relative w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center shrink-0">
     <svg viewBox="0 0 100 100" className="w-full h-full filter drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]">
       <defs>
         <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -55,7 +58,7 @@ const App: React.FC = () => {
   const [isMigrating, setIsMigrating] = useState(true);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [currentProjectId, setCurrentProjectId] = useState('default-project');
-  const [activeSideTab, setActiveSideTab] = useState<'library' | 'history'>('history');
+  const [activeSideTab, setActiveSideTab] = useState<'library' | 'history' | 'projects'>('history');
   const [isSidebarMobileOpen, setIsSidebarMobileOpen] = useState(false);
   const [isFactorsMobileOpen, setIsFactorsMobileOpen] = useState(false);
   
@@ -92,6 +95,9 @@ const App: React.FC = () => {
         const factorsSetting = await db.settings.get('tessy-factors');
         if (factorsSetting) setFactors(factorsSetting.value);
 
+        const lastProjSetting = await db.settings.get('tessy-current-project');
+        if (lastProjSetting) setCurrentProjectId(lastProjSetting.value);
+
         // Load Last Conversation
         const lastConvIdSetting = await db.settings.get('tessy_last_conv_id');
         let lastConv = null;
@@ -102,14 +108,8 @@ const App: React.FC = () => {
         if (lastConv) {
           setCurrentConversation(lastConv);
         } else {
-          setCurrentConversation({
-            id: generateUUID(),
-            projectId: currentProjectId,
-            title: 'Nova Conversa',
-            turns: [],
-            createdAt: Date.now(),
-            updatedAt: Date.now()
-          });
+          // Trigger initial conv creation
+          handleNewConversation();
         }
       } catch (err) {
         console.error("Boot error:", err);
@@ -148,6 +148,15 @@ const App: React.FC = () => {
     setIsFactorsMobileOpen(false);
     setTimeout(() => textInputRef.current?.focus(), 10);
   }, [currentProjectId]);
+
+  // Handle Project Change
+  const handleSwitchProject = useCallback((id: string) => {
+    setCurrentProjectId(id);
+    db.settings.put({ key: 'tessy-current-project', value: id });
+    handleNewConversation();
+    setRefreshKey(p => p + 1);
+    setHistoryRefreshKey(p => p + 1);
+  }, [handleNewConversation]);
 
   // Global Hotkeys
   useEffect(() => {
@@ -370,7 +379,7 @@ const App: React.FC = () => {
             onClick={() => { setIsSidebarMobileOpen(true); setActiveSideTab('history'); }}
             className="md:hidden brutalist-button w-10 h-10 bg-emerald-600/10 text-emerald-600 border-emerald-600/20"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
           </button>
           <TessyLogo />
           <div className="flex flex-col">
@@ -383,10 +392,15 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        <div className="hidden lg:block">
+        <div className="hidden lg:flex items-center gap-4">
+          <ProjectSwitcher currentProjectId={currentProjectId} onSwitch={handleSwitchProject} />
           <DateAnchor groundingEnabled={factors.find(f => f.id === 'grounding')?.enabled || false} />
         </div>
         
+        <div className="flex lg:hidden items-center gap-2">
+           <ProjectSwitcher currentProjectId={currentProjectId} onSwitch={handleSwitchProject} />
+        </div>
+
         <div className="flex items-center space-x-2 sm:space-x-6">
           <button 
             onClick={() => setIsFactorsMobileOpen(true)}
@@ -414,17 +428,20 @@ const App: React.FC = () => {
           <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setIsSidebarMobileOpen(false)}></div>
           <div className={`absolute top-0 left-0 h-full w-[85%] max-w-sm bg-white dark:bg-slate-900 shadow-2xl transition-transform duration-300 ${isSidebarMobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
             <div className="h-full flex flex-col">
-              <div className="flex border-b-2 border-emerald-600/15 shrink-0 bg-white/95 dark:bg-slate-900/95">
-                <button onClick={() => setActiveSideTab('history')} className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest transition-all ${activeSideTab === 'history' ? 'bg-emerald-600/10 text-emerald-600 border-b-2 border-emerald-600' : 'text-slate-500'}`}>Histórico</button>
-                <button onClick={() => setActiveSideTab('library')} className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest transition-all ${activeSideTab === 'library' ? 'bg-emerald-600/10 text-emerald-600 border-b-2 border-emerald-600' : 'text-slate-500'}`}>Biblioteca</button>
-                <button onClick={() => setIsSidebarMobileOpen(false)} className="p-4 text-slate-500"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+              <div className="flex border-b-2 border-emerald-600/15 shrink-0 bg-white/95 dark:bg-slate-900/95 overflow-x-auto custom-scrollbar">
+                <button onClick={() => setActiveSideTab('history')} className={`flex-1 min-w-[80px] py-4 text-[9px] font-black uppercase tracking-widest transition-all ${activeSideTab === 'history' ? 'bg-emerald-600/10 text-emerald-600 border-b-2 border-emerald-600' : 'text-slate-500'}`}>Histórico</button>
+                <button onClick={() => setActiveSideTab('library')} className={`flex-1 min-w-[80px] py-4 text-[9px] font-black uppercase tracking-widest transition-all ${activeSideTab === 'library' ? 'bg-emerald-600/10 text-emerald-600 border-b-2 border-emerald-600' : 'text-slate-500'}`}>Biblioteca</button>
+                <button onClick={() => setActiveSideTab('projects')} className={`flex-1 min-w-[80px] py-4 text-[9px] font-black uppercase tracking-widest transition-all ${activeSideTab === 'projects' ? 'bg-emerald-600/10 text-emerald-600 border-b-2 border-emerald-600' : 'text-slate-500'}`}>Projetos</button>
+                <button onClick={() => setIsSidebarMobileOpen(false)} className="p-4 text-slate-500 shrink-0"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
               </div>
               <div className="flex-1 overflow-hidden">
                 <Suspense fallback={<LoadingSpinner />}>
                   {activeSideTab === 'library' ? (
-                    <RepositoryBrowser currentProjectId={currentProjectId} onSelectItem={handleSelectItem} refreshKey={refreshKey} />
+                    <RepositoryBrowser currentProjectId={currentProjectId} onSelectItem={handleSelectItem} refreshKey={refreshKey} onClose={() => setIsSidebarMobileOpen(false)} />
+                  ) : activeSideTab === 'history' ? (
+                    <HistorySidebar currentProjectId={currentProjectId} activeId={currentConversation?.id || ''} onLoad={handleLoadConversationFromHistory} onDelete={handleDeleteConversationFromHistory} refreshKey={historyRefreshKey} onClose={() => setIsSidebarMobileOpen(false)} />
                   ) : (
-                    <HistorySidebar currentProjectId={currentProjectId} activeId={currentConversation?.id || ''} onLoad={handleLoadConversationFromHistory} onDelete={handleDeleteConversationFromHistory} refreshKey={historyRefreshKey} />
+                    <ProjectDashboard projectId={currentProjectId} onNewConversation={handleNewConversation} onOpenLibrary={() => setActiveSideTab('library')} onRefreshHistory={() => setHistoryRefreshKey(p => p + 1)} />
                   )}
                 </Suspense>
               </div>
@@ -434,15 +451,18 @@ const App: React.FC = () => {
 
         <aside className="hidden md:flex flex-col w-[20%] lg:w-[18%] border-r-2 border-emerald-600/15 glass-panel !border-t-0 !border-b-0">
           <div className="flex border-b-2 border-emerald-600/15 shrink-0">
-            <button onClick={() => setActiveSideTab('history')} className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest transition-all ${activeSideTab === 'history' ? 'bg-emerald-600/10 text-emerald-600 border-b-2 border-emerald-600' : 'text-slate-500'}`}>Histórico</button>
-            <button onClick={() => setActiveSideTab('library')} className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest transition-all ${activeSideTab === 'library' ? 'bg-emerald-600/10 text-emerald-600 border-b-2 border-emerald-600' : 'text-slate-500'}`}>Biblioteca</button>
+            <button onClick={() => setActiveSideTab('history')} className={`flex-1 py-4 text-[9px] font-black uppercase tracking-widest transition-all ${activeSideTab === 'history' ? 'bg-emerald-600/10 text-emerald-600 border-b-2 border-emerald-600' : 'text-slate-500'}`}>Histórico</button>
+            <button onClick={() => setActiveSideTab('library')} className={`flex-1 py-4 text-[9px] font-black uppercase tracking-widest transition-all ${activeSideTab === 'library' ? 'bg-emerald-600/10 text-emerald-600 border-b-2 border-emerald-600' : 'text-slate-500'}`}>Biblioteca</button>
+            <button onClick={() => setActiveSideTab('projects')} className={`flex-1 py-4 text-[9px] font-black uppercase tracking-widest transition-all ${activeSideTab === 'projects' ? 'bg-emerald-600/10 text-emerald-600 border-b-2 border-emerald-600' : 'text-slate-500'}`}>Projetos</button>
           </div>
           <div className="flex-1 overflow-hidden">
             <Suspense fallback={<LoadingSpinner />}>
               {activeSideTab === 'library' ? (
                 <RepositoryBrowser currentProjectId={currentProjectId} onSelectItem={handleSelectItem} refreshKey={refreshKey} />
-              ) : (
+              ) : activeSideTab === 'history' ? (
                 <HistorySidebar currentProjectId={currentProjectId} activeId={currentConversation?.id || ''} onLoad={handleLoadConversationFromHistory} onDelete={handleDeleteConversationFromHistory} refreshKey={historyRefreshKey} />
+              ) : (
+                <ProjectDashboard projectId={currentProjectId} onNewConversation={handleNewConversation} onOpenLibrary={() => setActiveSideTab('library')} onRefreshHistory={() => setHistoryRefreshKey(p => p + 1)} />
               )}
             </Suspense>
           </div>
@@ -479,9 +499,9 @@ const App: React.FC = () => {
           <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setIsFactorsMobileOpen(false)}></div>
           <div className={`absolute top-0 right-0 h-full w-[85%] max-w-sm bg-white dark:bg-slate-900 shadow-2xl transition-transform duration-300 ${isFactorsMobileOpen ? 'translate-x-0' : 'translate-x-full'}`}>
              <div className="h-full flex flex-col">
-                <div className="p-4 border-b border-emerald-600/20 flex justify-between items-center">
-                  <span className="text-xs font-black uppercase tracking-widest">Controles</span>
-                  <button onClick={() => setIsFactorsMobileOpen(false)} className="p-2"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+                <div className="p-4 border-b border-emerald-600/20 flex justify-between items-center bg-white/95 dark:bg-slate-900/95">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Controle de Fatores</span>
+                  <button onClick={() => setIsFactorsMobileOpen(false)} className="p-2 text-slate-500"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
                 </div>
                 <div className="flex-1 overflow-hidden">
                    <FactorPanel factors={factors} onToggle={handleToggleFactor} />
@@ -500,11 +520,11 @@ const App: React.FC = () => {
           <span className="hidden xs:inline">© 2024 RABELUS LAB</span>
           <span className="flex items-center space-x-2">
             <span className={`w-2 h-2 sm:w-2.5 sm:h-2.5 ${isLoading ? 'bg-amber-500 animate-pulse' : 'bg-emerald-600'}`}></span>
-            <span className="uppercase text-slate-800 dark:text-white truncate">MOTOR: {statusMessage}</span>
+            <span className="uppercase text-slate-800 dark:text-white truncate max-w-[80px] sm:max-w-none">MOTOR: {statusMessage}</span>
           </span>
         </div>
         <div className="flex items-center space-x-4 sm:space-x-8">
-          <span className="hidden sm:inline">PULSE PROTOCOL v2.9.0-INDEXEDDB</span>
+          <span className="hidden sm:inline">PULSE PROTOCOL v3.0.0-PROJ</span>
           <span className="text-emerald-600 dark:text-emerald-400">STATUS: SEGURO</span>
         </div>
       </footer>

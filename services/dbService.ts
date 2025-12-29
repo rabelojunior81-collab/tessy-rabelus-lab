@@ -1,5 +1,7 @@
-// Fix: Use named import for Dexie to ensure proper class inheritance and type recognition
-import { Dexie, type Table } from 'dexie';
+
+// Fix: Use default import for Dexie to ensure proper class inheritance and prototype access in TypeScript
+import Dexie from 'dexie';
+import type { Table } from 'dexie';
 import { Conversation, Project, RepositoryItem, Template, Factor } from '../types';
 
 export class TessyDatabase extends Dexie {
@@ -13,7 +15,7 @@ export class TessyDatabase extends Dexie {
 
   constructor() {
     super('TessyDB');
-    // Fix: Proper call to version method from the inherited Dexie class
+    // Fix: Proper call to version method from the inherited Dexie class prototype
     this.version(1).stores({
       projects: 'id, name, createdAt, updatedAt',
       conversations: 'id, projectId, title, createdAt, updatedAt',
@@ -52,15 +54,12 @@ export async function migrateToIndexedDB(): Promise<void> {
         // Try simple JSON parse first
         return JSON.parse(data);
       } catch (e) {
-        // If fails, maybe it's the compressed format from the previous storageService
-        // Since we don't have the decompress function here easily available without duplication,
-        // we assume standard JSON or we skip.
-        console.warn("Could not parse legacy compressed data during migration.");
+        console.warn("Could not parse legacy data during migration.");
         return [];
       }
     };
 
-    // Fix: Proper call to transaction method from the Dexie database instance
+    // Fix: Proper call to transaction method from the Dexie database instance to ensure data integrity
     await db.transaction('rw', [db.projects, db.conversations, db.library, db.settings], async () => {
       // 1. Create Default Project
       await db.projects.put({
@@ -105,15 +104,10 @@ export async function migrateToIndexedDB(): Promise<void> {
       await db.settings.put({ key: 'migration-completed', value: true });
     });
 
-    // Cleanup LocalStorage after successful migration (optional but recommended)
-    // We keep it for safety unless explicitly asked to delete
-    // localStorage.removeItem('tessy_conversations_v2');
-    // localStorage.removeItem('prompts');
-    
     console.log('Migration completed successfully.');
   } catch (error) {
     console.error('Migration failed:', error);
-    // Rollback is handled by Dexie transaction on RW stores if we throw
+    // Rollback is automatically handled by Dexie transaction if an error occurs
     throw error;
   }
 }

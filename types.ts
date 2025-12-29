@@ -1,3 +1,4 @@
+
 export type FactorType = 'toggle' | 'slider' | 'dropdown' | 'text';
 
 export interface Factor {
@@ -40,6 +41,9 @@ export interface Conversation {
 export interface Project {
   id: string;
   name: string;
+  description?: string;
+  githubRepo?: string;
+  color?: string;
   createdAt: number;
   updatedAt: number;
 }

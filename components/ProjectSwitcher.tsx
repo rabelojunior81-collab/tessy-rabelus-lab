@@ -1,0 +1,133 @@
+
+import React, { useState, useEffect, useRef } from 'react';
+import { db } from '../services/dbService';
+import { Project } from '../types';
+import ProjectModal from './ProjectModal';
+
+interface ProjectSwitcherProps {
+  currentProjectId: string;
+  onSwitch: (id: string) => void;
+}
+
+const ProjectSwitcher: React.FC<ProjectSwitcherProps> = ({ currentProjectId, onSwitch }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [currentProject, setCurrentProject] = useState<Project | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const loadProjects = async () => {
+      const all = await db.projects.toArray();
+      const sorted = all.sort((a, b) => b.updatedAt - a.updatedAt);
+      setProjects(sorted);
+      
+      const current = sorted.find(p => p.id === currentProjectId);
+      setCurrentProject(current || null);
+    };
+    loadProjects();
+    
+    // Refresh when DB changes (simple poll or based on external triggers)
+    const interval = setInterval(loadProjects, 5000);
+    return () => clearInterval(interval);
+  }, [currentProjectId]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleEdit = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    setEditingProjectId(id);
+    setIsModalOpen(true);
+    setIsOpen(false);
+  };
+
+  const handleCreate = () => {
+    setEditingProjectId(null);
+    setIsModalOpen(true);
+    setIsOpen(false);
+  };
+
+  const handleModalSuccess = (id: string) => {
+    onSwitch(id);
+    setIsModalOpen(false);
+  };
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-white/80 dark:bg-slate-900/60 border-2 border-emerald-600/30 hover:border-emerald-600 transition-all shadow-[4px_4px_0_rgba(16,185,129,0.1)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+        </svg>
+        <span className="text-[10px] sm:text-xs font-black uppercase text-slate-800 dark:text-white tracking-widest max-w-[80px] sm:max-w-[150px] truncate">
+          {currentProject?.name || 'Selecionar Projeto'}
+        </span>
+        <svg xmlns="http://www.w3.org/2000/svg" className={`h-3 w-3 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-2 w-64 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-2 border-emerald-600 shadow-2xl z-50 animate-fade-in">
+          <div className="max-h-64 overflow-y-auto custom-scrollbar">
+            {projects.map(project => (
+              <div
+                key={project.id}
+                onClick={() => { onSwitch(project.id); setIsOpen(false); }}
+                className={`flex items-center justify-between px-4 py-3 cursor-pointer transition-colors border-b border-emerald-600/10 ${
+                  project.id === currentProjectId ? 'bg-emerald-600/15' : 'hover:bg-emerald-600/5'
+                }`}
+              >
+                <div className="flex items-center gap-2 overflow-hidden">
+                  <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: project.color || '#10b981' }} />
+                  <span className={`text-[10px] font-black uppercase tracking-wider truncate ${
+                    project.id === currentProjectId ? 'text-emerald-600' : 'text-slate-700 dark:text-slate-300'
+                  }`}>
+                    {project.name}
+                  </span>
+                </div>
+                <button
+                  onClick={(e) => handleEdit(e, project.id)}
+                  className="p-1 text-slate-400 hover:text-emerald-600 transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                </button>
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={handleCreate}
+            className="w-full py-3 px-4 flex items-center gap-2 bg-emerald-600/10 text-emerald-600 font-black uppercase text-[10px] tracking-widest hover:bg-emerald-600/20 transition-all border-t-2 border-emerald-600"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
+            </svg>
+            Novo Projeto
+          </button>
+        </div>
+      )}
+
+      <ProjectModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        projectId={editingProjectId}
+        onSuccess={handleModalSuccess}
+      />
+    </div>
+  );
+};
+
+export default ProjectSwitcher;
