@@ -262,7 +262,7 @@ export const interpretIntent = async (
 
     const response = await ai.models.generateContent({
       model: MODEL_FLASH,
-      contents: { parts },
+      contents: [{ parts }],
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -285,285 +285,193 @@ export const interpretIntent = async (
               description: "Idioma ou linguagem de programação detectada, se aplicável",
             }
           },
-          required: ["task", "subject"],
-        },
-      },
+          required: ["task", "subject", "details", "language"]
+        }
+      }
     });
 
-    const jsonStr = response.text || "{}";
-    return JSON.parse(jsonStr);
+    return JSON.parse(response.text);
   } catch (error) {
-    console.error("Gemini Interpretation Error:", error);
-    throw new Error("Erro ao interpretar a intenção do usuário.");
+    console.error("Erro na interpretação de intenção:", error);
+    return {
+      task: "conversa_geral",
+      subject: text.slice(0, 50),
+      details: text,
+      language: "Português"
+    };
   }
 };
 
 /**
- * Step 2: Generate the final response based on structured interpretation, active factors, and history.
+ * Step 2: Generate response using factors, context, and optional tools (GitHub/Search).
  */
 export const applyFactorsAndGenerate = async (
-  interpretation: any, 
-  factors: Factor[], 
-  files: AttachedFile[] = [],
-  history: ConversationTurn[] = [],
-  groundingEnabled: boolean = true,
+  intent: any,
+  factors: Factor[],
+  files: AttachedFile[],
+  history: ConversationTurn[],
+  groundingEnabled: boolean,
   repoPath?: string,
-  githubToken?: string | null
+  githubToken?: string
 ): Promise<GenerateResponse> => {
-  if (!interpretation) return { text: "Interpretação inválida." };
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  
+  // 1. Determine Model
+  const useFlash = factors.find(f => f.id === 'flash')?.enabled ?? true;
+  const model = useFlash ? MODEL_FLASH : MODEL_PRO;
 
-  try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    
-    const currentDate = new Date().toLocaleDateString('pt-BR', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZone: 'America/Sao_Paulo'
-    });
+  // 2. Build System Instruction from Factors
+  const isProf = factors.find(f => f.id === 'prof')?.enabled;
+  const detailLevel = factors.find(f => f.id === 'detail_level')?.value || 3;
+  const audience = factors.find(f => f.id === 'audience')?.value || 'intermediario';
+  const additionalContext = factors.find(f => f.id === 'context')?.value || '';
+  
+  let systemInstruction = `Você é Tessy, uma IA avançada desenvolvida pelo Rabelus Lab.
+  Tarefa Atual: ${intent.task} sobre ${intent.subject}.
+  Idioma: ${intent.language || 'Português'}.
+  Detalhes detectados: ${intent.details || 'Nenhum'}.
+  
+  DIRETRIZES:
+  - Tom: ${isProf ? 'Rigorosamente profissional e técnico.' : 'Prestativo e amigável.'}
+  - Nível de Detalhe: ${detailLevel}/5 (onde 1 é muito conciso e 5 é exaustivo).
+  - Público-alvo: ${audience.toUpperCase()}.
+  ${additionalContext ? `- Contexto Adicional: ${additionalContext}` : ''}
+  
+  Se houver arquivos anexados, analise-os com prioridade.`;
 
-    let systemInstruction = `Você é Tessy, uma assistente avançada do Rabelus Lab.
+  // 3. Configure Tools
+  let tools: any[] = [];
+  // Per guidelines, googleSearch cannot be used with other tools.
+  if (groundingEnabled) {
+    tools.push({ googleSearch: {} });
+  } else if (repoPath && githubToken) {
+    tools.push(githubTools);
+  }
 
-**DATA E HORA ATUAL**: ${currentDate} (Horário de Brasília, GMT-3)
+  // 4. Build Contents (History + Current Message)
+  const contents: any[] = [];
+  
+  // Add history (last 10 turns to keep context manageable)
+  history.slice(-10).forEach(turn => {
+    contents.push({ role: 'user', parts: [{ text: turn.userMessage }] });
+    contents.push({ role: 'model', parts: [{ text: turn.tessyResponse }] });
+  });
 
-IMPORTANTE: Ao responder sobre eventos, notícias, lançamentos ou qualquer informação temporal, SEMPRE considere que AGORA é ${currentDate}. Se a pergunta envolver informações recentes ou eventos após esta data, você DEVE usar grounding (busca em tempo real) para obter dados atualizados. 
-
-**REGRAS ANTI-ALUCINAÇÃO**: 
-1. Responda apenas com base em fatos verificáveis ou dados obtidos através de ferramentas.
-2. Se você não souber a resposta ou não puder obtê-la via grounding/GitHub, admita que não possui a informação.
-3. NUNCA invente links, fatos históricos ou detalhes técnicos inexistentes.
-`;
-    
-    // GitHub Tools Instructions (conditional)
-    if (repoPath) {
-      systemInstruction += `
-FERRAMENTAS GITHUB DISPONÍVEIS:
-
-Você tem acesso a ferramentas para ler e analisar o repositório GitHub conectado ("${repoPath}"). SEMPRE use estas ferramentas ANTES de responder sobre o projeto.
-
-Ferramentas disponíveis:
-- get_github_readme: Leia PRIMEIRO para entender o projeto
-- list_github_directory: Explore a estrutura de pastas
-- read_github_file: Leia código-fonte, configurações, documentação
-- search_github_code: Encontre onde algo está implementado
-- get_repository_structure: Visão geral da organização do projeto
-- list_github_branches: Veja branches disponíveis
-- get_commit_details: Analise mudanças de commits específicos
-
-FLUXO OBRIGATÓRIO para perguntas sobre o projeto:
-1. Se pergunta sobre "o que é o projeto" ou "entendimento geral": SEMPRE chame get_github_readme PRIMEIRO
-2. Se pergunta sobre "estrutura" ou "organização": SEMPRE chame get_repository_structure ou list_github_directory
-3. Se pergunta sobre "arquivo específico" ou "código": SEMPRE chame read_github_file com caminho correto
-4. Se pergunta sobre "onde está implementado X": SEMPRE chame search_github_code
-5. NUNCA responda sobre o projeto sem usar ferramentas
-6. NUNCA invente estrutura de código, arquivos, ou conteúdos
-7. SEMPRE cite o arquivo/caminho de onde obteve a informação
-
-Formato de resposta: "De acordo com [arquivo/ferramenta], [informação real]..."
-
-IMPORTANTE: Se ferramenta retornar erro (arquivo não encontrado, etc), ADMITA o erro ao usuário. Não invente conteúdo alternativo.
-`;
-    }
-
-    if (groundingEnabled) {
-      systemInstruction += "\nUse busca em tempo real do Google (grounding) para fornecer informações ATUALIZADAS sobre tecnologias, modelos LLM e melhores práticas. Sempre cite fontes quando usar dados externos. ";
-    }
-
-    const isProfessional = factors.find(f => f.id === 'prof' && f.enabled);
-    const wantsCode = factors.find(f => f.id === 'code' && f.enabled);
-    const detailLevel = factors.find(f => f.id === 'detail_level')?.value || 3;
-    const audience = factors.find(f => f.id === 'audience')?.value || 'intermediario';
-    const additionalContext = factors.find(f => f.id === 'context')?.value || '';
-
-    if (isProfessional) {
-      systemInstruction += "Mantenha um tom estritamente profissional, executivo e conciso. ";
-    } else {
-      systemInstruction += "Mantenha um tom amigável, prestativo e acessível. ";
-    }
-
-    if (detailLevel === 1) systemInstruction += "Seja extremamente conciso. ";
-    else if (detailLevel === 2) systemInstruction += "Seja breve e direto. ";
-    else if (detailLevel === 4) systemInstruction += "Forneça detalhes e exemplos. ";
-    else if (detailLevel === 5) systemInstruction += "Forneça uma análise profunda e abrangente em várias seções. ";
-
-    if (audience === 'iniciante') systemInstruction += "Use linguagem simples. ";
-    else if (audience === 'especialista') systemInstruction += "Use terminologia técnica avançada. ";
-
-    if (wantsCode) systemInstruction += "Inclua blocos de código bem comentados. ";
-
-    const contextSection = additionalContext ? `\nCONTEXTO ADICIONAL: ${additionalContext}` : '';
-
-    const contents: any[] = [];
-    
-    // Add history context (last 3 turns)
-    if (history.length > 0) {
-      history.slice(-3).forEach(turn => {
-        contents.push({ role: 'user', parts: [{ text: `Usuário: ${turn.userMessage}` }] });
-        contents.push({ role: 'model', parts: [{ text: `Tessy: ${turn.tessyResponse}` }] });
-      });
-    }
-
-    const currentDateShort = new Date().toLocaleDateString('pt-BR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-
-    // Add current request
-    const parts: any[] = [{
-      text: `**CONTEXTO TEMPORAL**: Hoje é ${currentDateShort}.
-
-Execute a seguinte tarefa:
-TAREFA: ${interpretation.task}
-ASSUNTO: ${interpretation.subject}
-DETALHES: ${interpretation.details || 'Nenhum detalhe'}
-LINGUAGEM: ${interpretation.language || 'Não especificado'}${contextSection}
-
-NOTA: Se esta tarefa envolver informações temporais (notícias, eventos recentes, tecnologias lançadas recentemente), você DEVE usar grounding para buscar dados atualizados considerando que hoje é ${currentDateShort}.`
-    }];
-
-    for (const file of files) {
-      parts.push({
-        inlineData: {
-          mimeType: file.mimeType,
-          data: file.data
-        }
-      });
-    }
-
-    contents.push({ role: 'user', parts });
-
-    // Build tools array
-    const tools: any[] = [];
-    // Fix: Prioritize tools based on context. Only googleSearch is allowed when used, it cannot be combined with functionDeclarations.
-    if (repoPath) {
-      // Use repository specific tools if available
-      tools.push(githubTools);
-    } else if (groundingEnabled) {
-      // Fallback to search grounding for general information
-      tools.push({ googleSearch: {} });
-    }
-
-    let response = await ai.models.generateContent({
-      model: MODEL_FLASH,
-      contents: contents,
-      config: {
-        systemInstruction: systemInstruction,
-        temperature: 0.7,
-        tools: tools
-      },
-    });
-
-    // Handle Function Calling loop
-    let iteration = 0;
-    while (response.functionCalls && response.functionCalls.length > 0 && iteration < 5) {
-      iteration++;
-      const modelTurn = response.candidates[0].content;
-      contents.push(modelTurn);
-
-      const functionResponses: any[] = [];
-
-      for (const fc of response.functionCalls) {
-        let result: any;
-        if (!githubToken || !repoPath) {
-          result = { success: false, error: "Token do GitHub ou Repositório não configurado." };
-        } else {
-          result = await executeFunctionCall(fc, githubToken, repoPath);
-        }
-
-        functionResponses.push({
-          id: fc.id,
-          name: fc.name,
-          response: result
-        });
+  // Current message parts
+  const currentParts: any[] = [{ text: intent.details || intent.subject || "Processar solicitação" }];
+  files.forEach(file => {
+    currentParts.push({
+      inlineData: {
+        mimeType: file.mimeType,
+        data: file.data
       }
+    });
+  });
+  contents.push({ role: 'user', parts: currentParts });
 
+  // 5. Generate Content
+  let response = await ai.models.generateContent({
+    model,
+    contents,
+    config: {
+      systemInstruction,
+      tools: tools.length > 0 ? tools : undefined,
+    },
+  });
+
+  // 6. Handle Function Calls (for GitHub tools)
+  if (!groundingEnabled && response.functionCalls && repoPath && githubToken) {
+    const functionResponses: any[] = [];
+    for (const fc of response.functionCalls) {
+      const result = await executeFunctionCall(fc, githubToken, repoPath);
+      functionResponses.push({
+        id: fc.id,
+        name: fc.name,
+        response: result
+      });
+    }
+
+    // Send tool responses back
+    if (functionResponses.length > 0) {
+      // Add the model's turn with function calls
+      contents.push(response.candidates[0].content);
+      // Add the tool response turn
       contents.push({
+        role: 'user',
         parts: functionResponses.map(fr => ({
           functionResponse: fr
         }))
       });
 
+      // Final generation
       response = await ai.models.generateContent({
-        model: MODEL_FLASH,
-        contents: contents,
-        config: {
-          systemInstruction: systemInstruction,
-          temperature: 0.7,
-          tools: tools
-        },
+        model,
+        contents,
+        config: { systemInstruction },
       });
     }
-
-    const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
-
-    return {
-      text: response.text || "Sem resposta do modelo.",
-      groundingChunks: groundingChunks
-    };
-  } catch (error) {
-    console.error("Gemini Generation Error:", error);
-    return { text: "Ocorreu um erro ao gerar a resposta final." };
   }
+
+  return {
+    text: response.text || "Desculpe, não consegui gerar uma resposta.",
+    groundingChunks: response.candidates?.[0]?.groundingMetadata?.groundingChunks
+  };
 };
 
 /**
- * Advanced Feature: Optimize Prompt using Gemini Pro
+ * Step 3: Optimize a prompt based on previous interaction context.
  */
-export const optimizePrompt = async (userInput: string, interpretation: any, generatedResponse: string): Promise<OptimizationResult> => {
-  try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    
-    const prompt = `Você é um especialista em engenharia de prompts. Analise o seguinte prompt e resposta:
+export const optimizePrompt = async (
+  userMessage: string,
+  interpretation: any,
+  lastResponse: string
+): Promise<OptimizationResult> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  
+  const systemInstruction = `Você é um engenheiro de prompts especialista. 
+  Sua tarefa é analisar um prompt do usuário e a resposta da IA para sugerir melhorias.
+  Retorne um JSON seguindo estritamente o schema fornecido.`;
 
-PROMPT ORIGINAL: ${userInput}
-INTERPRETAÇÃO: ${JSON.stringify(interpretation)}
-RESPOSTA GERADA (Resumo): ${generatedResponse.slice(0, 500)}
+  const prompt = `Analise a seguinte interação:
+  USUÁRIO: "${userMessage}"
+  INTENÇÃO DETECTADA: ${JSON.stringify(interpretation)}
+  RESPOSTA DA IA: "${lastResponse.slice(0, 500)}..."
+  
+  Otimize o prompt do usuário para obter resultados ainda melhores (mais precisos e completos).`;
 
-Analise a qualidade do prompt original e forneça:
-1. Score de clareza (1-10)
-2. Score de completude (1-10)
-3. 3-5 sugestões concretas de melhoria (categoria, problema, recomendação)
-4. Versão otimizada do prompt (reescrita melhorada)
-
-Retorne em formato JSON estruturado.`;
-
-    const response = await ai.models.generateContent({
-      model: MODEL_PRO,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        temperature: 0.3,
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            clarity_score: { type: Type.NUMBER },
-            completeness_score: { type: Type.NUMBER },
-            suggestions: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  category: { type: Type.STRING },
-                  issue: { type: Type.STRING },
-                  recommendation: { type: Type.STRING },
-                },
-                required: ["category", "issue", "recommendation"]
-              }
-            },
-            optimized_prompt: { type: Type.STRING }
+  const response = await ai.models.generateContent({
+    model: MODEL_PRO,
+    contents: prompt,
+    config: {
+      systemInstruction,
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          clarity_score: { type: Type.NUMBER },
+          completeness_score: { type: Type.NUMBER },
+          suggestions: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                category: { type: Type.STRING },
+                issue: { type: Type.STRING },
+                recommendation: { type: Type.STRING }
+              },
+              required: ["category", "issue", "recommendation"]
+            }
           },
-          required: ["clarity_score", "completeness_score", "suggestions", "optimized_prompt"]
-        }
+          optimized_prompt: { type: Type.STRING }
+        },
+        required: ["clarity_score", "completeness_score", "suggestions", "optimized_prompt"]
       }
-    });
+    }
+  });
 
-    return JSON.parse(response.text || "{}") as OptimizationResult;
-  } catch (error) {
-    console.error("Optimization Error:", error);
-    throw new Error("Erro ao otimizar prompt.");
+  try {
+    return JSON.parse(response.text);
+  } catch (e) {
+    throw new Error("Falha ao processar otimização do prompt.");
   }
 };
