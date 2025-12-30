@@ -1,5 +1,7 @@
+
 import React, { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import FilePreview from './FilePreview';
+import LoadingSpinner from './LoadingSpinner';
 import { AttachedFile, ConversationTurn, Template, Factor, Conversation } from '../types';
 import { exportToMarkdown, exportToHTML, exportToPDF, downloadFile } from '../services/exportService';
 
@@ -186,7 +188,7 @@ const Canvas: React.FC<CanvasProps> = ({
                 ) : 'Otimizar'}
               </button>
               
-              <button onClick={handleCopy} className={`brutalist-button text-[8px] sm:text-[10px] px-2 sm:px-3 py-2 font-black uppercase tracking-widest transition-all ${isPulsingCopy ? 'animate-pulse-click' : ''} ${copied ? 'bg-emerald-500 text-white' : 'bg-emerald-600/10 text-emerald-600'}`}>
+              <button handleCopy={handleCopy} className={`brutalist-button text-[8px] sm:text-[10px] px-2 sm:px-3 py-2 font-black uppercase tracking-widest transition-all ${isPulsingCopy ? 'animate-pulse-click' : ''} ${copied ? 'bg-emerald-500 text-white' : 'bg-emerald-600/10 text-emerald-600'}`}>
                 {copied ? 'Copiado' : 'Copiar'}
               </button>
 
@@ -312,7 +314,7 @@ const Canvas: React.FC<CanvasProps> = ({
         </div>
       </div>
       
-      <Suspense fallback={null}>
+      <Suspense fallback={<LoadingSpinner />}>
         {isModalOpen && <SavePromptModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={onSavePrompt} />}
         {isTemplateModalOpen && <TemplateLibraryModal isOpen={isTemplateModalOpen} onClose={() => setIsTemplateModalOpen(false)} onSelect={handleSelectTemplate} />}
         {isShareModalOpen && (

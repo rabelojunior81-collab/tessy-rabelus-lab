@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useCallback, Suspense, lazy } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import HistorySidebar from './components/HistorySidebar';
@@ -695,7 +696,7 @@ const App: React.FC = () => {
         </div>
       )}
 
-      <Suspense fallback={null}>
+      <Suspense fallback={<LoadingSpinner />}>
         {isOptModalOpen && optimizationResult && (
           <OptimizationModal isOpen={isOptModalOpen} result={optimizationResult} onClose={() => setIsOptModalOpen(false)} onApply={handleApplyOptimization} />
         )}
