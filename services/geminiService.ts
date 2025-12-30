@@ -1,6 +1,7 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, FunctionDeclaration } from "@google/genai";
 import { Factor, AttachedFile, OptimizationResult, ConversationTurn, GroundingChunk } from "../types";
+import * as githubService from "./githubService";
 
 const MODEL_FLASH = 'gemini-3-flash-preview';
 const MODEL_PRO = 'gemini-3-pro-preview';
@@ -9,6 +10,101 @@ interface GenerateResponse {
   text: string;
   groundingChunks?: GroundingChunk[];
 }
+
+/**
+ * GitHub Function Declarations for Gemini Function Calling
+ */
+const GITHUB_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
+  {
+    name: "read_github_file",
+    description: "Lê o conteúdo completo de um arquivo específico do repositório GitHub conectado. Use para ler código-fonte, README, documentação, ou qualquer arquivo de texto.",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        file_path: {
+          type: Type.STRING,
+          description: "Caminho completo do arquivo no repositório, ex: README.md, src/App.tsx, package.json"
+        }
+      },
+      required: ["file_path"]
+    }
+  },
+  {
+    name: "list_github_directory",
+    description: "Lista todos os arquivos e pastas de um diretório específico do repositório GitHub. Use para explorar a estrutura do projeto.",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        directory_path: {
+          type: Type.STRING,
+          description: "Caminho do diretório, vazio para root, ex: src, components"
+        }
+      },
+      required: ["directory_path"]
+    }
+  },
+  {
+    name: "search_github_code",
+    description: "Busca por código ou texto específico dentro do repositório GitHub. Use para encontrar onde algo está implementado.",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        query: {
+          type: Type.STRING,
+          description: "Termo de busca, ex: function handleSubmit, import React"
+        }
+      },
+      required: ["query"]
+    }
+  },
+  {
+    name: "get_github_readme",
+    description: "Lê o arquivo README.md do repositório GitHub. Use como primeira ação para entender o projeto.",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {},
+    }
+  },
+  {
+    name: "list_github_branches",
+    description: "Lista todas as branches do repositório GitHub.",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {},
+    }
+  },
+  {
+    name: "get_commit_details",
+    description: "Obtém detalhes completos de um commit específico, incluindo arquivos modificados, adições e deleções.",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        commit_sha: {
+          type: Type.STRING,
+          description: "SHA do commit, obtido de list_recent_commits"
+        }
+      },
+      required: ["commit_sha"]
+    }
+  },
+  {
+    name: "get_repository_structure",
+    description: "Obtém a estrutura completa de diretórios e arquivos do repositório até uma profundidade específica. Use para ter visão geral do projeto.",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        max_depth: {
+          type: Type.NUMBER,
+          description: "Profundidade máxima, padrão 2, máximo 3"
+        }
+      }
+    }
+  }
+];
+
+const githubTools = {
+  functionDeclarations: GITHUB_FUNCTION_DECLARATIONS
+};
 
 /**
  * Step 1: Interpret the user's raw text into a structured JSON intent, considering context.
@@ -90,7 +186,9 @@ export const applyFactorsAndGenerate = async (
   factors: Factor[], 
   files: AttachedFile[] = [],
   history: ConversationTurn[] = [],
-  groundingEnabled: boolean = true
+  groundingEnabled: boolean = true,
+  repoPath?: string,
+  githubToken?: string | null
 ): Promise<GenerateResponse> => {
   if (!interpretation) return { text: "Interpretação inválida." };
 
@@ -117,6 +215,10 @@ IMPORTANTE: Ao responder sobre eventos, notícias, lançamentos ou qualquer info
       systemInstruction += "Use busca em tempo real do Google (grounding) para fornecer informações ATUALIZADAS sobre tecnologias, modelos LLM e melhores práticas. Sempre cite fontes quando usar dados externos. ";
     }
     
+    if (repoPath) {
+      systemInstruction += `Você tem acesso às ferramentas do GitHub para o repositório "${repoPath}". Use-as para ler código, listar diretórios ou buscar informações no projeto se o usuário solicitar algo relacionado ao desenvolvimento deste repositório. `;
+    }
+
     const isProfessional = factors.find(f => f.id === 'prof' && f.enabled);
     const wantsCode = factors.find(f => f.id === 'code' && f.enabled);
     const detailLevel = factors.find(f => f.id === 'detail_level')?.value || 3;
@@ -181,15 +283,90 @@ NOTA: Se esta tarefa envolver informações temporais (notícias, eventos recent
 
     contents.push({ parts });
 
-    const response = await ai.models.generateContent({
+    // Build tools array
+    const tools: any[] = [];
+    if (groundingEnabled) {
+      tools.push({ googleSearch: {} });
+    }
+    if (repoPath) {
+      tools.push(githubTools);
+    }
+
+    let response = await ai.models.generateContent({
       model: MODEL_FLASH,
       contents: contents,
       config: {
         systemInstruction: systemInstruction,
         temperature: 0.7,
-        tools: groundingEnabled ? [{ googleSearch: {} }] : []
+        tools: tools
       },
     });
+
+    // Handle Function Calling loop if needed
+    let iteration = 0;
+    while (response.functionCalls && response.functionCalls.length > 0 && iteration < 5) {
+      iteration++;
+      const functionResponses: any[] = [];
+
+      for (const fc of response.functionCalls) {
+        let result: any = "Função não encontrada ou erro na execução.";
+        if (!githubToken) {
+          result = "Erro: Token do GitHub não configurado para realizar esta ação.";
+        } else {
+          try {
+            switch (fc.name) {
+              case 'read_github_file':
+                result = await githubService.fetchFileContent(githubToken, repoPath!, fc.args.file_path as string);
+                break;
+              case 'list_github_directory':
+                result = await githubService.fetchDirectoryContents(githubToken, repoPath!, fc.args.directory_path as string);
+                break;
+              case 'search_github_code':
+                result = await githubService.searchCode(githubToken, repoPath!, fc.args.query as string);
+                break;
+              case 'get_github_readme':
+                result = await githubService.fetchReadme(githubToken, repoPath!);
+                break;
+              case 'list_github_branches':
+                result = await githubService.fetchBranches(githubToken, repoPath!);
+                break;
+              case 'get_commit_details':
+                result = await githubService.fetchCommitDetails(githubToken, repoPath!, fc.args.commit_sha as string);
+                break;
+              case 'get_repository_structure':
+                result = await githubService.fetchRepositoryStructure(githubToken, repoPath!, fc.args.max_depth as number);
+                break;
+            }
+          } catch (e: any) {
+            result = `Erro ao executar ${fc.name}: ${e.message}`;
+          }
+        }
+
+        functionResponses.push({
+          id: fc.id,
+          name: fc.name,
+          response: { result }
+        });
+      }
+
+      // Add tool responses to history
+      contents.push(response.candidates[0].content); // Model's turn with function calls
+      contents.push({
+        parts: functionResponses.map(fr => ({
+          functionResponse: fr
+        }))
+      });
+
+      response = await ai.models.generateContent({
+        model: MODEL_FLASH,
+        contents: contents,
+        config: {
+          systemInstruction: systemInstruction,
+          temperature: 0.7,
+          tools: tools
+        },
+      });
+    }
 
     const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
 

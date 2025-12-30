@@ -271,6 +271,10 @@ const App: React.FC = () => {
     setStatusMessage('INTERPRETANDO...');
     setResult('');
     try {
+      const activeProject = await db.projects.get(currentProjectId);
+      const repoPath = activeProject?.githubRepo;
+      const githubToken = await getGitHubToken();
+
       const interpretation = await interpretIntent(currentInput, currentFiles, currentConversation.turns);
       setLastInterpretation(interpretation);
       if (!interpretation) {
@@ -280,7 +284,15 @@ const App: React.FC = () => {
       }
       const groundingEnabled = factors.find(f => f.id === 'grounding')?.enabled ?? true;
       setStatusMessage('GERANDO RESPOSTA...');
-      const generationResult = await applyFactorsAndGenerate(interpretation, factors, currentFiles, currentConversation.turns, groundingEnabled);
+      const generationResult = await applyFactorsAndGenerate(
+        interpretation, 
+        factors, 
+        currentFiles, 
+        currentConversation.turns, 
+        groundingEnabled,
+        repoPath,
+        githubToken
+      );
       const newTurn: ConversationTurn = {
         id: generateUUID(),
         userMessage: currentInput,
@@ -310,7 +322,7 @@ const App: React.FC = () => {
       setPendingUserMessage(null);
       setPendingFiles([]);
     }
-  }, [inputText, attachedFiles, currentConversation, factors, showToast]);
+  }, [inputText, attachedFiles, currentConversation, factors, currentProjectId, showToast]);
 
   const handleOptimize = useCallback(async () => {
     if (!currentConversation || currentConversation.turns.length === 0) return;
