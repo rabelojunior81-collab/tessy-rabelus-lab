@@ -139,16 +139,24 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ currentProjectId, activ
           </div>
         ) : (
           <>
-            {displayedConversations.map((conv) => {
+            {displayedConversations.map((conv, index) => {
               const isActive = conv.id === activeId;
               const preview = conv.turns.length > 0 ? conv.turns[conv.turns.length - 1].tessyResponse.substring(0, 50) + '...' : 'Protocolo vazio';
               const fileCount = conv.turns.reduce((acc, turn) => acc + (turn.attachedFiles?.length || 0), 0);
               
+              // Apply cascading animation for the first 20 items
+              const animationStyle = index < 20 ? {
+                animationDelay: `${index * 50}ms`,
+                opacity: 0,
+                animationFillMode: 'forwards' as const
+              } : {};
+
               return (
                 <div
                   key={conv.id}
                   onClick={() => onLoad(conv)}
-                  className={`relative w-full text-left p-4 transition-all duration-300 cursor-pointer border-2 group animate-slide-in-left ${
+                  style={animationStyle}
+                  className={`relative w-full text-left p-4 transition-all duration-300 cursor-pointer border-2 group ${index < 20 ? 'animate-slide-in-left' : ''} ${
                     isActive 
                       ? 'bg-emerald-600/10 border-emerald-600 shadow-[4px_4px_0_rgba(16,185,129,0.15)] scale-[1.02]' 
                       : 'bg-white/80 dark:bg-slate-800/20 border-teal-600/10 hover:border-teal-600/50 hover:bg-teal-500/5 hover:scale-[1.02] hover:shadow-lg'

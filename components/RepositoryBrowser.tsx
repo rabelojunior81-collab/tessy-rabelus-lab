@@ -128,34 +128,44 @@ const RepositoryBrowser: React.FC<RepositoryBrowserProps> = ({ currentProjectId,
             <p className="text-[10px] text-slate-500 font-black uppercase italic tracking-widest">Nenhum protocolo localizado</p>
           </div>
         ) : (
-          filteredItems.map(item => (
-            <div
-              key={item.id}
-              onClick={() => onSelectItem(item)}
-              className="relative w-full text-left p-4 bg-white/60 dark:bg-slate-800/10 border-2 border-emerald-600/10 hover:border-emerald-600/50 hover:bg-emerald-500/5 transition-all cursor-pointer group shadow-[4px_4px_0_rgba(16,185,129,0.03)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-            >
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="text-[10px] sm:text-[11px] font-black text-slate-800 dark:text-white uppercase truncate pr-8 tracking-wider group-hover:text-emerald-600 transition-colors">
-                  {item.title}
-                </h3>
-                <button 
-                  onClick={(e) => handleDelete(e, item.id)} 
-                  className="absolute top-3 right-3 text-slate-400 hover:text-red-500 transition-colors p-1 active:scale-90"
-                  aria-label="Deletar"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
+          filteredItems.map((item, index) => {
+            // Apply cascading animation for the first 20 items
+            const animationStyle = index < 20 ? {
+              animationDelay: `${index * 50}ms`,
+              opacity: 0,
+              animationFillMode: 'forwards' as const
+            } : {};
+
+            return (
+              <div
+                key={item.id}
+                onClick={() => onSelectItem(item)}
+                style={animationStyle}
+                className={`relative w-full text-left p-4 bg-white/60 dark:bg-slate-800/10 border-2 border-emerald-600/10 hover:border-emerald-600/50 hover:bg-emerald-500/5 transition-all cursor-pointer group shadow-[4px_4px_0_rgba(16,185,129,0.03)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${index < 20 ? 'animate-slide-in-right' : ''}`}
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="text-[10px] sm:text-[11px] font-black text-slate-800 dark:text-white uppercase truncate pr-8 tracking-wider group-hover:text-emerald-600 transition-colors">
+                    {item.title}
+                  </h3>
+                  <button 
+                    onClick={(e) => handleDelete(e, item.id)} 
+                    className="absolute top-3 right-3 text-slate-400 hover:text-red-500 transition-colors p-1 active:scale-90"
+                    aria-label="Deletar"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+                <p className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase line-clamp-2 leading-tight italic">{item.description || 'Sem descrição.'}</p>
+                <div className="flex gap-1 mt-3">
+                   {item.tags?.slice(0, 3).map(tag => (
+                     <span key={tag} className="text-[7px] font-black uppercase text-emerald-600 dark:text-emerald-500 bg-emerald-500/5 px-1 border border-emerald-600/10">{tag}</span>
+                   ))}
+                </div>
               </div>
-              <p className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase line-clamp-2 leading-tight italic">{item.description || 'Sem descrição.'}</p>
-              <div className="flex gap-1 mt-3">
-                 {item.tags?.slice(0, 3).map(tag => (
-                   <span key={tag} className="text-[7px] font-black uppercase text-emerald-600 dark:text-emerald-500 bg-emerald-500/5 px-1 border border-emerald-600/10">{tag}</span>
-                 ))}
-              </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>
