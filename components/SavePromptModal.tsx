@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { getAllTags } from '../services/storageService';
 
@@ -20,6 +21,7 @@ const SavePromptModal: React.FC<SavePromptModalProps> = ({ isOpen, onClose, onSa
   useEffect(() => {
     if (isOpen) {
       existingTags.current = getAllTags();
+      setIsClosing(false);
     }
   }, [isOpen]);
 
@@ -78,8 +80,14 @@ const SavePromptModal: React.FC<SavePromptModalProps> = ({ isOpen, onClose, onSa
   };
 
   return (
-    <div className={`fixed inset-0 z-50 flex items-center justify-center p-8 bg-slate-950/40 dark:bg-slate-950/80 backdrop-blur-sm ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`}>
-      <div className={`glass-panel !rounded-none w-full max-w-md !bg-white/95 dark:!bg-slate-900/60 !backdrop-blur-2xl !border-emerald-500/30 ${isClosing ? 'animate-zoom-out' : 'animate-zoom-in'}`}>
+    <div 
+      className={`fixed inset-0 z-50 flex items-center justify-center p-8 bg-slate-950/40 dark:bg-slate-950/80 backdrop-blur-sm ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`}
+      onClick={handleClose}
+    >
+      <div 
+        className={`glass-panel !rounded-none w-full max-w-md !bg-white/95 dark:!bg-slate-900/60 !backdrop-blur-2xl !border-emerald-500/30 ${isClosing ? 'animate-zoom-out' : 'animate-zoom-in'}`}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="px-8 py-6 border-b-2 border-emerald-500/10 flex justify-between items-center bg-emerald-500/5 dark:bg-slate-900/40">
           <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter glow-text-green">Arquivamento</h3>
           <button onClick={handleClose} className="text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors p-2">

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { OptimizationResult } from '../types';
 
@@ -22,8 +23,14 @@ const OptimizationModal: React.FC<OptimizationModalProps> = ({ isOpen, result, o
   };
 
   return (
-    <div className={`fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-8 bg-slate-950/40 backdrop-blur-md ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`}>
-      <div className={`glass-panel !rounded-none w-full h-full sm:h-auto sm:max-w-3xl flex flex-col max-h-[100vh] sm:max-h-[90vh] overflow-hidden !bg-white dark:!bg-slate-900 ${isClosing ? 'animate-zoom-out' : 'animate-zoom-in'}`}>
+    <div 
+      className={`fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-8 bg-slate-950/40 backdrop-blur-md ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`}
+      onClick={handleClose}
+    >
+      <div 
+        className={`glass-panel !rounded-none w-full h-full sm:h-auto sm:max-w-3xl flex flex-col max-h-[100vh] sm:max-h-[90vh] overflow-hidden !bg-white dark:!bg-slate-900 ${isClosing ? 'animate-zoom-out' : 'animate-zoom-in'}`}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="px-6 sm:px-8 py-4 sm:py-6 border-b-2 border-emerald-500/20 flex justify-between items-center bg-emerald-500/5 dark:bg-slate-950/40 shrink-0">
           <div>
             <h3 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter glow-text-green">Otimização</h3>
@@ -69,7 +76,7 @@ const OptimizationModal: React.FC<OptimizationModalProps> = ({ isOpen, result, o
 
         <div className="p-6 sm:p-8 border-t-2 border-emerald-500/10 flex flex-wrap gap-2 sm:gap-4 bg-emerald-500/5 shrink-0">
           <button onClick={handleClose} className="brutalist-button px-4 py-3 sm:px-6 bg-slate-200 text-slate-500 font-black uppercase text-[10px]">Fechar</button>
-          <button onClick={() => onApply(result.optimized_prompt)} className="brutalist-button flex-1 py-3 bg-emerald-500 text-white font-black uppercase text-[10px]">Executar</button>
+          <button onClick={() => { onApply(result.optimized_prompt); handleClose(); }} className="brutalist-button flex-1 py-3 bg-emerald-500 text-white font-black uppercase text-[10px]">Executar</button>
         </div>
       </div>
     </div>

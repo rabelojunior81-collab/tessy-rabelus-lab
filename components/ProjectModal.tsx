@@ -16,6 +16,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, projectId,
   const [githubRepo, setGithubRepo] = useState('');
   const [color, setColor] = useState('#10b981');
   const [error, setError] = useState('');
+  const [isClosing, setIsClosing] = useState(false);
 
   useEffect(() => {
     if (isOpen && projectId) {
@@ -34,9 +35,18 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, projectId,
       setColor('#10b981');
     }
     setError('');
+    setIsClosing(false);
   }, [isOpen, projectId]);
 
   if (!isOpen) return null;
+
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsClosing(false);
+      onClose();
+    }, 200);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +57,6 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, projectId,
       return;
     }
 
-    // GitHub Repo Validation: user/repo
     if (githubRepo.trim()) {
       const repoRegex = /^[a-zA-Z0-9-]+\/[a-zA-Z0-9-._]+$/;
       if (!repoRegex.test(githubRepo.trim())) {
@@ -72,7 +81,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, projectId,
     try {
       await db.projects.put(projectData);
       onSuccess(id);
-      onClose();
+      handleClose();
     } catch (err) {
       console.error("Failed to save project:", err);
       setError('Ocorreu um erro ao salvar o projeto.');
@@ -81,11 +90,11 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, projectId,
 
   return (
     <div 
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-slate-950/90 backdrop-blur-xl animate-fade-in"
-      onClick={onClose}
+      className={`fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-slate-950/90 backdrop-blur-xl ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`}
+      onClick={handleClose}
     >
       <div 
-        className="glass-panel !rounded-none w-full max-w-[500px] flex flex-col animate-zoom-in !bg-white dark:!bg-slate-900 shadow-[20px_20px_0_rgba(0,0,0,0.5)] border-4 border-emerald-500 overflow-hidden max-h-[95vh]"
+        className={`glass-panel !rounded-none w-full max-w-[500px] flex flex-col !bg-white dark:!bg-slate-900 shadow-[20px_20px_0_rgba(0,0,0,0.5)] border-4 border-emerald-500 overflow-hidden max-h-[95vh] ${isClosing ? 'animate-zoom-out' : 'animate-zoom-in'}`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-6 py-5 border-b-4 border-emerald-500 flex justify-between items-center bg-emerald-500/10 dark:bg-slate-950/60 shrink-0">
@@ -96,7 +105,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, projectId,
             <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mt-1">Configuração de Núcleo</span>
           </div>
           <button 
-            onClick={onClose} 
+            onClick={handleClose} 
             className="bg-red-600 text-white p-2 hover:bg-red-500 transition-all cursor-pointer active:scale-90 border-2 border-black dark:border-white shadow-[2px_2px_0_rgba(0,0,0,1)]"
             aria-label="Fechar"
           >
@@ -165,7 +174,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, projectId,
         <div className="p-6 sm:p-8 border-t-4 border-emerald-500 flex gap-4 bg-emerald-500/5 shrink-0">
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             className="flex-1 py-4 bg-slate-200 dark:bg-slate-800 text-slate-600 font-black uppercase tracking-widest text-xs border-2 border-black dark:border-white shadow-[3px_3px_0_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-pointer active:scale-95"
           >
             Abortar

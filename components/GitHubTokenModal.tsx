@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { setGitHubToken } from '../services/dbService';
 
 interface GitHubTokenModalProps {
@@ -11,8 +11,25 @@ interface GitHubTokenModalProps {
 const GitHubTokenModal: React.FC<GitHubTokenModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const [token, setToken] = useState('');
   const [error, setError] = useState('');
+  const [isClosing, setIsClosing] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setIsClosing(false);
+      setToken('');
+      setError('');
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
+
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsClosing(false);
+      onClose();
+    }, 200);
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,21 +41,27 @@ const GitHubTokenModal: React.FC<GitHubTokenModalProps> = ({ isOpen, onClose, on
     try {
       await setGitHubToken(token.trim());
       onSuccess();
-      onClose();
+      handleClose();
     } catch (err) {
       setError('Erro ao salvar o token.');
     }
   };
 
   return (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-xl animate-fade-in">
-      <div className="glass-panel !rounded-none w-full max-w-md !bg-white dark:!bg-slate-900 border-4 border-emerald-500 shadow-[15px_15px_0_rgba(16,185,129,0.3)] overflow-hidden">
+    <div 
+      className={`fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-xl ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`}
+      onClick={handleClose}
+    >
+      <div 
+        className={`glass-panel !rounded-none w-full max-w-md !bg-white dark:!bg-slate-900 border-4 border-emerald-500 shadow-[15px_15px_0_rgba(16,185,129,0.3)] overflow-hidden ${isClosing ? 'animate-zoom-out' : 'animate-zoom-in'}`}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="px-6 py-5 border-b-4 border-emerald-500 bg-emerald-500/10 flex justify-between items-center">
           <div className="flex flex-col">
             <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Autenticação GitHub</h3>
             <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mt-1">Sincronização Segura</span>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-red-500 transition-colors">
+          <button onClick={handleClose} className="text-slate-400 hover:text-red-500 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
             </svg>

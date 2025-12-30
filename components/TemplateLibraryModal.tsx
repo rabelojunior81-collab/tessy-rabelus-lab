@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { PROMPT_TEMPLATES } from '../constants/templates';
 import { Template } from '../types';
@@ -16,7 +17,6 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({ isOpen, onC
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [isClosing, setIsClosing] = useState(false);
 
-  // Form State
   const [formTitle, setFormTitle] = useState('');
   const [formCategory, setFormCategory] = useState<Template['category']>('Personalizado');
   const [formContent, setFormContent] = useState('');
@@ -29,6 +29,7 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({ isOpen, onC
   useEffect(() => {
     if (isOpen) {
       loadCustomTemplates();
+      setIsClosing(false);
     }
   }, [isOpen]);
 
@@ -40,7 +41,6 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({ isOpen, onC
     }, 200);
   };
 
-  // Grouping system templates by category for better display
   const systemTemplatesGrouped = useMemo(() => {
     const grouped: Record<string, Template[]> = {};
     PROMPT_TEMPLATES.forEach(t => {
@@ -108,10 +108,15 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({ isOpen, onC
   };
 
   return (
-    <div className={`fixed inset-0 z-[60] flex items-center justify-center p-8 bg-slate-950/30 dark:bg-slate-950/80 backdrop-blur-md ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`}>
-      <div className={`glass-panel !rounded-none w-full max-w-5xl flex flex-col max-h-[90vh] overflow-hidden !bg-white/95 dark:!bg-slate-900/60 !backdrop-blur-2xl !border-emerald-500/40 ${isClosing ? 'animate-zoom-out' : 'animate-zoom-in'}`}>
+    <div 
+      className={`fixed inset-0 z-[60] flex items-center justify-center p-8 bg-slate-950/30 dark:bg-slate-950/80 backdrop-blur-md ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`}
+      onClick={handleClose}
+    >
+      <div 
+        className={`glass-panel !rounded-none w-full max-w-5xl flex flex-col max-h-[90vh] overflow-hidden !bg-white/95 dark:!bg-slate-900/60 !backdrop-blur-2xl !border-emerald-500/40 ${isClosing ? 'animate-zoom-out' : 'animate-zoom-in'}`}
+        onClick={(e) => e.stopPropagation()}
+      >
         
-        {/* Header */}
         <div className="px-8 py-6 border-b-2 border-emerald-500/20 flex justify-between items-center bg-emerald-500/5 dark:bg-slate-900/40 shrink-0">
           <div>
             <h3 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter glow-text-green">Biblioteca de Templates</h3>
@@ -133,10 +138,8 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({ isOpen, onC
           </div>
         </div>
 
-        {/* Content Area */}
         <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-transparent space-y-12">
           
-          {/* Section: My Templates */}
           <div>
             <div className="flex items-center gap-4 mb-8">
               <h4 className="text-sm font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.3em]">Meus Templates</h4>
@@ -189,7 +192,6 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({ isOpen, onC
             )}
           </div>
 
-          {/* Section: System Templates */}
           <div>
             <div className="flex items-center gap-4 mb-8">
               <h4 className="text-sm font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em]">Templates Pré-definidos</h4>
@@ -232,14 +234,12 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({ isOpen, onC
           </div>
         </div>
 
-        {/* Footer */}
         <div className="p-8 border-t-2 border-emerald-500/20 bg-emerald-500/5 dark:bg-slate-900/40 flex justify-end shrink-0">
           <button onClick={handleClose} className="brutalist-button px-10 py-3 bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-black uppercase tracking-widest text-xs hover:bg-slate-300 dark:hover:bg-slate-700">
             Fechar Biblioteca
           </button>
         </div>
 
-        {/* Form Modal */}
         {isFormOpen && (
           <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4 animate-fade-in">
             <div className="glass-panel !rounded-none w-full max-w-lg !bg-white dark:!bg-slate-900 shadow-2xl animate-zoom-in !border-emerald-500/50">
@@ -296,7 +296,6 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({ isOpen, onC
           </div>
         )}
 
-        {/* Confirm Delete Modal */}
         {confirmDeleteId && (
           <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-fade-in">
             <div className="glass-panel !rounded-none w-full max-w-sm !bg-white dark:!bg-slate-900 p-8 border-red-500/50 shadow-2xl text-center animate-zoom-in">

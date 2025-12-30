@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { loadConversation } from '../services/storageService';
 import { Conversation } from '../types';
@@ -24,9 +25,12 @@ const ShareModal: React.FC<ShareModalProps> = ({
   const [isClosing, setIsClosing] = useState(false);
 
   useEffect(() => {
-    setShareCode('');
-    setStatusMessage({ text: '', type: 'info' });
-  }, [conversationId]);
+    if (isOpen) {
+      setIsClosing(false);
+      setShareCode('');
+      setStatusMessage({ text: '', type: 'info' });
+    }
+  }, [isOpen, conversationId]);
 
   if (!isOpen) return null;
 
@@ -45,7 +49,6 @@ const ShareModal: React.FC<ShareModalProps> = ({
       code += charset.charAt(Math.floor(Math.random() * charset.length));
     }
     
-    // Simulate back-end storage with localStorage for this POC
     localStorage.setItem(`tessy-shared-${code}`, conversationId);
     setShareCode(code);
     
@@ -77,10 +80,15 @@ const ShareModal: React.FC<ShareModalProps> = ({
   };
 
   return (
-    <div className={`fixed inset-0 z-[70] flex items-center justify-center p-8 bg-slate-950/40 dark:bg-slate-950/80 backdrop-blur-md ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`}>
-      <div className={`glass-panel !rounded-none w-full max-w-lg flex flex-col !bg-white/95 dark:!bg-slate-900/60 !backdrop-blur-2xl !border-emerald-500/40 ${isClosing ? 'animate-zoom-out' : 'animate-zoom-in'}`}>
+    <div 
+      className={`fixed inset-0 z-[70] flex items-center justify-center p-8 bg-slate-950/40 dark:bg-slate-950/80 backdrop-blur-md ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`}
+      onClick={handleClose}
+    >
+      <div 
+        className={`glass-panel !rounded-none w-full max-w-lg flex flex-col !bg-white/95 dark:!bg-slate-900/60 !backdrop-blur-2xl !border-emerald-500/40 ${isClosing ? 'animate-zoom-out' : 'animate-zoom-in'}`}
+        onClick={(e) => e.stopPropagation()}
+      >
         
-        {/* Header */}
         <div className="px-8 py-6 border-b-2 border-emerald-500/20 flex justify-between items-center bg-emerald-500/5 dark:bg-slate-900/40 shrink-0">
           <div>
             <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter glow-text-green">Compartilhar Conversa</h3>
@@ -93,7 +101,6 @@ const ShareModal: React.FC<ShareModalProps> = ({
           </button>
         </div>
 
-        {/* Tabs */}
         <div className="flex border-b-2 border-emerald-500/10 shrink-0">
           <button 
             onClick={() => { setActiveTab('share'); setStatusMessage({ text: '', type: 'info' }); }}
@@ -109,7 +116,6 @@ const ShareModal: React.FC<ShareModalProps> = ({
           </button>
         </div>
 
-        {/* Content */}
         <div className="p-10 space-y-8 bg-transparent">
           {activeTab === 'share' ? (
             <div className="text-center space-y-6">
