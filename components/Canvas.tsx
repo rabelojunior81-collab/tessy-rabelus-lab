@@ -149,6 +149,13 @@ const Canvas: React.FC<CanvasProps> = ({
           {(result || hasContent) && !isLoading && (
             <>
               <button 
+                onClick={() => setIsModalOpen(true)} 
+                className="brutalist-button text-[8px] sm:text-[10px] px-2 sm:px-3 py-2 bg-lime-600/10 text-lime-600 font-black uppercase tracking-widest border-lime-600/20 active:scale-95"
+              >
+                Salvar
+              </button>
+
+              <button 
                 onClick={onOptimize} 
                 disabled={isOptimizing} 
                 className={`brutalist-button text-[8px] sm:text-[10px] px-2 sm:px-3 py-2 font-black uppercase tracking-widest active:scale-95 relative overflow-hidden transition-all duration-300
@@ -182,6 +189,13 @@ const Canvas: React.FC<CanvasProps> = ({
                   </div>
                 )}
               </div>
+
+              <button 
+                onClick={() => setIsShareModalOpen(true)} 
+                className="brutalist-button text-[8px] sm:text-[10px] px-2 sm:px-3 py-2 bg-cyan-600/10 text-cyan-600 font-black uppercase tracking-widest border-cyan-600/20 active:scale-95"
+              >
+                Compartilhar
+              </button>
             </>
           )}
         </div>

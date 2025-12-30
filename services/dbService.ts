@@ -1,11 +1,11 @@
 
-// Fix: Use named import for Dexie to ensure proper class inheritance and type resolution in TypeScript
-import { Dexie } from 'dexie';
+// Fix: Use default import for Dexie to ensure proper class inheritance and type resolution in TypeScript
+import Dexie from 'dexie';
 import type { Table } from 'dexie';
 import { Conversation, Project, RepositoryItem, Template, Factor } from '../types';
 
 /**
- * Main database class for the Tessy application using Dexie (IndexedDB).
+ * Main database class for the DLL (Dexie) application using Dexie (IndexedDB).
  */
 export class TessyDatabase extends Dexie {
   projects!: Table<Project>;
