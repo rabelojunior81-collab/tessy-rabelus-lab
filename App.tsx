@@ -79,6 +79,18 @@ const App: React.FC = () => {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [currentProjectId, setCurrentProjectId] = useState('default-project');
   
+  // Toast System
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastType, setToastType] = useState<'info' | 'error' | 'success'>('info');
+
+  const showToast = useCallback((message: string, type: 'info' | 'error' | 'success' = 'info') => {
+    setToastMessage(message);
+    setToastType(type);
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 3000);
+  }, []);
+
   // Modals Global State
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
@@ -212,7 +224,8 @@ const App: React.FC = () => {
     handleSwitchProject(id);
     setIsProjectModalOpen(false);
     setRefreshKey(p => p + 1);
-  }, [handleSwitchProject]);
+    showToast('Projeto salvo com sucesso!', 'success');
+  }, [handleSwitchProject, showToast]);
 
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
@@ -291,12 +304,13 @@ const App: React.FC = () => {
       console.error(error);
       setResult("Erro no processamento. Verifique sua conexão.");
       setStatusMessage('ERRO');
+      showToast('Falha na sincronização com o núcleo.', 'error');
     } finally {
       setIsLoading(false);
       setPendingUserMessage(null);
       setPendingFiles([]);
     }
-  }, [inputText, attachedFiles, currentConversation, factors]);
+  }, [inputText, attachedFiles, currentConversation, factors, showToast]);
 
   const handleOptimize = useCallback(async () => {
     if (!currentConversation || currentConversation.turns.length === 0) return;
@@ -308,10 +322,11 @@ const App: React.FC = () => {
       setIsOptModalOpen(true);
     } catch (error) {
       console.error(error);
+      showToast('Erro ao otimizar prompt.', 'error');
     } finally {
       setIsOptimizing(false);
     }
-  }, [currentConversation, lastInterpretation]);
+  }, [currentConversation, lastInterpretation, showToast]);
 
   const handleApplyOptimization = useCallback((optimizedPrompt: string) => {
     setIsOptModalOpen(false);
@@ -351,10 +366,8 @@ const App: React.FC = () => {
     };
 
     fileArray.forEach((file: File) => {
-      console.log("Uploading file:", file.name, file.type, file.size);
-
       if (!allowedTypes.includes(file.type)) {
-        alert(`Formato não suportado: ${file.type}. Formatos aceitos: imagens, PDFs, código, áudio, vídeo.`);
+        showToast(`Formato não suportado: ${file.name}`, 'error');
         checkDone();
         return;
       }
@@ -369,7 +382,7 @@ const App: React.FC = () => {
       const maxSize = maxSizeByType[category] || maxSizeByType.default;
 
       if (file.size > maxSize) {
-        alert(`Arquivo muito grande: ${file.name}. Limite: ${maxSize / (1024 * 1024)}MB`);
+        showToast(`Arquivo muito grande: ${file.name}. Limite: ${maxSize / (1024 * 1024)}MB`, 'error');
         checkDone();
         return;
       }
@@ -384,15 +397,13 @@ const App: React.FC = () => {
           mimeType: file.type,
           data: base64Data,
           size: file.size,
-          blob: file // Store the actual File object as Blob for type safety
+          blob: file 
         }]);
-        console.log("File processed successfully:", file.name);
         checkDone();
       };
 
       reader.onerror = () => {
-        console.error("Erro ao ler arquivo:", file.name);
-        alert(`Erro ao ler arquivo: ${file.name}`);
+        showToast(`Erro ao ler arquivo: ${file.name}`, 'error');
         checkDone();
       };
 
@@ -400,7 +411,7 @@ const App: React.FC = () => {
     });
 
     if (fileInputRef.current) fileInputRef.current.value = '';
-  }, [currentProjectId]);
+  }, [currentProjectId, showToast]);
 
   const handleRemoveFile = useCallback((id: string) => {
     setAttachedFiles(prev => prev.filter(f => f.id !== id));
@@ -446,7 +457,8 @@ const App: React.FC = () => {
   const handleDeleteConversationFromHistory = useCallback((id: string) => {
     if (currentConversation?.id === id) handleNewConversation();
     setHistoryRefreshKey(p => p + 1);
-  }, [currentConversation?.id, handleNewConversation]);
+    showToast('Conversa excluída.', 'info');
+  }, [currentConversation?.id, handleNewConversation, showToast]);
 
   const handleSaveToRepository = useCallback(async (title: string, description: string, tags: string[]) => {
     if (!currentConversation) return;
@@ -463,7 +475,8 @@ const App: React.FC = () => {
     };
     await db.library.put(newPrompt);
     setRefreshKey(prev => prev + 1);
-  }, [currentConversation, result, factors, currentProjectId]);
+    showToast('Salvo na Biblioteca!', 'success');
+  }, [currentConversation, result, factors, currentProjectId, showToast]);
 
   if (isMigrating) {
     return (
@@ -651,6 +664,20 @@ const App: React.FC = () => {
         </div>
       </footer>
 
+      {/* Toast Notification System */}
+      {toastVisible && (
+        <div className={`fixed bottom-12 right-4 z-[100] px-4 py-3 font-bold text-xs uppercase tracking-widest shadow-2xl border-2 animate-slide-in-right ${
+          toastType === 'success' ? 'bg-emerald-600 text-white border-emerald-500' :
+          toastType === 'error' ? 'bg-red-600 text-white border-red-500' :
+          'bg-slate-800 text-white border-slate-700'
+        }`}>
+          <div className="flex items-center gap-2">
+            {toastType === 'success' && <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+            {toastMessage}
+          </div>
+        </div>
+      )}
+
       <Suspense fallback={null}>
         {isOptModalOpen && optimizationResult && (
           <OptimizationModal isOpen={isOptModalOpen} result={optimizationResult} onClose={() => setIsOptModalOpen(false)} onApply={handleApplyOptimization} />
@@ -658,7 +685,7 @@ const App: React.FC = () => {
         <GitHubTokenModal 
           isOpen={isGitHubTokenModalOpen} 
           onClose={() => setIsGitHubTokenModalOpen(false)} 
-          onSuccess={() => setRefreshKey(k => k + 1)} 
+          onSuccess={() => { setRefreshKey(k => k + 1); showToast('Token GitHub atualizado!', 'success'); }} 
         />
       </Suspense>
 

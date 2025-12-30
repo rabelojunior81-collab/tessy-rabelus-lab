@@ -142,6 +142,7 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ currentProjectId, activ
             {displayedConversations.map((conv) => {
               const isActive = conv.id === activeId;
               const preview = conv.turns.length > 0 ? conv.turns[conv.turns.length - 1].tessyResponse.substring(0, 50) + '...' : 'Protocolo vazio';
+              const fileCount = conv.turns.reduce((acc, turn) => acc + (turn.attachedFiles?.length || 0), 0);
               
               return (
                 <div
@@ -150,9 +151,15 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ currentProjectId, activ
                   className={`relative w-full text-left p-4 transition-all duration-300 cursor-pointer border-2 group animate-slide-in-left ${
                     isActive 
                       ? 'bg-emerald-600/10 border-emerald-600 shadow-[4px_4px_0_rgba(16,185,129,0.15)] scale-[1.02]' 
-                      : 'bg-white/80 dark:bg-slate-800/20 border-teal-600/10 hover:border-teal-600/50 hover:bg-teal-500/5'
+                      : 'bg-white/80 dark:bg-slate-800/20 border-teal-600/10 hover:border-teal-600/50 hover:bg-teal-500/5 hover:scale-[1.02] hover:shadow-lg'
                   } active:translate-x-[2px] active:translate-y-[2px] active:scale-[1] active:shadow-none`}
                 >
+                  {fileCount > 0 && (
+                    <div className="absolute top-2 right-2 bg-emerald-600 text-white text-[8px] px-1.5 py-0.5 font-black rounded-sm flex items-center gap-1 shadow-sm">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-2 w-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+                      {fileCount}
+                    </div>
+                  )}
                   <div className="flex justify-between items-start mb-1">
                     <h3 className={`text-[10px] sm:text-[11px] font-black uppercase truncate pr-14 tracking-wider transition-colors duration-300 ${isActive ? 'text-emerald-600' : 'text-slate-800 dark:text-white group-hover:text-teal-600'}`}>
                       {conv.title}
@@ -178,8 +185,11 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ currentProjectId, activ
                   </div>
                   <div className="flex items-center justify-between mt-2">
                     <p className="text-[8px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-tight">{formatDate(conv.updatedAt)}</p>
-                    <div className="text-[7px] font-black uppercase px-1 bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
-                      {conv.turns.length} Turnos
+                    <div className="flex items-center gap-2">
+                      <div className="text-[7px] font-black uppercase px-1 bg-teal-500/10 text-teal-600 border border-teal-500/20 flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-2 w-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+                        {conv.turns.length} msg
+                      </div>
                     </div>
                   </div>
                   <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium line-clamp-1 italic mt-2 border-t border-slate-500/5 pt-1">{preview}</p>

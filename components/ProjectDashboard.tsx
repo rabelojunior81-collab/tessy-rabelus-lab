@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { db } from '../services/dbService';
 import { Project } from '../types';
@@ -126,28 +127,28 @@ const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
       {/* Stats Section */}
       <div className="grid grid-cols-2 gap-4 mb-8 stagger-container">
         <div 
-          className="p-4 bg-white/40 dark:bg-slate-900/20 border-2 border-emerald-600/10 flex flex-col hover:border-emerald-600/30 transition-colors animate-fade-in"
+          className="p-4 bg-white/40 dark:bg-slate-900/20 border-2 border-emerald-600/10 flex flex-col hover:border-emerald-600/40 hover:scale-[1.05] hover:shadow-md transition-all animate-fade-in cursor-default"
           style={{ animationDelay: '0.1s' }}
         >
           <span className="text-[20px] font-black text-emerald-600 leading-none">{stats.conversations}</span>
           <span className="text-[8px] font-black uppercase text-slate-500 tracking-widest mt-2">Conversas</span>
         </div>
         <div 
-          className="p-4 bg-white/40 dark:bg-slate-900/20 border-2 border-emerald-600/10 flex flex-col hover:border-emerald-600/30 transition-colors animate-fade-in"
+          className="p-4 bg-white/40 dark:bg-slate-900/20 border-2 border-emerald-600/10 flex flex-col hover:border-emerald-600/40 hover:scale-[1.05] hover:shadow-md transition-all animate-fade-in cursor-default"
           style={{ animationDelay: '0.2s' }}
         >
           <span className="text-[20px] font-black text-emerald-600 leading-none">{stats.library}</span>
           <span className="text-[8px] font-black uppercase text-slate-500 tracking-widest mt-2">Biblioteca</span>
         </div>
         <div 
-          className="p-4 bg-white/40 dark:bg-slate-900/20 border-2 border-emerald-600/10 flex flex-col hover:border-emerald-600/30 transition-colors animate-fade-in"
+          className="p-4 bg-white/40 dark:bg-slate-900/20 border-2 border-emerald-600/10 flex flex-col hover:border-emerald-600/40 hover:scale-[1.05] hover:shadow-md transition-all animate-fade-in cursor-default"
           style={{ animationDelay: '0.3s' }}
         >
           <span className="text-[20px] font-black text-emerald-600 leading-none">{stats.templates}</span>
           <span className="text-[8px] font-black uppercase text-slate-500 tracking-widest mt-2">Templates</span>
         </div>
         <div 
-          className="p-4 bg-white/40 dark:bg-slate-900/20 border-2 border-emerald-600/10 flex flex-col hover:border-emerald-600/30 transition-colors animate-fade-in"
+          className="p-4 bg-white/40 dark:bg-slate-900/20 border-2 border-emerald-600/10 flex flex-col hover:border-emerald-600/40 hover:scale-[1.05] hover:shadow-md transition-all animate-fade-in cursor-default"
           style={{ animationDelay: '0.4s' }}
         >
           <span className="text-[10px] font-black text-emerald-600 truncate leading-none">{new Date(project.createdAt).toLocaleDateString('pt-BR')}</span>
@@ -161,28 +162,28 @@ const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
         <div className="grid grid-cols-2 gap-2">
           <button 
             onClick={onRefreshHistory}
-            className="flex items-center justify-center gap-2 py-3 px-2 bg-white/50 dark:bg-slate-800/40 border border-emerald-600/10 hover:border-emerald-600/40 text-[9px] font-black uppercase tracking-wider text-slate-600 dark:text-emerald-500/80 transition-all brutalist-button"
+            className="flex items-center justify-center gap-2 py-3 px-2 bg-white/50 dark:bg-slate-800/40 border border-emerald-600/10 hover:border-emerald-600/40 text-[9px] font-black uppercase tracking-wider text-slate-600 dark:text-emerald-500/80 transition-all brutalist-button active:scale-95"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
             Conversas
           </button>
           <button 
             onClick={onOpenLibrary}
-            className="flex items-center justify-center gap-2 py-3 px-2 bg-white/50 dark:bg-slate-800/40 border border-emerald-600/10 hover:border-emerald-600/40 text-[9px] font-black uppercase tracking-wider text-slate-600 dark:text-emerald-500/80 transition-all brutalist-button"
+            className="flex items-center justify-center gap-2 py-3 px-2 bg-white/50 dark:bg-slate-800/40 border border-emerald-600/10 hover:border-emerald-600/40 text-[9px] font-black uppercase tracking-wider text-slate-600 dark:text-emerald-500/80 transition-all brutalist-button active:scale-95"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
             Biblioteca
           </button>
           <button 
-            onClick={() => document.dispatchEvent(new CustomEvent('open-github-token'))} // Placeholder for triggering token modal
-            className="flex items-center justify-center gap-2 py-3 px-2 bg-white/50 dark:bg-slate-800/40 border border-emerald-600/10 hover:border-emerald-600/40 text-[9px] font-black uppercase tracking-wider text-slate-600 dark:text-emerald-500/80 transition-all brutalist-button"
+            onClick={() => document.dispatchEvent(new CustomEvent('open-github-token'))} 
+            className="flex items-center justify-center gap-2 py-3 px-2 bg-white/50 dark:bg-slate-800/40 border border-emerald-600/10 hover:border-emerald-600/40 text-[9px] font-black uppercase tracking-wider text-slate-600 dark:text-emerald-500/80 transition-all brutalist-button active:scale-95"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
             Token Git
           </button>
           <button 
             onClick={() => onEditProject(projectId)}
-            className="flex items-center justify-center gap-2 py-3 px-2 bg-white/50 dark:bg-slate-800/40 border border-emerald-600/10 hover:border-emerald-600/40 text-[9px] font-black uppercase tracking-wider text-slate-600 dark:text-emerald-500/80 transition-all brutalist-button"
+            className="flex items-center justify-center gap-2 py-3 px-2 bg-white/50 dark:bg-slate-800/40 border border-emerald-600/10 hover:border-emerald-600/40 text-[9px] font-black uppercase tracking-wider text-slate-600 dark:text-emerald-500/80 transition-all brutalist-button active:scale-95"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
             Editar Core

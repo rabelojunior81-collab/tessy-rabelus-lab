@@ -114,6 +114,21 @@ const Canvas: React.FC<CanvasProps> = ({
     setTimeout(() => textInputRef.current?.focus(), 100);
   }, [setInputText, textInputRef]);
 
+  const getFileIcon = (mimeType: string) => {
+    if (mimeType.startsWith('video/')) return (
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+    );
+    if (mimeType.startsWith('audio/')) return (
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" /></svg>
+    );
+    if (mimeType.startsWith('text/') || mimeType.includes('json') || mimeType.includes('javascript')) return (
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
+    );
+    return (
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+    );
+  };
+
   const hasContent = conversationHistory.length > 0;
 
   return (
@@ -184,6 +199,32 @@ const Canvas: React.FC<CanvasProps> = ({
           <div key={turn.id} className="flex flex-col space-y-3 sm:space-y-4 animate-fade-in">
             <div className="self-end max-w-[95%] sm:max-w-[85%] bg-emerald-600/10 border-2 border-emerald-600/20 p-3 sm:p-4 rounded-none text-xs sm:text-sm text-slate-800 dark:text-white shadow-[4px_4px_0_rgba(16,185,129,0.1)]">
               <p className="whitespace-pre-wrap font-medium">{turn.userMessage}</p>
+              {turn.attachedFiles && turn.attachedFiles.length > 0 && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {turn.attachedFiles.map((file) => (
+                    <div 
+                      key={file.id} 
+                      className="relative flex flex-col items-center p-2 bg-white/60 dark:bg-slate-800/40 border border-emerald-600/20 hover:border-emerald-600/40 transition-all cursor-pointer group"
+                      title={`${file.name} (${file.mimeType})`}
+                    >
+                      {file.mimeType.startsWith('image/') ? (
+                        <img 
+                          src={`data:${file.mimeType};base64,${file.data}`} 
+                          alt={file.name} 
+                          className="w-16 h-16 object-cover border-2 border-emerald-600/20" 
+                        />
+                      ) : (
+                        <div className="w-16 h-16 flex items-center justify-center bg-emerald-600/5">
+                          {getFileIcon(file.mimeType)}
+                        </div>
+                      )}
+                      <span className="mt-1 text-[8px] font-bold uppercase max-w-[64px] truncate text-slate-700 dark:text-slate-300">
+                        {file.name}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="self-start max-w-[95%] sm:max-w-[85%] bg-white/90 dark:bg-slate-800/60 border-2 border-emerald-600/20 p-4 sm:p-5 rounded-none text-xs sm:text-sm text-slate-800 dark:text-emerald-50 leading-relaxed shadow-[6px_6px_0_rgba(16,185,129,0.1)]">
               <div className="whitespace-pre-wrap mb-4">{turn.tessyResponse}</div>

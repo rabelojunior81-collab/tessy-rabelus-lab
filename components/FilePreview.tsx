@@ -28,7 +28,7 @@ const FilePreview: React.FC<FilePreviewProps> = ({ files, onRemove }) => {
   };
 
   return (
-    <div className="flex flex-wrap gap-3 animate-in slide-in-from-top-2 duration-300">
+    <div className="flex flex-wrap gap-3 animate-slide-in-right duration-200">
       <div className="w-full text-[10px] text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-[0.3em] mb-2 flex items-center gap-3">
          <div className="w-4 h-0.5 bg-emerald-500"></div>
          Carga de Dados: {files.length} unidades
@@ -46,8 +46,8 @@ const FilePreview: React.FC<FilePreviewProps> = ({ files, onRemove }) => {
                {getFileIcon(file.mimeType)}
             </div>
           )}
-          <div className="flex flex-col min-w-0 max-w-[120px]">
-            <span className="text-[10px] text-slate-900 dark:text-white font-black truncate uppercase tracking-wider">{file.name}</span>
+          <div className="flex flex-col min-w-0 max-w-[160px]">
+            <span className="text-[10px] text-slate-900 dark:text-white font-black truncate uppercase tracking-wider line-clamp-2">{file.name}</span>
             <span className="text-[8px] text-slate-500 font-black uppercase">{(file.size / 1024).toFixed(0)} KB</span>
           </div>
           <button 
