@@ -21,6 +21,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
   const [shareCode, setShareCode] = useState('');
   const [importCode, setImportCode] = useState('');
   const [statusMessage, setStatusMessage] = useState({ text: '', type: 'info' as 'success' | 'error' | 'info' });
+  const [isClosing, setIsClosing] = useState(false);
 
   useEffect(() => {
     setShareCode('');
@@ -28,6 +29,14 @@ const ShareModal: React.FC<ShareModalProps> = ({
   }, [conversationId]);
 
   if (!isOpen) return null;
+
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsClosing(false);
+      onClose();
+    }, 200);
+  };
 
   const generateShareCode = () => {
     const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -58,7 +67,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
       if (conversation) {
         setStatusMessage({ text: 'CONVERSA LOCALIZADA E CARREGADA!', type: 'success' });
         if (onImportSuccess) onImportSuccess(conversation);
-        setTimeout(onClose, 1500);
+        setTimeout(handleClose, 1500);
       } else {
         setStatusMessage({ text: 'CONVERSA NÃO ENCONTRADA NO BANCO LOCAL.', type: 'error' });
       }
@@ -68,8 +77,8 @@ const ShareModal: React.FC<ShareModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-8 bg-slate-950/40 dark:bg-slate-950/80 backdrop-blur-md animate-fade-in">
-      <div className="glass-panel !rounded-none w-full max-w-lg flex flex-col animate-zoom-in [animation-delay:75ms] !bg-white/95 dark:!bg-slate-900/60 !backdrop-blur-2xl !border-emerald-500/40">
+    <div className={`fixed inset-0 z-[70] flex items-center justify-center p-8 bg-slate-950/40 dark:bg-slate-950/80 backdrop-blur-md ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`}>
+      <div className={`glass-panel !rounded-none w-full max-w-lg flex flex-col !bg-white/95 dark:!bg-slate-900/60 !backdrop-blur-2xl !border-emerald-500/40 ${isClosing ? 'animate-zoom-out' : 'animate-zoom-in'}`}>
         
         {/* Header */}
         <div className="px-8 py-6 border-b-2 border-emerald-500/20 flex justify-between items-center bg-emerald-500/5 dark:bg-slate-900/40 shrink-0">
@@ -77,7 +86,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
             <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter glow-text-green">Compartilhar Conversa</h3>
             <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-[0.2em] mt-1">Sincronização de Protocolos</p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors p-2">
+          <button onClick={handleClose} className="text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors p-2">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -167,7 +176,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
         </div>
 
         <div className="p-8 border-t-2 border-emerald-500/20 bg-emerald-500/5 dark:bg-slate-900/40 flex justify-end shrink-0">
-          <button onClick={onClose} className="brutalist-button px-10 py-3 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-black uppercase tracking-widest text-xs hover:bg-slate-300 dark:hover:bg-slate-700">
+          <button onClick={handleClose} className="brutalist-button px-10 py-3 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-black uppercase tracking-widest text-xs hover:bg-slate-300 dark:hover:bg-slate-700">
             Fechar
           </button>
         </div>

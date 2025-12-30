@@ -14,6 +14,7 @@ const SavePromptModal: React.FC<SavePromptModalProps> = ({ isOpen, onClose, onSa
   const [tags, setTags] = useState<string[]>([]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
   const existingTags = useRef<string[]>([]);
 
   useEffect(() => {
@@ -36,6 +37,14 @@ const SavePromptModal: React.FC<SavePromptModalProps> = ({ isOpen, onClose, onSa
   }, [tagInput, tags]);
 
   if (!isOpen) return null;
+
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsClosing(false);
+      onClose();
+    }, 200);
+  };
 
   const handleAddTag = (tag: string) => {
     const normalized = tag.trim().toLowerCase();
@@ -65,15 +74,15 @@ const SavePromptModal: React.FC<SavePromptModalProps> = ({ isOpen, onClose, onSa
     setDescription(''); 
     setTags([]);
     setTagInput('');
-    onClose();
+    handleClose();
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-8 bg-slate-950/40 dark:bg-slate-950/80 backdrop-blur-sm animate-fade-in">
-      <div className="glass-panel !rounded-none w-full max-w-md animate-zoom-in [animation-delay:75ms] !bg-white/95 dark:!bg-slate-900/60 !backdrop-blur-2xl !border-emerald-500/30">
+    <div className={`fixed inset-0 z-50 flex items-center justify-center p-8 bg-slate-950/40 dark:bg-slate-950/80 backdrop-blur-sm ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`}>
+      <div className={`glass-panel !rounded-none w-full max-w-md !bg-white/95 dark:!bg-slate-900/60 !backdrop-blur-2xl !border-emerald-500/30 ${isClosing ? 'animate-zoom-out' : 'animate-zoom-in'}`}>
         <div className="px-8 py-6 border-b-2 border-emerald-500/10 flex justify-between items-center bg-emerald-500/5 dark:bg-slate-900/40">
           <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter glow-text-green">Arquivamento</h3>
-          <button onClick={onClose} className="text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">
+          <button onClick={handleClose} className="text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors p-2">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
@@ -120,7 +129,7 @@ const SavePromptModal: React.FC<SavePromptModalProps> = ({ isOpen, onClose, onSa
             </div>
           </div>
           <div className="flex gap-4 pt-4">
-            <button type="button" onClick={onClose} className="brutalist-button flex-1 py-4 bg-slate-100 dark:bg-slate-800 text-slate-400 font-black uppercase tracking-widest text-xs">Abortar</button>
+            <button type="button" onClick={handleClose} className="brutalist-button flex-1 py-4 bg-slate-100 dark:bg-slate-800 text-slate-400 font-black uppercase tracking-widest text-xs">Abortar</button>
             <button type="submit" className="brutalist-button flex-1 py-4 bg-emerald-500 text-white font-black uppercase tracking-widest text-xs">Confirmar</button>
           </div>
         </form>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { PROMPT_TEMPLATES } from '../constants/templates';
 import { Template } from '../types';
@@ -15,6 +14,7 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({ isOpen, onC
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [isClosing, setIsClosing] = useState(false);
 
   // Form State
   const [formTitle, setFormTitle] = useState('');
@@ -31,6 +31,14 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({ isOpen, onC
       loadCustomTemplates();
     }
   }, [isOpen]);
+
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsClosing(false);
+      onClose();
+    }, 200);
+  };
 
   // Grouping system templates by category for better display
   const systemTemplatesGrouped = useMemo(() => {
@@ -100,8 +108,8 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({ isOpen, onC
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-8 bg-slate-950/30 dark:bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300">
-      <div className="glass-panel !rounded-none w-full max-w-5xl flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in duration-200 !bg-white/95 dark:!bg-slate-900/60 !backdrop-blur-2xl !border-emerald-500/40">
+    <div className={`fixed inset-0 z-[60] flex items-center justify-center p-8 bg-slate-950/30 dark:bg-slate-950/80 backdrop-blur-md ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`}>
+      <div className={`glass-panel !rounded-none w-full max-w-5xl flex flex-col max-h-[90vh] overflow-hidden !bg-white/95 dark:!bg-slate-900/60 !backdrop-blur-2xl !border-emerald-500/40 ${isClosing ? 'animate-zoom-out' : 'animate-zoom-in'}`}>
         
         {/* Header */}
         <div className="px-8 py-6 border-b-2 border-emerald-500/20 flex justify-between items-center bg-emerald-500/5 dark:bg-slate-900/40 shrink-0">
@@ -117,7 +125,7 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({ isOpen, onC
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" /></svg>
               Novo Template
             </button>
-            <button onClick={onClose} className="text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors p-2">
+            <button onClick={handleClose} className="text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors p-2">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -226,20 +234,20 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({ isOpen, onC
 
         {/* Footer */}
         <div className="p-8 border-t-2 border-emerald-500/20 bg-emerald-500/5 dark:bg-slate-900/40 flex justify-end shrink-0">
-          <button onClick={onClose} className="brutalist-button px-10 py-3 bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-black uppercase tracking-widest text-xs hover:bg-slate-300 dark:hover:bg-slate-700">
+          <button onClick={handleClose} className="brutalist-button px-10 py-3 bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-black uppercase tracking-widest text-xs hover:bg-slate-300 dark:hover:bg-slate-700">
             Fechar Biblioteca
           </button>
         </div>
 
         {/* Form Modal */}
         {isFormOpen && (
-          <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4">
-            <div className="glass-panel !rounded-none w-full max-w-lg !bg-white dark:!bg-slate-900 shadow-2xl animate-in zoom-in duration-200 !border-emerald-500/50">
+          <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4 animate-fade-in">
+            <div className="glass-panel !rounded-none w-full max-w-lg !bg-white dark:!bg-slate-900 shadow-2xl animate-zoom-in !border-emerald-500/50">
               <div className="px-6 py-4 border-b-2 border-emerald-500/20 bg-emerald-500/5 flex justify-between items-center">
                 <h4 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tighter">
                   {editingTemplate ? 'Editar Protocolo' : 'Novo Protocolo'}
                 </h4>
-                <button onClick={() => setIsFormOpen(false)} className="text-slate-400 hover:text-slate-900 transition-colors">
+                <button onClick={() => setIsFormOpen(false)} className="text-slate-400 hover:text-slate-900 transition-colors p-2">
                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
               </div>
@@ -290,8 +298,8 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({ isOpen, onC
 
         {/* Confirm Delete Modal */}
         {confirmDeleteId && (
-          <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-            <div className="glass-panel !rounded-none w-full max-w-sm !bg-white dark:!bg-slate-900 p-8 border-red-500/50 shadow-2xl text-center">
+          <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-fade-in">
+            <div className="glass-panel !rounded-none w-full max-w-sm !bg-white dark:!bg-slate-900 p-8 border-red-500/50 shadow-2xl text-center animate-zoom-in">
               <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-600 mx-auto flex items-center justify-center rounded-full mb-6">
                  <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
               </div>

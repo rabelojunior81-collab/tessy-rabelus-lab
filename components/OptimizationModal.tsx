@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { OptimizationResult } from '../types';
 
 interface OptimizationModalProps {
@@ -9,17 +9,27 @@ interface OptimizationModalProps {
 }
 
 const OptimizationModal: React.FC<OptimizationModalProps> = ({ isOpen, result, onClose, onApply }) => {
+  const [isClosing, setIsClosing] = useState(false);
+
   if (!isOpen || !result) return null;
 
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsClosing(false);
+      onClose();
+    }, 200);
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-8 bg-slate-950/40 backdrop-blur-md animate-fade-in">
-      <div className="glass-panel !rounded-none w-full h-full sm:h-auto sm:max-w-3xl flex flex-col max-h-[100vh] sm:max-h-[90vh] overflow-hidden !bg-white dark:!bg-slate-900 animate-zoom-in">
+    <div className={`fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-8 bg-slate-950/40 backdrop-blur-md ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`}>
+      <div className={`glass-panel !rounded-none w-full h-full sm:h-auto sm:max-w-3xl flex flex-col max-h-[100vh] sm:max-h-[90vh] overflow-hidden !bg-white dark:!bg-slate-900 ${isClosing ? 'animate-zoom-out' : 'animate-zoom-in'}`}>
         <div className="px-6 sm:px-8 py-4 sm:py-6 border-b-2 border-emerald-500/20 flex justify-between items-center bg-emerald-500/5 dark:bg-slate-950/40 shrink-0">
           <div>
             <h3 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter glow-text-green">Otimização</h3>
             <p className="text-[8px] sm:text-[10px] text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-widest mt-1">Motor Gemini Pro</p>
           </div>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-800">
+          <button onClick={handleClose} className="p-2 text-slate-400 hover:text-slate-800 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 sm:h-8 sm:w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
@@ -58,7 +68,7 @@ const OptimizationModal: React.FC<OptimizationModalProps> = ({ isOpen, result, o
         </div>
 
         <div className="p-6 sm:p-8 border-t-2 border-emerald-500/10 flex flex-wrap gap-2 sm:gap-4 bg-emerald-500/5 shrink-0">
-          <button onClick={onClose} className="brutalist-button px-4 py-3 sm:px-6 bg-slate-200 text-slate-500 font-black uppercase text-[10px]">Fechar</button>
+          <button onClick={handleClose} className="brutalist-button px-4 py-3 sm:px-6 bg-slate-200 text-slate-500 font-black uppercase text-[10px]">Fechar</button>
           <button onClick={() => onApply(result.optimized_prompt)} className="brutalist-button flex-1 py-3 bg-emerald-500 text-white font-black uppercase text-[10px]">Executar</button>
         </div>
       </div>
