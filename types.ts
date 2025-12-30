@@ -110,6 +110,12 @@ export interface GitHubCommit {
   author: string;
   date: string;
   url: string;
+  files?: Array<{
+    filename: string;
+    additions: number;
+    deletions: number;
+    changes: number;
+  }>;
 }
 
 export interface GitHubFile {
@@ -118,6 +124,7 @@ export interface GitHubFile {
   type: string;
   size: number;
   url: string;
+  sha?: string;
   content?: string;
 }
 
