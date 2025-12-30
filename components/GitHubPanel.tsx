@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { fetchRepo, fetchCommits, createIssue, formatRelativeDate, GitHubError } from '../services/githubService';
 import { getGitHubToken } from '../services/dbService';
 import { GitHubRepo, GitHubCommit } from '../types';
@@ -15,9 +14,27 @@ const GitHubPanel: React.FC<GitHubPanelProps> = ({ repoPath }) => {
   const [error, setError] = useState<string | null>(null);
   const [isCreatingIssue, setIsCreatingIssue] = useState(false);
   const [issueTitle, setIssueTitle] = useState('');
+  const [showToast, setShowToast] = useState(false);
 
-  const loadGitHubData = async () => {
-    setLoading(true);
+  const formatCommitDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    
+    const isToday = date.toDateString() === now.toDateString();
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    const isYesterday = date.toDateString() === yesterday.toDateString();
+
+    const timeStr = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+    if (isToday) return `Hoje às ${timeStr}`;
+    if (isYesterday) return `Ontem às ${timeStr}`;
+    
+    return formatRelativeDate(dateString);
+  };
+
+  const loadGitHubData = useCallback(async (isRefresh = false) => {
+    if (!isRefresh) setLoading(true);
     setError(null);
     try {
       const token = await getGitHubToken();
@@ -39,11 +56,11 @@ const GitHubPanel: React.FC<GitHubPanelProps> = ({ repoPath }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [repoPath]);
 
   useEffect(() => {
     loadGitHubData();
-  }, [repoPath]);
+  }, [loadGitHubData]);
 
   const handleCreateIssue = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +73,8 @@ const GitHubPanel: React.FC<GitHubPanelProps> = ({ repoPath }) => {
       
       await createIssue(token, repoPath, issueTitle, `Reportado via Tessy App em ${new Date().toLocaleString()}`);
       setIssueTitle('');
-      alert('Issue criada com sucesso!');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
     } catch (err: any) {
       alert(`Falha ao criar issue: ${err.message}`);
     } finally {
@@ -66,9 +84,22 @@ const GitHubPanel: React.FC<GitHubPanelProps> = ({ repoPath }) => {
 
   if (loading) {
     return (
-      <div className="p-8 border-2 border-emerald-600/20 bg-emerald-500/5 flex flex-col items-center justify-center animate-pulse">
-        <div className="w-8 h-8 border-2 border-emerald-600 border-t-transparent animate-spin mb-4"></div>
-        <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Sincronizando GitHub...</span>
+      <div className="bg-white/60 dark:bg-slate-900/40 border-2 border-emerald-600/20 shadow-[6px_6px_0_rgba(16,185,129,0.1)] p-6 space-y-6">
+        <div className="flex justify-between items-center border-b-2 border-emerald-600/10 pb-4 animate-pulse">
+           <div className="flex items-center gap-3">
+             <div className="w-8 h-8 bg-slate-200 dark:bg-slate-800"></div>
+             <div className="space-y-2">
+               <div className="w-24 h-3 bg-slate-200 dark:bg-slate-800"></div>
+               <div className="w-16 h-2 bg-slate-200 dark:bg-slate-800"></div>
+             </div>
+           </div>
+        </div>
+        <div className="space-y-4">
+          <div className="w-32 h-2.5 bg-slate-200 dark:bg-slate-800 uppercase animate-pulse"></div>
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-16 bg-slate-200 dark:bg-slate-800 border-l-2 border-emerald-600/20 animate-pulse"></div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -81,13 +112,13 @@ const GitHubPanel: React.FC<GitHubPanelProps> = ({ repoPath }) => {
         </svg>
         <span className="text-[10px] font-black text-red-600 uppercase mb-2">ERRO NA INTEGRAÇÃO</span>
         <p className="text-[9px] text-slate-500 font-bold uppercase">{error}</p>
-        <button onClick={loadGitHubData} className="mt-4 px-4 py-2 bg-red-600 text-white text-[9px] font-black uppercase tracking-widest active:scale-95">Reconectar</button>
+        <button onClick={() => loadGitHubData()} className="mt-4 px-4 py-2 bg-red-600 text-white text-[9px] font-black uppercase tracking-widest active:scale-95">Reconectar</button>
       </div>
     );
   }
 
   return (
-    <div className="bg-white/60 dark:bg-slate-900/40 border-2 border-emerald-600/20 shadow-[6px_6px_0_rgba(16,185,129,0.1)] p-6 space-y-6 animate-fade-in">
+    <div className="bg-white/60 dark:bg-slate-900/40 border-2 border-emerald-600/20 shadow-[6px_6px_0_rgba(16,185,129,0.1)] p-6 space-y-6 animate-fade-in relative">
       <div className="flex justify-between items-center border-b-2 border-emerald-600/10 pb-4">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-slate-900 text-white">
@@ -98,24 +129,39 @@ const GitHubPanel: React.FC<GitHubPanelProps> = ({ repoPath }) => {
             <p className="text-[9px] text-emerald-600 font-bold uppercase tracking-widest">{repo?.default_branch} branch active</p>
           </div>
         </div>
-        <a href={repo?.url} target="_blank" rel="noopener noreferrer" className="text-[9px] font-black text-slate-400 hover:text-emerald-600 uppercase border border-slate-300 dark:border-emerald-500/30 px-2 py-1 transition-all">Ver no GitHub</a>
+        <div className="flex gap-2">
+           <button 
+             onClick={() => loadGitHubData(true)} 
+             className="p-1.5 text-slate-400 hover:text-emerald-600 transition-all hover:rotate-180 duration-500 cursor-pointer"
+             title="Atualizar lista"
+           >
+             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+             </svg>
+           </button>
+           <a href={repo?.url} target="_blank" rel="noopener noreferrer" className="text-[9px] font-black text-slate-400 hover:text-emerald-600 uppercase border border-slate-300 dark:border-emerald-500/30 px-2 py-1 transition-all">Link</a>
+        </div>
       </div>
 
       <div>
         <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Commits Recentes</h5>
         <div className="space-y-3">
-          {commits.map((commit) => (
-            <div key={commit.sha} className="p-3 bg-slate-50 dark:bg-slate-800 border-l-2 border-emerald-500 flex flex-col gap-1 group hover:bg-emerald-500/5 transition-all">
-              <div className="flex justify-between items-start gap-2">
-                <span className="text-[10px] font-bold text-slate-800 dark:text-white line-clamp-1 flex-1">{commit.message}</span>
-                <span className="text-[8px] font-mono text-emerald-600 shrink-0">{commit.sha.substring(0, 7)}</span>
+          {commits.length === 0 ? (
+            <p className="text-[9px] text-slate-400 font-bold uppercase italic text-center py-4">Nenhum commit localizado</p>
+          ) : (
+            commits.map((commit) => (
+              <div key={commit.sha} className="p-3 bg-slate-50 dark:bg-slate-800 border-l-2 border-emerald-500 flex flex-col gap-1 group hover:bg-emerald-500/5 transition-all">
+                <div className="flex justify-between items-start gap-2">
+                  <span className="text-[10px] font-bold text-slate-800 dark:text-white line-clamp-1 flex-1">{commit.message}</span>
+                  <span className="text-[8px] font-mono text-emerald-600 shrink-0">{commit.sha.substring(0, 7)}</span>
+                </div>
+                <div className="flex justify-between items-center text-[8px] font-black uppercase text-slate-500">
+                  <span>{commit.author}</span>
+                  <span>{formatCommitDate(commit.date)}</span>
+                </div>
               </div>
-              <div className="flex justify-between items-center text-[8px] font-black uppercase text-slate-500">
-                <span>{commit.author}</span>
-                <span>{formatRelativeDate(commit.date)}</span>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
 
@@ -132,12 +178,18 @@ const GitHubPanel: React.FC<GitHubPanelProps> = ({ repoPath }) => {
           <button 
             type="submit" 
             disabled={isCreatingIssue || !issueTitle.trim()}
-            className="bg-emerald-600 text-white text-[10px] font-black uppercase px-4 py-2.5 hover:bg-emerald-700 disabled:opacity-50 transition-all !rounded-none active:scale-95"
+            className="bg-emerald-600 text-white text-[10px] font-black uppercase px-4 py-2.5 hover:bg-emerald-700 disabled:opacity-50 transition-all !rounded-none active:scale-95 brutalist-button"
           >
             {isCreatingIssue ? '...' : 'Enviar'}
           </button>
         </form>
       </div>
+
+      {showToast && (
+        <div className="fixed bottom-4 right-4 bg-emerald-600 text-white px-6 py-4 font-black uppercase text-[10px] tracking-widest shadow-2xl animate-slide-in-right z-[10000] border-2 border-black dark:border-white">
+          Issue criada com sucesso no GitHub!
+        </div>
+      )}
     </div>
   );
 };

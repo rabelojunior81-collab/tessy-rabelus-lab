@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useCallback, Suspense, lazy } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import HistorySidebar from './components/HistorySidebar';
@@ -496,15 +495,15 @@ const App: React.FC = () => {
               </div>
               <div className="flex-1 overflow-y-auto custom-scrollbar">
                 <AccordionHeader title="Histórico" isOpen={expandedSections.history} onClick={() => toggleSection('history')} />
-                <div className={`transition-all duration-300 ease-in-out overflow-hidden ${expandedSections.history ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                <div className={`transition-all duration-300 ease-in-out overflow-hidden ${expandedSections.history ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
                   {renderAccordionContent('history')}
                 </div>
                 <AccordionHeader title="Biblioteca" isOpen={expandedSections.library} onClick={() => toggleSection('library')} />
-                <div className={`transition-all duration-300 ease-in-out overflow-hidden ${expandedSections.library ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                <div className={`transition-all duration-300 ease-in-out overflow-hidden ${expandedSections.library ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
                   {renderAccordionContent('library')}
                 </div>
                 <AccordionHeader title="Projetos" isOpen={expandedSections.projects} onClick={() => toggleSection('projects')} />
-                <div className={`transition-all duration-300 ease-in-out overflow-hidden ${expandedSections.projects ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                <div className={`transition-all duration-300 ease-in-out overflow-hidden ${expandedSections.projects ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
                   <Suspense fallback={<LoadingSpinner />}>
                     {renderAccordionContent('projects')}
                   </Suspense>
@@ -516,15 +515,15 @@ const App: React.FC = () => {
 
         <aside className="hidden md:flex flex-col w-[20%] lg:w-[18%] border-r-2 border-emerald-600/15 glass-panel !border-t-0 !border-b-0 overflow-y-auto custom-scrollbar">
           <AccordionHeader title="Histórico" isOpen={expandedSections.history} onClick={() => toggleSection('history')} />
-          <div className={`transition-all duration-300 ease-in-out overflow-hidden ${expandedSections.history ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
+          <div className={`transition-all duration-300 ease-in-out overflow-hidden ${expandedSections.history ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
             {renderAccordionContent('history')}
           </div>
           <AccordionHeader title="Biblioteca" isOpen={expandedSections.library} onClick={() => toggleSection('library')} />
-          <div className={`transition-all duration-300 ease-in-out overflow-hidden ${expandedSections.library ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
+          <div className={`transition-all duration-300 ease-in-out overflow-hidden ${expandedSections.library ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
             {renderAccordionContent('library')}
           </div>
           <AccordionHeader title="Projetos" isOpen={expandedSections.projects} onClick={() => toggleSection('projects')} />
-          <div className={`transition-all duration-300 ease-in-out overflow-hidden ${expandedSections.projects ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
+          <div className={`transition-all duration-300 ease-in-out overflow-hidden ${expandedSections.projects ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
             <Suspense fallback={<LoadingSpinner />}>
               {renderAccordionContent('projects')}
             </Suspense>
