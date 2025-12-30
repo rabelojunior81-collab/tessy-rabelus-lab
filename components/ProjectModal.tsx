@@ -69,9 +69,9 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, projectId,
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-950/70 backdrop-blur-md animate-fade-in transition-all duration-300">
+    <div className="fixed top-0 left-0 w-full h-full z-[200] flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-md animate-fade-in">
       <div 
-        className="glass-panel !rounded-none w-full max-w-[500px] max-h-[90vh] sm:max-h-[600px] flex flex-col animate-zoom-in !bg-white dark:!bg-slate-900 shadow-2xl border-2 border-emerald-500/30 overflow-hidden"
+        className="relative glass-panel !rounded-none w-full max-w-[500px] max-h-[90vh] flex flex-col animate-zoom-in !bg-white dark:!bg-slate-900 shadow-2xl border-2 border-emerald-500/30 overflow-hidden mx-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-6 py-4 border-b-2 border-emerald-500/20 flex justify-between items-center bg-emerald-500/5 dark:bg-slate-950/40 shrink-0">
