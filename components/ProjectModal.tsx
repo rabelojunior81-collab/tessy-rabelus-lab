@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { db, generateUUID } from '../services/dbService';
 import { Project } from '../types';
@@ -68,93 +69,102 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, projectId,
   };
 
   return (
-    <div className="fixed top-0 left-0 w-full h-full z-[200] flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-md animate-fade-in">
+    <div 
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-slate-950/90 backdrop-blur-xl animate-fade-in"
+      onClick={onClose}
+    >
       <div 
-        className="relative glass-panel !rounded-none w-full max-w-[500px] max-h-[90vh] flex flex-col animate-zoom-in !bg-white dark:!bg-slate-900 shadow-2xl border-2 border-emerald-500/30 overflow-hidden"
+        className="glass-panel !rounded-none w-full max-w-[500px] flex flex-col animate-zoom-in !bg-white dark:!bg-slate-900 shadow-[20px_20px_0_rgba(0,0,0,0.5)] border-4 border-emerald-500 overflow-hidden max-h-[95vh]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-6 py-4 border-b-2 border-emerald-500/20 flex justify-between items-center bg-emerald-500/5 dark:bg-slate-950/40 shrink-0">
-          <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">
-            {projectId ? 'Editar Projeto' : 'Novo Projeto'}
-          </h3>
+        {/* Header com estilo brutalista reforçado */}
+        <div className="px-6 py-5 border-b-4 border-emerald-500 flex justify-between items-center bg-emerald-500/10 dark:bg-slate-950/60 shrink-0">
+          <div className="flex flex-col">
+            <h3 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter leading-none">
+              {projectId ? 'Editar Protocolo' : 'Novo Protocolo'}
+            </h3>
+            <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mt-1">Configuração de Núcleo</span>
+          </div>
           <button 
             onClick={onClose} 
-            className="text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-all p-2 cursor-pointer active:scale-95"
+            className="bg-red-600 text-white p-2 hover:bg-red-500 transition-all cursor-pointer active:scale-90 border-2 border-black dark:border-white shadow-[2px_2px_0_rgba(0,0,0,1)]"
             aria-label="Fechar"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto custom-scrollbar p-6 sm:p-8 space-y-8">
           {error && (
-            <div className="p-4 bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-[10px] font-black uppercase tracking-widest border-2 border-red-200 dark:border-red-900/50 animate-pulse">
-              {error}
+            <div className="p-4 bg-red-600 text-white text-[10px] font-black uppercase tracking-widest border-2 border-black animate-pulse">
+              ALERTA: {error}
             </div>
           )}
 
-          <div className="space-y-2">
-            <label className="block text-[10px] font-black text-emerald-600 uppercase tracking-widest">Nome do Projeto</label>
+          <div className="space-y-3">
+            <label className="block text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">Identificação do Projeto</label>
             <input
               autoFocus
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Digite o nome do projeto..."
-              className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-emerald-500/20 p-3 text-slate-900 dark:text-white font-bold focus:outline-none focus:border-emerald-500 transition-all !rounded-none placeholder:text-slate-500 dark:placeholder:text-slate-400"
+              placeholder="NOME DO PROTOCOLO..."
+              className="w-full bg-slate-50 dark:bg-slate-950 border-2 border-slate-300 dark:border-emerald-500/30 p-4 text-slate-900 dark:text-white font-black focus:outline-none focus:border-emerald-500 transition-all !rounded-none placeholder:text-slate-400 uppercase tracking-widest"
             />
           </div>
 
-          <div className="space-y-2">
-            <label className="block text-[10px] font-black text-emerald-600 uppercase tracking-widest">Descrição</label>
+          <div className="space-y-3">
+            <label className="block text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">Diretrizes / Descrição</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Descreva brevemente o objetivo deste projeto..."
-              className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-emerald-500/20 p-3 text-slate-900 dark:text-white font-medium h-32 resize-none focus:outline-none focus:border-emerald-500 transition-all !rounded-none custom-scrollbar placeholder:text-slate-500 dark:placeholder:text-slate-400 leading-relaxed"
+              placeholder="DESCREVA O OBJETIVO DESTE NÚCLEO..."
+              className="w-full bg-slate-50 dark:bg-slate-950 border-2 border-slate-300 dark:border-emerald-500/30 p-4 text-slate-900 dark:text-white font-bold h-24 sm:h-32 resize-none focus:outline-none focus:border-emerald-500 transition-all !rounded-none custom-scrollbar placeholder:text-slate-400 leading-relaxed"
             />
           </div>
 
-          <div className="space-y-2">
-            <label className="block text-[10px] font-black text-emerald-600 uppercase tracking-widest">Repositório GitHub (Opcional)</label>
-            <input
-              type="text"
-              value={githubRepo}
-              onChange={(e) => setGithubRepo(e.target.value)}
-              placeholder="usuario/repositorio..."
-              className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-emerald-500/20 p-3 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-emerald-500 transition-all !rounded-none placeholder:text-slate-500 dark:placeholder:text-slate-400"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-[10px] font-black text-emerald-600 uppercase tracking-widest">Cor de Destaque</label>
-            <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800 p-3 border-2 border-emerald-500/10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="space-y-3">
+              <label className="block text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">Repositório Git</label>
               <input
-                type="color"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                className="w-12 h-12 bg-transparent border-2 border-emerald-500/20 cursor-pointer p-1 transition-transform hover:scale-110 active:scale-95"
+                type="text"
+                value={githubRepo}
+                onChange={(e) => setGithubRepo(e.target.value)}
+                placeholder="USUARIO/REPO..."
+                className="w-full bg-slate-50 dark:bg-slate-950 border-2 border-slate-300 dark:border-emerald-500/30 p-4 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-emerald-500 transition-all !rounded-none"
               />
-              <span className="text-sm font-mono font-bold text-slate-500 tracking-wider">{color.toUpperCase()}</span>
+            </div>
+
+            <div className="space-y-3">
+              <label className="block text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">Cor de Identidade</label>
+              <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-950 p-2 border-2 border-slate-300 dark:border-emerald-500/30">
+                <input
+                  type="color"
+                  value={color}
+                  onChange={(e) => setColor(e.target.value)}
+                  className="w-10 h-10 bg-transparent cursor-pointer border-none p-0 appearance-none"
+                />
+                <span className="text-[11px] font-mono font-black text-slate-500 dark:text-emerald-500/60 uppercase">{color}</span>
+              </div>
             </div>
           </div>
         </form>
 
-        <div className="p-6 border-t-2 border-emerald-500/10 flex gap-4 bg-emerald-500/5 shrink-0">
+        <div className="p-6 sm:p-8 border-t-4 border-emerald-500 flex gap-4 bg-emerald-500/5 shrink-0">
           <button
             type="button"
             onClick={onClose}
-            className="brutalist-button flex-1 py-4 bg-slate-100 dark:bg-slate-800 text-slate-500 font-black uppercase tracking-widest text-xs hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer active:scale-95"
+            className="flex-1 py-4 bg-slate-200 dark:bg-slate-800 text-slate-600 font-black uppercase tracking-widest text-xs border-2 border-black dark:border-white shadow-[3px_3px_0_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-pointer active:scale-95"
           >
-            Cancelar
+            Abortar
           </button>
           <button
             onClick={handleSubmit}
-            className="brutalist-button flex-1 py-4 bg-emerald-600 text-white font-black uppercase tracking-widest text-xs hover:bg-emerald-700 transition-all cursor-pointer active:scale-95"
+            className="flex-1 py-4 bg-emerald-600 text-white font-black uppercase tracking-widest text-xs border-2 border-black dark:border-white shadow-[3px_3px_0_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-pointer active:scale-95"
           >
-            Salvar Protocolo
+            Confirmar Registro
           </button>
         </div>
       </div>

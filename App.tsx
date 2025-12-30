@@ -5,6 +5,7 @@ import HistorySidebar from './components/HistorySidebar';
 import Canvas from './components/Canvas';
 import FactorPanel from './components/FactorPanel';
 import ProjectSwitcher from './components/ProjectSwitcher';
+import ProjectModal from './components/ProjectModal';
 import { DateAnchor } from './components/DateAnchor';
 import { interpretIntent, applyFactorsAndGenerate, optimizePrompt } from './services/geminiService';
 import { db, migrateToIndexedDB, generateUUID } from './services/dbService';
@@ -77,7 +78,10 @@ const App: React.FC = () => {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [currentProjectId, setCurrentProjectId] = useState('default-project');
   
-  // Replace single active tab with accordion state
+  // Project Modal Global State
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
+
   const [expandedSections, setExpandedSections] = useState({
     history: true,
     library: false,
@@ -107,33 +111,24 @@ const App: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textInputRef = useRef<HTMLTextAreaElement | HTMLInputElement>(null);
 
-  // Initial Boot Sequence
   useEffect(() => {
     const boot = async () => {
       try {
         await migrateToIndexedDB();
-        
-        // Load Settings
         const themeSetting = await db.settings.get('tessy-theme');
         if (themeSetting) setTheme(themeSetting.value);
-        
         const factorsSetting = await db.settings.get('tessy-factors');
         if (factorsSetting) setFactors(factorsSetting.value);
-
         const lastProjSetting = await db.settings.get('tessy-current-project');
         if (lastProjSetting) setCurrentProjectId(lastProjSetting.value);
-
-        // Load Last Conversation
         const lastConvIdSetting = await db.settings.get('tessy_last_conv_id');
         let lastConv = null;
         if (lastConvIdSetting) {
           lastConv = await db.conversations.get(lastConvIdSetting.value);
         }
-
         if (lastConv) {
           setCurrentConversation(lastConv);
         } else {
-          // Trigger initial conv creation
           handleNewConversation();
         }
       } catch (err) {
@@ -151,7 +146,6 @@ const App: React.FC = () => {
   }, [theme]);
 
   const toggleTheme = useCallback(() => setTheme(prev => prev === 'dark' ? 'light' : 'dark'), []);
-
   const toggleSection = (section: keyof typeof expandedSections) => {
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
@@ -178,7 +172,6 @@ const App: React.FC = () => {
     setTimeout(() => textInputRef.current?.focus(), 10);
   }, [currentProjectId]);
 
-  // Handle Project Change
   const handleSwitchProject = useCallback((id: string) => {
     setCurrentProjectId(id);
     db.settings.put({ key: 'tessy-current-project', value: id });
@@ -187,7 +180,17 @@ const App: React.FC = () => {
     setHistoryRefreshKey(p => p + 1);
   }, [handleNewConversation]);
 
-  // Global Hotkeys
+  const handleOpenProjectModal = useCallback((id: string | null = null) => {
+    setEditingProjectId(id);
+    setIsProjectModalOpen(true);
+  }, []);
+
+  const handleProjectSuccess = useCallback((id: string) => {
+    handleSwitchProject(id);
+    setIsProjectModalOpen(false);
+    setRefreshKey(p => p + 1);
+  }, [handleSwitchProject]);
+
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       const isCtrlOrMeta = e.ctrlKey || e.metaKey;
@@ -204,7 +207,6 @@ const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleGlobalKeyDown, true);
   }, [handleNewConversation]);
 
-  // Persist Factors and Conversation
   useEffect(() => {
     if (!isMigrating) {
       db.settings.put({ key: 'tessy-factors', value: factors });
@@ -223,7 +225,6 @@ const App: React.FC = () => {
     if (!currentConversation) return;
     const textToUse = forcedText ?? inputText;
     if (!textToUse.trim() && attachedFiles.length === 0) return;
-    
     const currentInput = textToUse;
     const currentFiles = [...attachedFiles];
     setPendingUserMessage(currentInput);
@@ -233,7 +234,6 @@ const App: React.FC = () => {
     setIsLoading(true);
     setStatusMessage('INTERPRETANDO...');
     setResult('');
-    
     try {
       const interpretation = await interpretIntent(currentInput, currentFiles, currentConversation.turns);
       setLastInterpretation(interpretation);
@@ -242,11 +242,9 @@ const App: React.FC = () => {
         setStatusMessage('ERRO');
         return;
       }
-      
       const groundingEnabled = factors.find(f => f.id === 'grounding')?.enabled ?? true;
       setStatusMessage('GERANDO RESPOSTA...');
       const generationResult = await applyFactorsAndGenerate(interpretation, factors, currentFiles, currentConversation.turns, groundingEnabled);
-      
       const newTurn: ConversationTurn = {
         id: generateUUID(),
         userMessage: currentInput,
@@ -255,7 +253,6 @@ const App: React.FC = () => {
         attachedFiles: currentFiles.length > 0 ? currentFiles : undefined,
         groundingChunks: generationResult.groundingChunks
       };
-      
       setCurrentConversation(prev => {
         if (!prev) return null;
         const isFirstMessage = prev.turns.length === 0;
@@ -264,12 +261,7 @@ const App: React.FC = () => {
           const rawTitle = currentInput.trim();
           newTitle = rawTitle.substring(0, 50) + (rawTitle.length > 50 ? '...' : '');
         }
-        return { 
-          ...prev, 
-          title: newTitle, 
-          turns: [...prev.turns, newTurn], 
-          updatedAt: Date.now() 
-        };
+        return { ...prev, title: newTitle, turns: [...prev.turns, newTurn], updatedAt: Date.now() };
       });
       setStatusMessage('PRONTO');
     } catch (error) {
@@ -407,7 +399,7 @@ const App: React.FC = () => {
       case 'library':
         return <RepositoryBrowser currentProjectId={currentProjectId} onSelectItem={handleSelectItem} refreshKey={refreshKey} onClose={() => setIsSidebarMobileOpen(false)} />;
       case 'projects':
-        return <ProjectDashboard projectId={currentProjectId} onNewConversation={handleNewConversation} onOpenLibrary={() => setExpandedSections(p => ({...p, library: true}))} onRefreshHistory={() => setHistoryRefreshKey(p => p + 1)} />;
+        return <ProjectDashboard projectId={currentProjectId} onNewConversation={handleNewConversation} onOpenLibrary={() => setExpandedSections(p => ({...p, library: true}))} onRefreshHistory={() => setHistoryRefreshKey(p => p + 1)} onEditProject={(id) => handleOpenProjectModal(id)} />;
       default:
         return null;
     }
@@ -435,12 +427,12 @@ const App: React.FC = () => {
         </div>
 
         <div className="hidden lg:flex items-center gap-4">
-          <ProjectSwitcher currentProjectId={currentProjectId} onSwitch={handleSwitchProject} />
+          <ProjectSwitcher currentProjectId={currentProjectId} onSwitch={handleSwitchProject} onOpenModal={() => handleOpenProjectModal()} onEditProject={(id) => handleOpenProjectModal(id)} />
           <DateAnchor groundingEnabled={factors.find(f => f.id === 'grounding')?.enabled || false} />
         </div>
         
         <div className="flex lg:hidden items-center gap-2">
-           <ProjectSwitcher currentProjectId={currentProjectId} onSwitch={handleSwitchProject} />
+           <ProjectSwitcher currentProjectId={currentProjectId} onSwitch={handleSwitchProject} onOpenModal={() => handleOpenProjectModal()} onEditProject={(id) => handleOpenProjectModal(id)} />
         </div>
 
         <div className="flex items-center space-x-2 sm:space-x-6">
@@ -450,7 +442,6 @@ const App: React.FC = () => {
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>
           </button>
-          
           <button onClick={toggleTheme} className="w-10 h-10 flex items-center justify-center brutalist-button bg-emerald-600/15 text-emerald-600 dark:text-emerald-400 border-emerald-600/25 active:scale-90 transition-all">
             {theme === 'dark' ? (
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" /></svg>
@@ -458,7 +449,6 @@ const App: React.FC = () => {
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" /></svg>
             )}
           </button>
-          
           <div className="w-9 h-9 sm:w-11 sm:h-11 border-2 border-emerald-600/25 p-0.5 shadow-[4px_4px_0_rgba(16,185,129,0.15)] bg-white/85 dark:bg-slate-950/40 shrink-0 overflow-hidden">
             <img src={`https://api.dicebear.com/7.x/identicon/svg?seed=tessy-green&backgroundColor=10b981`} alt="Avatar" className="w-full h-full object-cover" />
           </div>
@@ -466,7 +456,6 @@ const App: React.FC = () => {
       </header>
 
       <main className="flex-1 flex overflow-hidden relative">
-        {/* Mobile Sidebar/Accordion Overlay */}
         <div className={`fixed inset-0 z-50 transition-opacity duration-300 md:hidden ${isSidebarMobileOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
           <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setIsSidebarMobileOpen(false)}></div>
           <div className={`absolute top-0 left-0 h-full w-[85%] max-w-sm bg-white dark:bg-slate-900 shadow-2xl transition-transform duration-300 ${isSidebarMobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
@@ -480,12 +469,10 @@ const App: React.FC = () => {
                 <div className={`transition-all duration-300 ease-in-out overflow-hidden ${expandedSections.history ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
                   {renderAccordionContent('history')}
                 </div>
-
                 <AccordionHeader title="Biblioteca" isOpen={expandedSections.library} onClick={() => toggleSection('library')} />
                 <div className={`transition-all duration-300 ease-in-out overflow-hidden ${expandedSections.library ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
                   {renderAccordionContent('library')}
                 </div>
-
                 <AccordionHeader title="Projetos" isOpen={expandedSections.projects} onClick={() => toggleSection('projects')} />
                 <div className={`transition-all duration-300 ease-in-out overflow-hidden ${expandedSections.projects ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
                   <Suspense fallback={<LoadingSpinner />}>
@@ -497,18 +484,15 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        {/* Desktop Sidebar with Accordion */}
         <aside className="hidden md:flex flex-col w-[20%] lg:w-[18%] border-r-2 border-emerald-600/15 glass-panel !border-t-0 !border-b-0 overflow-y-auto custom-scrollbar">
           <AccordionHeader title="Histórico" isOpen={expandedSections.history} onClick={() => toggleSection('history')} />
           <div className={`transition-all duration-300 ease-in-out overflow-hidden ${expandedSections.history ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
             {renderAccordionContent('history')}
           </div>
-
           <AccordionHeader title="Biblioteca" isOpen={expandedSections.library} onClick={() => toggleSection('library')} />
           <div className={`transition-all duration-300 ease-in-out overflow-hidden ${expandedSections.library ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
             {renderAccordionContent('library')}
           </div>
-
           <AccordionHeader title="Projetos" isOpen={expandedSections.projects} onClick={() => toggleSection('projects')} />
           <div className={`transition-all duration-300 ease-in-out overflow-hidden ${expandedSections.projects ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
             <Suspense fallback={<LoadingSpinner />}>
@@ -544,7 +528,6 @@ const App: React.FC = () => {
           )}
         </section>
 
-        {/* Factors Sidebar Mobile */}
         <div className={`fixed inset-0 z-50 transition-opacity duration-300 md:hidden ${isFactorsMobileOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
           <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setIsFactorsMobileOpen(false)}></div>
           <div className={`absolute top-0 right-0 h-full w-[85%] max-w-sm bg-white dark:bg-slate-900 shadow-2xl transition-transform duration-300 ${isFactorsMobileOpen ? 'translate-x-0' : 'translate-x-full'}`}>
@@ -559,7 +542,6 @@ const App: React.FC = () => {
              </div>
           </div>
         </div>
-
         <aside className="hidden md:block w-[25%] lg:w-[22%] border-l-2 border-emerald-600/15 glass-panel !border-t-0 !border-b-0 overflow-y-auto custom-scrollbar">
           <FactorPanel factors={factors} onToggle={handleToggleFactor} />
         </aside>
@@ -584,6 +566,14 @@ const App: React.FC = () => {
           <OptimizationModal isOpen={isOptModalOpen} result={optimizationResult} onClose={() => setIsOptModalOpen(false)} onApply={handleApplyOptimization} />
         )}
       </Suspense>
+
+      {/* PROJECT MODAL INJECTED AT ROOT LEVEL FOR CORRECT Z-INDEX AND POSITIONING */}
+      <ProjectModal
+        isOpen={isProjectModalOpen}
+        onClose={() => setIsProjectModalOpen(false)}
+        projectId={editingProjectId}
+        onSuccess={handleProjectSuccess}
+      />
     </div>
   );
 };

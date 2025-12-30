@@ -2,24 +2,24 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../services/dbService';
 import { Project } from '../types';
-import ProjectModal from './ProjectModal';
 
 interface ProjectDashboardProps {
   projectId: string;
   onNewConversation: () => void;
   onOpenLibrary: () => void;
   onRefreshHistory: () => void;
+  onEditProject: (id: string) => void;
 }
 
 const ProjectDashboard: React.FC<ProjectDashboardProps> = ({ 
   projectId, 
   onNewConversation, 
   onOpenLibrary,
-  onRefreshHistory
+  onRefreshHistory,
+  onEditProject
 }) => {
   const [project, setProject] = useState<Project | null>(null);
   const [stats, setStats] = useState({ conversations: 0, library: 0, templates: 0 });
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const loadData = async () => {
     const p = await db.projects.get(projectId);
@@ -59,7 +59,7 @@ const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
             Ativo
           </div>
           <button 
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => onEditProject(projectId)}
             className="p-2 -mr-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-500/10 transition-all cursor-pointer active:scale-90 rounded-none z-10"
             title="Editar Definições"
             aria-label="Editar"
@@ -133,13 +133,6 @@ const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
           Exportar Núcleo
         </button>
       </div>
-
-      <ProjectModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        projectId={projectId}
-        onSuccess={loadData}
-      />
     </div>
   );
 };

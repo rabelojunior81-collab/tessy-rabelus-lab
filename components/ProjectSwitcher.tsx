@@ -2,19 +2,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../services/dbService';
 import { Project } from '../types';
-import ProjectModal from './ProjectModal';
 
 interface ProjectSwitcherProps {
   currentProjectId: string;
   onSwitch: (id: string) => void;
+  onOpenModal: () => void;
+  onEditProject: (id: string) => void;
 }
 
-const ProjectSwitcher: React.FC<ProjectSwitcherProps> = ({ currentProjectId, onSwitch }) => {
+const ProjectSwitcher: React.FC<ProjectSwitcherProps> = ({ currentProjectId, onSwitch, onOpenModal, onEditProject }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -27,8 +26,6 @@ const ProjectSwitcher: React.FC<ProjectSwitcherProps> = ({ currentProjectId, onS
       setCurrentProject(current || null);
     };
     loadProjects();
-    
-    // Refresh when DB changes (simple poll or based on external triggers)
     const interval = setInterval(loadProjects, 5000);
     return () => clearInterval(interval);
   }, [currentProjectId]);
@@ -45,20 +42,13 @@ const ProjectSwitcher: React.FC<ProjectSwitcherProps> = ({ currentProjectId, onS
 
   const handleEdit = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    setEditingProjectId(id);
-    setIsModalOpen(true);
+    onEditProject(id);
     setIsOpen(false);
   };
 
   const handleCreate = () => {
-    setEditingProjectId(null);
-    setIsModalOpen(true);
+    onOpenModal();
     setIsOpen(false);
-  };
-
-  const handleModalSuccess = (id: string) => {
-    onSwitch(id);
-    setIsModalOpen(false);
   };
 
   return (
@@ -125,13 +115,6 @@ const ProjectSwitcher: React.FC<ProjectSwitcherProps> = ({ currentProjectId, onS
           </button>
         </div>
       )}
-
-      <ProjectModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        projectId={editingProjectId}
-        onSuccess={handleModalSuccess}
-      />
     </div>
   );
 };

@@ -1,5 +1,5 @@
 
-// Fix: Use named import for Dexie to ensure proper class inheritance and type resolution in TypeScript
+// Use named import for Dexie to ensure proper class inheritance and type resolution in TypeScript
 import { Dexie } from 'dexie';
 import type { Table } from 'dexie';
 import { Conversation, Project, RepositoryItem, Template, Factor } from '../types';
@@ -15,7 +15,7 @@ export class TessyDatabase extends Dexie {
 
   constructor() {
     super('TessyDB');
-    // Fix: Use version method inherited from Dexie class
+    // Fix: Using inherited version() method from Dexie class via named import
     this.version(1).stores({
       projects: 'id, name, createdAt, updatedAt',
       conversations: 'id, projectId, title, createdAt, updatedAt',
@@ -59,7 +59,7 @@ export async function migrateToIndexedDB(): Promise<void> {
       }
     };
 
-    // Fix: Proper call to transaction method from the Dexie database instance
+    // Fix: Executing migration within a transaction for data integrity using the Dexie instance transaction method
     await db.transaction('rw', [db.projects, db.conversations, db.library, db.settings], async () => {
       // 1. Create Default Project
       await db.projects.put({
@@ -96,8 +96,12 @@ export async function migrateToIndexedDB(): Promise<void> {
       // 4. Migrate Settings
       if (oldTheme) await db.settings.put({ key: 'tessy-theme', value: oldTheme });
       if (oldFactorsRaw) {
-        const factors = JSON.parse(oldFactorsRaw);
-        await db.settings.put({ key: 'tessy-factors', value: factors });
+        try {
+          const factors = JSON.parse(oldFactorsRaw);
+          await db.settings.put({ key: 'tessy-factors', value: factors });
+        } catch (e) {
+          console.warn("Could not parse legacy factors.");
+        }
       }
 
       // 5. Set Migration Flag
