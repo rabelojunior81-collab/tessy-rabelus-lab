@@ -26,7 +26,7 @@ const INITIAL_FACTORS: Factor[] = [
 ];
 
 const TessyLogo = React.memo(() => (
-  <div className="relative w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center shrink-0">
+  <div className="relative w-10 h-10 sm:w-12 h-12 flex items-center justify-center shrink-0">
     <svg viewBox="0 0 100 100" className="w-full h-full filter drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]">
       <defs>
         <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -54,11 +54,36 @@ const TessyLogo = React.memo(() => (
   </div>
 ));
 
+const AccordionHeader = ({ title, isOpen, onClick }: { title: string, isOpen: boolean, onClick: () => void }) => (
+  <button 
+    onClick={onClick}
+    className="w-full flex items-center justify-between px-6 py-5 bg-white/40 dark:bg-slate-900/40 hover:bg-emerald-500/10 transition-all duration-300 border-b-2 border-emerald-600/15 group cursor-pointer"
+  >
+    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-600 dark:text-emerald-400 group-hover:translate-x-1 transition-transform">
+      {title}
+    </span>
+    <svg 
+      xmlns="http://www.w3.org/2000/svg" 
+      className={`h-4 w-4 text-emerald-600 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} 
+      fill="none" viewBox="0 0 24 24" stroke="currentColor"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
+    </svg>
+  </button>
+);
+
 const App: React.FC = () => {
   const [isMigrating, setIsMigrating] = useState(true);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [currentProjectId, setCurrentProjectId] = useState('default-project');
-  const [activeSideTab, setActiveSideTab] = useState<'library' | 'history' | 'projects'>('history');
+  
+  // Replace single active tab with accordion state
+  const [expandedSections, setExpandedSections] = useState({
+    history: true,
+    library: false,
+    projects: false
+  });
+  
   const [isSidebarMobileOpen, setIsSidebarMobileOpen] = useState(false);
   const [isFactorsMobileOpen, setIsFactorsMobileOpen] = useState(false);
   
@@ -126,6 +151,10 @@ const App: React.FC = () => {
   }, [theme]);
 
   const toggleTheme = useCallback(() => setTheme(prev => prev === 'dark' ? 'light' : 'dark'), []);
+
+  const toggleSection = (section: keyof typeof expandedSections) => {
+    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
 
   const handleNewConversation = useCallback(() => {
     const newConv: Conversation = {
@@ -371,13 +400,26 @@ const App: React.FC = () => {
     );
   }
 
+  const renderAccordionContent = (section: keyof typeof expandedSections) => {
+    switch (section) {
+      case 'history':
+        return <HistorySidebar currentProjectId={currentProjectId} activeId={currentConversation?.id || ''} onLoad={handleLoadConversationFromHistory} onDelete={handleDeleteConversationFromHistory} refreshKey={historyRefreshKey} onClose={() => setIsSidebarMobileOpen(false)} />;
+      case 'library':
+        return <RepositoryBrowser currentProjectId={currentProjectId} onSelectItem={handleSelectItem} refreshKey={refreshKey} onClose={() => setIsSidebarMobileOpen(false)} />;
+      case 'projects':
+        return <ProjectDashboard projectId={currentProjectId} onNewConversation={handleNewConversation} onOpenLibrary={() => setExpandedSections(p => ({...p, library: true}))} onRefreshHistory={() => setHistoryRefreshKey(p => p + 1)} />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="h-screen w-full flex flex-col overflow-hidden font-sans selection:bg-emerald-600/30">
       <header className="h-14 sm:h-16 flex items-center justify-between px-4 sm:px-8 border-b-2 border-emerald-600/25 bg-white/85 dark:bg-slate-900/60 backdrop-blur-2xl z-40 shrink-0">
         <div className="flex items-center space-x-2 sm:space-x-4">
           <button 
-            onClick={() => { setIsSidebarMobileOpen(true); setActiveSideTab('history'); }}
-            className="md:hidden brutalist-button w-10 h-10 bg-emerald-600/10 text-emerald-600 border-emerald-600/20"
+            onClick={() => setIsSidebarMobileOpen(true)}
+            className="md:hidden brutalist-button w-10 h-10 bg-emerald-600/10 text-emerald-600 border-emerald-600/20 active:scale-95 transition-all"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
           </button>
@@ -404,12 +446,12 @@ const App: React.FC = () => {
         <div className="flex items-center space-x-2 sm:space-x-6">
           <button 
             onClick={() => setIsFactorsMobileOpen(true)}
-            className="md:hidden brutalist-button w-10 h-10 bg-teal-600/10 text-teal-600 border-teal-600/20"
+            className="md:hidden brutalist-button w-10 h-10 bg-teal-600/10 text-teal-600 border-teal-600/20 active:scale-95 transition-all"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>
           </button>
           
-          <button onClick={toggleTheme} className="w-10 h-10 flex items-center justify-center brutalist-button bg-emerald-600/15 text-emerald-600 dark:text-emerald-400 border-emerald-600/25 active:scale-90">
+          <button onClick={toggleTheme} className="w-10 h-10 flex items-center justify-center brutalist-button bg-emerald-600/15 text-emerald-600 dark:text-emerald-400 border-emerald-600/25 active:scale-90 transition-all">
             {theme === 'dark' ? (
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" /></svg>
             ) : (
@@ -417,53 +459,60 @@ const App: React.FC = () => {
             )}
           </button>
           
-          <div className="w-9 h-9 sm:w-11 sm:h-11 border-2 border-emerald-600/25 p-0.5 shadow-[4px_4px_0_rgba(16,185,129,0.15)] bg-white/85 dark:bg-slate-950/40 shrink-0">
+          <div className="w-9 h-9 sm:w-11 sm:h-11 border-2 border-emerald-600/25 p-0.5 shadow-[4px_4px_0_rgba(16,185,129,0.15)] bg-white/85 dark:bg-slate-950/40 shrink-0 overflow-hidden">
             <img src={`https://api.dicebear.com/7.x/identicon/svg?seed=tessy-green&backgroundColor=10b981`} alt="Avatar" className="w-full h-full object-cover" />
           </div>
         </div>
       </header>
 
       <main className="flex-1 flex overflow-hidden relative">
+        {/* Mobile Sidebar/Accordion Overlay */}
         <div className={`fixed inset-0 z-50 transition-opacity duration-300 md:hidden ${isSidebarMobileOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
           <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setIsSidebarMobileOpen(false)}></div>
           <div className={`absolute top-0 left-0 h-full w-[85%] max-w-sm bg-white dark:bg-slate-900 shadow-2xl transition-transform duration-300 ${isSidebarMobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-            <div className="h-full flex flex-col">
-              <div className="flex border-b-2 border-emerald-600/15 shrink-0 bg-white/95 dark:bg-slate-900/95 overflow-x-auto custom-scrollbar">
-                <button onClick={() => setActiveSideTab('history')} className={`flex-1 min-w-[80px] py-4 text-[9px] font-black uppercase tracking-widest transition-all ${activeSideTab === 'history' ? 'bg-emerald-600/10 text-emerald-600 border-b-2 border-emerald-600' : 'text-slate-500'}`}>Histórico</button>
-                <button onClick={() => setActiveSideTab('library')} className={`flex-1 min-w-[80px] py-4 text-[9px] font-black uppercase tracking-widest transition-all ${activeSideTab === 'library' ? 'bg-emerald-600/10 text-emerald-600 border-b-2 border-emerald-600' : 'text-slate-500'}`}>Biblioteca</button>
-                <button onClick={() => setActiveSideTab('projects')} className={`flex-1 min-w-[80px] py-4 text-[9px] font-black uppercase tracking-widest transition-all ${activeSideTab === 'projects' ? 'bg-emerald-600/10 text-emerald-600 border-b-2 border-emerald-600' : 'text-slate-500'}`}>Projetos</button>
-                <button onClick={() => setIsSidebarMobileOpen(false)} className="p-4 text-slate-500 shrink-0"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <div className="h-full flex flex-col overflow-hidden">
+              <div className="p-6 border-b-2 border-emerald-600/15 flex justify-between items-center bg-white/95 dark:bg-slate-900/95 shrink-0">
+                <span className="text-xs font-black uppercase tracking-widest text-emerald-600">Protocolos de Sistema</span>
+                <button onClick={() => setIsSidebarMobileOpen(false)} className="p-2 text-slate-500 hover:text-red-500 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
               </div>
-              <div className="flex-1 overflow-hidden">
-                <Suspense fallback={<LoadingSpinner />}>
-                  {activeSideTab === 'library' ? (
-                    <RepositoryBrowser currentProjectId={currentProjectId} onSelectItem={handleSelectItem} refreshKey={refreshKey} onClose={() => setIsSidebarMobileOpen(false)} />
-                  ) : activeSideTab === 'history' ? (
-                    <HistorySidebar currentProjectId={currentProjectId} activeId={currentConversation?.id || ''} onLoad={handleLoadConversationFromHistory} onDelete={handleDeleteConversationFromHistory} refreshKey={historyRefreshKey} onClose={() => setIsSidebarMobileOpen(false)} />
-                  ) : (
-                    <ProjectDashboard projectId={currentProjectId} onNewConversation={handleNewConversation} onOpenLibrary={() => setActiveSideTab('library')} onRefreshHistory={() => setHistoryRefreshKey(p => p + 1)} />
-                  )}
-                </Suspense>
+              <div className="flex-1 overflow-y-auto custom-scrollbar">
+                <AccordionHeader title="Histórico" isOpen={expandedSections.history} onClick={() => toggleSection('history')} />
+                <div className={`transition-all duration-300 ease-in-out overflow-hidden ${expandedSections.history ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                  {renderAccordionContent('history')}
+                </div>
+
+                <AccordionHeader title="Biblioteca" isOpen={expandedSections.library} onClick={() => toggleSection('library')} />
+                <div className={`transition-all duration-300 ease-in-out overflow-hidden ${expandedSections.library ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                  {renderAccordionContent('library')}
+                </div>
+
+                <AccordionHeader title="Projetos" isOpen={expandedSections.projects} onClick={() => toggleSection('projects')} />
+                <div className={`transition-all duration-300 ease-in-out overflow-hidden ${expandedSections.projects ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                  <Suspense fallback={<LoadingSpinner />}>
+                    {renderAccordionContent('projects')}
+                  </Suspense>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <aside className="hidden md:flex flex-col w-[20%] lg:w-[18%] border-r-2 border-emerald-600/15 glass-panel !border-t-0 !border-b-0">
-          <div className="flex border-b-2 border-emerald-600/15 shrink-0">
-            <button onClick={() => setActiveSideTab('history')} className={`flex-1 py-4 text-[9px] font-black uppercase tracking-widest transition-all ${activeSideTab === 'history' ? 'bg-emerald-600/10 text-emerald-600 border-b-2 border-emerald-600' : 'text-slate-500'}`}>Histórico</button>
-            <button onClick={() => setActiveSideTab('library')} className={`flex-1 py-4 text-[9px] font-black uppercase tracking-widest transition-all ${activeSideTab === 'library' ? 'bg-emerald-600/10 text-emerald-600 border-b-2 border-emerald-600' : 'text-slate-500'}`}>Biblioteca</button>
-            <button onClick={() => setActiveSideTab('projects')} className={`flex-1 py-4 text-[9px] font-black uppercase tracking-widest transition-all ${activeSideTab === 'projects' ? 'bg-emerald-600/10 text-emerald-600 border-b-2 border-emerald-600' : 'text-slate-500'}`}>Projetos</button>
+        {/* Desktop Sidebar with Accordion */}
+        <aside className="hidden md:flex flex-col w-[20%] lg:w-[18%] border-r-2 border-emerald-600/15 glass-panel !border-t-0 !border-b-0 overflow-y-auto custom-scrollbar">
+          <AccordionHeader title="Histórico" isOpen={expandedSections.history} onClick={() => toggleSection('history')} />
+          <div className={`transition-all duration-300 ease-in-out overflow-hidden ${expandedSections.history ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
+            {renderAccordionContent('history')}
           </div>
-          <div className="flex-1 overflow-hidden">
+
+          <AccordionHeader title="Biblioteca" isOpen={expandedSections.library} onClick={() => toggleSection('library')} />
+          <div className={`transition-all duration-300 ease-in-out overflow-hidden ${expandedSections.library ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
+            {renderAccordionContent('library')}
+          </div>
+
+          <AccordionHeader title="Projetos" isOpen={expandedSections.projects} onClick={() => toggleSection('projects')} />
+          <div className={`transition-all duration-300 ease-in-out overflow-hidden ${expandedSections.projects ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
             <Suspense fallback={<LoadingSpinner />}>
-              {activeSideTab === 'library' ? (
-                <RepositoryBrowser currentProjectId={currentProjectId} onSelectItem={handleSelectItem} refreshKey={refreshKey} />
-              ) : activeSideTab === 'history' ? (
-                <HistorySidebar currentProjectId={currentProjectId} activeId={currentConversation?.id || ''} onLoad={handleLoadConversationFromHistory} onDelete={handleDeleteConversationFromHistory} refreshKey={historyRefreshKey} />
-              ) : (
-                <ProjectDashboard projectId={currentProjectId} onNewConversation={handleNewConversation} onOpenLibrary={() => setActiveSideTab('library')} onRefreshHistory={() => setHistoryRefreshKey(p => p + 1)} />
-              )}
+              {renderAccordionContent('projects')}
             </Suspense>
           </div>
         </aside>
@@ -495,37 +544,38 @@ const App: React.FC = () => {
           )}
         </section>
 
+        {/* Factors Sidebar Mobile */}
         <div className={`fixed inset-0 z-50 transition-opacity duration-300 md:hidden ${isFactorsMobileOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
           <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setIsFactorsMobileOpen(false)}></div>
           <div className={`absolute top-0 right-0 h-full w-[85%] max-w-sm bg-white dark:bg-slate-900 shadow-2xl transition-transform duration-300 ${isFactorsMobileOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-             <div className="h-full flex flex-col">
-                <div className="p-4 border-b border-emerald-600/20 flex justify-between items-center bg-white/95 dark:bg-slate-900/95">
+             <div className="h-full flex flex-col overflow-hidden">
+                <div className="p-4 border-b border-emerald-600/20 flex justify-between items-center bg-white/95 dark:bg-slate-900/95 shrink-0">
                   <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Controle de Fatores</span>
-                  <button onClick={() => setIsFactorsMobileOpen(false)} className="p-2 text-slate-500"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+                  <button onClick={() => setIsFactorsMobileOpen(false)} className="p-2 text-slate-500 hover:text-red-500 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
                 </div>
-                <div className="flex-1 overflow-hidden">
+                <div className="flex-1 overflow-y-auto custom-scrollbar">
                    <FactorPanel factors={factors} onToggle={handleToggleFactor} />
                 </div>
              </div>
           </div>
         </div>
 
-        <aside className="hidden md:block w-[25%] lg:w-[22%] border-l-2 border-emerald-600/15 glass-panel !border-t-0 !border-b-0">
+        <aside className="hidden md:block w-[25%] lg:w-[22%] border-l-2 border-emerald-600/15 glass-panel !border-t-0 !border-b-0 overflow-y-auto custom-scrollbar">
           <FactorPanel factors={factors} onToggle={handleToggleFactor} />
         </aside>
       </main>
 
       <footer className="h-8 sm:h-10 border-t-2 border-emerald-600/25 bg-white/85 dark:bg-slate-900/80 px-4 sm:px-8 flex items-center justify-between text-[8px] sm:text-[10px] text-slate-600 dark:text-slate-400 font-black tracking-[0.2em] shrink-0 z-40">
         <div className="flex items-center space-x-2 sm:space-x-6">
-          <span className="hidden xs:inline">© 2024 RABELUS LAB</span>
+          <span className="hidden xs:inline uppercase">© 2024 RABELUS LAB</span>
           <span className="flex items-center space-x-2">
-            <span className={`w-2 h-2 sm:w-2.5 sm:h-2.5 ${isLoading ? 'bg-amber-500 animate-pulse' : 'bg-emerald-600'}`}></span>
-            <span className="uppercase text-slate-800 dark:text-white truncate max-w-[80px] sm:max-w-none">MOTOR: {statusMessage}</span>
+            <span className={`w-2 h-2 sm:w-2.5 sm:h-2.5 transition-all duration-500 ${isLoading ? 'bg-amber-500 animate-pulse' : 'bg-emerald-600'}`}></span>
+            <span className="uppercase text-slate-800 dark:text-white truncate max-w-[80px] sm:max-w-none transition-colors duration-300">MOTOR: {statusMessage}</span>
           </span>
         </div>
         <div className="flex items-center space-x-4 sm:space-x-8">
-          <span className="hidden sm:inline">PULSE PROTOCOL v3.0.0-PROJ</span>
-          <span className="text-emerald-600 dark:text-emerald-400">STATUS: SEGURO</span>
+          <span className="hidden sm:inline transition-opacity duration-300">PULSE PROTOCOL v3.2.0-ACCRD</span>
+          <span className="text-emerald-600 dark:text-emerald-400 font-black">STATUS: SEGURO</span>
         </div>
       </footer>
 

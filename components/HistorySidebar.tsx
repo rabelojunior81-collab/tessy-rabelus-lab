@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Conversation } from '../types';
 import { db } from '../services/dbService';
@@ -84,14 +85,14 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ currentProjectId, activ
   }, []);
 
   return (
-    <div className="h-full flex flex-col p-4 sm:p-6 bg-transparent animate-fade-in relative overflow-hidden">
+    <div className="h-full flex flex-col p-4 sm:p-6 bg-transparent animate-fade-in relative overflow-hidden transition-all duration-300">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-lg sm:text-xl font-black text-slate-800 dark:text-white uppercase tracking-widest flex items-center gap-3">
           <div className="w-2 h-2 sm:w-3 sm:h-3 bg-teal-600 animate-pulse"></div>
           Histórico
         </h2>
         {onClose && (
-          <button onClick={onClose} className="p-2 text-slate-500 hover:text-slate-800 dark:hover:text-white">
+          <button onClick={onClose} className="p-2 text-slate-500 hover:text-red-500 transition-colors cursor-pointer active:scale-95">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         )}
@@ -107,7 +108,7 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ currentProjectId, activ
               setCurrentPage(1);
             }}
             placeholder="BUSCAR CONVERSAS..."
-            className="w-full bg-white/80 dark:bg-slate-900/60 border-2 border-teal-600/25 py-2.5 pl-4 pr-10 text-[9px] sm:text-[10px] font-black text-slate-800 dark:text-white placeholder-teal-900/30 focus:outline-none focus:border-teal-600 transition-all !rounded-none uppercase tracking-widest"
+            className="w-full bg-white/80 dark:bg-slate-900/60 border-2 border-teal-600/25 py-2.5 pl-4 pr-10 text-[10px] font-black text-slate-800 dark:text-white placeholder:text-slate-600 dark:placeholder:text-slate-400 focus:outline-none focus:border-teal-600 transition-all !rounded-none uppercase tracking-widest shadow-sm"
           />
         </div>
       </div>
@@ -116,42 +117,54 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ currentProjectId, activ
         {isLoading ? (
           <div className="flex justify-center p-8"><div className="w-6 h-6 border-2 border-emerald-600 border-t-transparent animate-spin"></div></div>
         ) : displayedConversations.length === 0 ? (
-          <div className="border-2 border-dashed border-teal-600/25 p-8 text-center bg-white/40">
-            <p className="text-[10px] text-slate-600 font-black uppercase tracking-widest italic">Nenhum registro localizado</p>
+          <div className="border-2 border-dashed border-teal-600/25 p-8 text-center bg-white/40 dark:bg-slate-900/10">
+            <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest italic tracking-wider">Nenhum registro localizado</p>
           </div>
         ) : (
           <>
             {displayedConversations.map((conv) => {
               const isActive = conv.id === activeId;
-              const preview = conv.turns.length > 0 ? conv.turns[conv.turns.length - 1].tessyResponse.substring(0, 50) + '...' : 'Vazio';
+              const preview = conv.turns.length > 0 ? conv.turns[conv.turns.length - 1].tessyResponse.substring(0, 50) + '...' : 'Protocolo vazio';
               
               return (
                 <div
                   key={conv.id}
                   onClick={() => onLoad(conv)}
-                  className={`relative w-full text-left p-3 sm:p-4 transition-all cursor-pointer border-2 group animate-slide-in-left ${
+                  className={`relative w-full text-left p-4 transition-all duration-300 cursor-pointer border-2 group animate-slide-in-left ${
                     isActive 
-                      ? 'bg-emerald-600/10 border-emerald-600 shadow-[4px_4px_0_rgba(16,185,129,0.15)]' 
-                      : 'bg-white/80 dark:bg-slate-800/20 border-teal-600/10 hover:border-teal-600/30'
-                  }`}
+                      ? 'bg-emerald-600/10 border-emerald-600 shadow-[4px_4px_0_rgba(16,185,129,0.15)] scale-[1.02]' 
+                      : 'bg-white/80 dark:bg-slate-800/20 border-teal-600/10 hover:border-teal-600/50 hover:bg-teal-500/5'
+                  } active:translate-x-[2px] active:translate-y-[2px] active:scale-[1] active:shadow-none`}
                 >
                   <div className="flex justify-between items-start mb-1">
-                    <h3 className={`text-[10px] sm:text-[11px] font-black uppercase truncate pr-6 tracking-wider ${isActive ? 'text-emerald-600' : 'text-slate-800 dark:text-white'}`}>
+                    <h3 className={`text-[10px] sm:text-[11px] font-black uppercase truncate pr-8 tracking-wider transition-colors duration-300 ${isActive ? 'text-emerald-600' : 'text-slate-800 dark:text-white group-hover:text-teal-600'}`}>
                       {conv.title}
                     </h3>
-                    <button onClick={(e) => handleDeleteClick(e, conv.id)} className="absolute top-2 right-2 text-slate-400 hover:text-red-500 transition-colors p-1">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                    <button 
+                      onClick={(e) => handleDeleteClick(e, conv.id)} 
+                      className="absolute top-3 right-3 text-slate-400 hover:text-red-500 transition-all p-1 active:scale-90"
+                      aria-label="Deletar"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
                     </button>
                   </div>
-                  <p className="text-[8px] text-slate-500 font-bold uppercase mb-1">{formatDate(conv.updatedAt)}</p>
-                  <p className="text-[10px] text-slate-600 dark:text-slate-400 font-medium line-clamp-1 italic">{preview}</p>
+                  <div className="flex items-center justify-between mt-2">
+                    <p className="text-[8px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-tight">{formatDate(conv.updatedAt)}</p>
+                    <div className="text-[7px] font-black uppercase px-1 bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                      {conv.turns.length} Turnos
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium line-clamp-1 italic mt-2 border-t border-slate-500/5 pt-1">{preview}</p>
                 </div>
               );
             })}
             
             {hasMore && (
-              <button onClick={handleLoadMore} className="w-full py-3 border-2 border-emerald-600/20 text-[9px] font-black uppercase text-emerald-600 hover:bg-emerald-500/5 transition-all brutalist-button">
-                Ver Mais
+              <button 
+                onClick={handleLoadMore} 
+                className="w-full py-4 border-2 border-emerald-600/20 text-[10px] font-black uppercase text-emerald-600 hover:bg-emerald-500/5 transition-all brutalist-button cursor-pointer active:scale-95"
+              >
+                Carregar Registros Anteriores
               </button>
             )}
           </>
@@ -159,11 +172,24 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ currentProjectId, activ
       </div>
 
       {confirmDeleteId && (
-        <div className="absolute inset-0 z-50 bg-white/95 dark:bg-slate-950/95 flex flex-col items-center justify-center p-6 text-center animate-fade-in">
-          <p className="text-[10px] font-black text-red-600 uppercase tracking-widest mb-4">Confirmar exclusão?</p>
-          <div className="flex gap-4 w-full max-w-[200px]">
-            <button onClick={() => setConfirmDeleteId(null)} className="flex-1 py-2 bg-slate-200 dark:bg-slate-800 text-[9px] font-black uppercase text-slate-600">Não</button>
-            <button onClick={confirmDelete} className="flex-1 py-2 bg-red-600 text-white text-[9px] font-black uppercase">Sim</button>
+        <div className="absolute inset-0 z-50 bg-white/95 dark:bg-slate-950/95 backdrop-blur-sm flex flex-col items-center justify-center p-8 text-center animate-fade-in transition-all">
+          <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full flex items-center justify-center mb-4">
+             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+          </div>
+          <p className="text-[11px] font-black text-slate-900 dark:text-white uppercase tracking-widest mb-6">Remover Protocolo Definitivamente?</p>
+          <div className="flex gap-4 w-full max-w-[240px]">
+            <button 
+              onClick={() => setConfirmDeleteId(null)} 
+              className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-[10px] font-black uppercase text-slate-500 hover:bg-slate-200 transition-all active:scale-95"
+            >
+              Abortar
+            </button>
+            <button 
+              onClick={confirmDelete} 
+              className="flex-1 py-3 bg-red-600 text-white text-[10px] font-black uppercase shadow-lg shadow-red-500/20 active:scale-95 transition-all"
+            >
+              Confirmar
+            </button>
           </div>
         </div>
       )}

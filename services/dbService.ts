@@ -1,6 +1,6 @@
 
-// Fix: Use default import for Dexie to ensure proper class inheritance and prototype access in TypeScript
-import Dexie from 'dexie';
+// Fix: Use named import for Dexie to ensure proper class inheritance and prototype access in TypeScript
+import { Dexie } from 'dexie';
 import type { Table } from 'dexie';
 import { Conversation, Project, RepositoryItem, Template, Factor } from '../types';
 
@@ -15,7 +15,7 @@ export class TessyDatabase extends Dexie {
 
   constructor() {
     super('TessyDB');
-    // Fix: Proper call to version method from the inherited Dexie class prototype
+    // Fix: Use version method inherited from Dexie class
     this.version(1).stores({
       projects: 'id, name, createdAt, updatedAt',
       conversations: 'id, projectId, title, createdAt, updatedAt',
@@ -59,7 +59,7 @@ export async function migrateToIndexedDB(): Promise<void> {
       }
     };
 
-    // Fix: Proper call to transaction method from the Dexie database instance to ensure data integrity
+    // Fix: Proper call to transaction method from the Dexie database instance
     await db.transaction('rw', [db.projects, db.conversations, db.library, db.settings], async () => {
       // 1. Create Default Project
       await db.projects.put({

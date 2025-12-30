@@ -69,88 +69,95 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, projectId,
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-fade-in">
-      <div className="glass-panel !rounded-none w-full max-w-lg animate-zoom-in !bg-white dark:!bg-slate-900 shadow-2xl overflow-hidden border-2 border-emerald-500/30">
-        <div className="px-6 py-4 border-b-2 border-emerald-500/20 flex justify-between items-center bg-emerald-500/5 dark:bg-slate-950/40">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-950/70 backdrop-blur-md animate-fade-in transition-all duration-300">
+      <div 
+        className="glass-panel !rounded-none w-full max-w-[500px] max-h-[90vh] sm:max-h-[600px] flex flex-col animate-zoom-in !bg-white dark:!bg-slate-900 shadow-2xl border-2 border-emerald-500/30 overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="px-6 py-4 border-b-2 border-emerald-500/20 flex justify-between items-center bg-emerald-500/5 dark:bg-slate-950/40 shrink-0">
           <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">
             {projectId ? 'Editar Projeto' : 'Novo Projeto'}
           </h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors p-2">
+          <button 
+            onClick={onClose} 
+            className="text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-all p-2 cursor-pointer active:scale-95"
+            aria-label="Fechar"
+          >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
           {error && (
-            <div className="p-3 bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-[10px] font-black uppercase tracking-widest border-2 border-red-200 dark:border-red-900/50">
+            <div className="p-4 bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-[10px] font-black uppercase tracking-widest border-2 border-red-200 dark:border-red-900/50 animate-pulse">
               {error}
             </div>
           )}
 
-          <div>
-            <label className="block text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1.5">Nome do Projeto</label>
+          <div className="space-y-2">
+            <label className="block text-[10px] font-black text-emerald-600 uppercase tracking-widest">Nome do Projeto</label>
             <input
               autoFocus
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Digite o nome do projeto..."
-              className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-emerald-500/20 p-3 text-slate-900 dark:text-white font-bold focus:outline-none focus:border-emerald-500 transition-all !rounded-none"
+              className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-emerald-500/20 p-3 text-slate-900 dark:text-white font-bold focus:outline-none focus:border-emerald-500 transition-all !rounded-none placeholder:text-slate-500 dark:placeholder:text-slate-400"
             />
           </div>
 
-          <div>
-            <label className="block text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1.5">Descrição</label>
+          <div className="space-y-2">
+            <label className="block text-[10px] font-black text-emerald-600 uppercase tracking-widest">Descrição</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Descreva brevemente o objetivo deste projeto..."
-              className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-emerald-500/20 p-3 text-slate-900 dark:text-white font-medium h-24 resize-none focus:outline-none focus:border-emerald-500 transition-all !rounded-none custom-scrollbar"
+              className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-emerald-500/20 p-3 text-slate-900 dark:text-white font-medium h-32 resize-none focus:outline-none focus:border-emerald-500 transition-all !rounded-none custom-scrollbar placeholder:text-slate-500 dark:placeholder:text-slate-400 leading-relaxed"
             />
           </div>
 
-          <div>
-            <label className="block text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1.5">Repositório GitHub (Opcional)</label>
+          <div className="space-y-2">
+            <label className="block text-[10px] font-black text-emerald-600 uppercase tracking-widest">Repositório GitHub (Opcional)</label>
             <input
               type="text"
               value={githubRepo}
               onChange={(e) => setGithubRepo(e.target.value)}
-              placeholder="usuario/repositorio ou URL completa"
-              className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-emerald-500/20 p-3 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-emerald-500 transition-all !rounded-none"
+              placeholder="usuario/repositorio..."
+              className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-emerald-500/20 p-3 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-emerald-500 transition-all !rounded-none placeholder:text-slate-500 dark:placeholder:text-slate-400"
             />
           </div>
 
-          <div>
-            <label className="block text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1.5">Cor de Destaque</label>
-            <div className="flex items-center gap-4">
+          <div className="space-y-2">
+            <label className="block text-[10px] font-black text-emerald-600 uppercase tracking-widest">Cor de Destaque</label>
+            <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800 p-3 border-2 border-emerald-500/10">
               <input
                 type="color"
                 value={color}
                 onChange={(e) => setColor(e.target.value)}
-                className="w-12 h-12 bg-transparent border-2 border-emerald-500/20 cursor-pointer p-1"
+                className="w-12 h-12 bg-transparent border-2 border-emerald-500/20 cursor-pointer p-1 transition-transform hover:scale-110 active:scale-95"
               />
-              <span className="text-xs font-mono font-bold text-slate-500">{color.toUpperCase()}</span>
+              <span className="text-sm font-mono font-bold text-slate-500 tracking-wider">{color.toUpperCase()}</span>
             </div>
           </div>
-
-          <div className="flex gap-4 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="brutalist-button flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-500 font-black uppercase tracking-widest text-xs"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="brutalist-button flex-1 py-3 bg-emerald-600 text-white font-black uppercase tracking-widest text-xs hover:bg-emerald-700"
-            >
-              Salvar Projeto
-            </button>
-          </div>
         </form>
+
+        <div className="p-6 border-t-2 border-emerald-500/10 flex gap-4 bg-emerald-500/5 shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="brutalist-button flex-1 py-4 bg-slate-100 dark:bg-slate-800 text-slate-500 font-black uppercase tracking-widest text-xs hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer active:scale-95"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handleSubmit}
+            className="brutalist-button flex-1 py-4 bg-emerald-600 text-white font-black uppercase tracking-widest text-xs hover:bg-emerald-700 transition-all cursor-pointer active:scale-95"
+          >
+            Salvar Protocolo
+          </button>
+        </div>
       </div>
     </div>
   );
