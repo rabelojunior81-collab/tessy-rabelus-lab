@@ -1,6 +1,6 @@
 
-// Use named import for Dexie to ensure proper class inheritance and type resolution in TypeScript
-import { Dexie } from 'dexie';
+// Use default import for Dexie to ensure proper class inheritance and type resolution in TypeScript
+import Dexie from 'dexie';
 import type { Table } from 'dexie';
 import { Conversation, Project, RepositoryItem, Template, Factor } from '../types';
 
@@ -15,7 +15,7 @@ export class TessyDatabase extends Dexie {
 
   constructor() {
     super('TessyDB');
-    // Fix: Using inherited version() method from Dexie class via named import
+    // Fix: Using the inherited version() method from the Dexie base class
     this.version(1).stores({
       projects: 'id, name, createdAt, updatedAt',
       conversations: 'id, projectId, title, createdAt, updatedAt',
@@ -115,6 +115,15 @@ export async function migrateToIndexedDB(): Promise<void> {
     throw error;
   }
 }
+
+export const getGitHubToken = async (): Promise<string | null> => {
+  const secret = await db.secrets.get('github-token');
+  return secret?.value || null;
+};
+
+export const setGitHubToken = async (token: string): Promise<void> => {
+  await db.secrets.put({ id: 'github-token', key: 'token', value: token });
+};
 
 export const generateUUID = (): string => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {

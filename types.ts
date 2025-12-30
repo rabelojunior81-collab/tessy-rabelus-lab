@@ -96,3 +96,37 @@ export interface AppPersistedState {
   lastConversationId: string | null;
   factors: Factor[];
 }
+
+// GitHub Types
+export interface GitHubCommit {
+  sha: string;
+  message: string;
+  author: string;
+  date: string;
+  url: string;
+}
+
+export interface GitHubFile {
+  path: string;
+  name: string;
+  type: string;
+  size: number;
+  url: string;
+  content?: string;
+}
+
+export interface GitHubIssue {
+  number: number;
+  title: string;
+  body: string;
+  state: string;
+  url: string;
+}
+
+export interface GitHubRepo {
+  name: string;
+  full_name: string;
+  description: string;
+  url: string;
+  default_branch: string;
+}

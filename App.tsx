@@ -8,13 +8,14 @@ import ProjectSwitcher from './components/ProjectSwitcher';
 import ProjectModal from './components/ProjectModal';
 import { DateAnchor } from './components/DateAnchor';
 import { interpretIntent, applyFactorsAndGenerate, optimizePrompt } from './services/geminiService';
-import { db, migrateToIndexedDB, generateUUID } from './services/dbService';
+import { db, migrateToIndexedDB, generateUUID, getGitHubToken } from './services/dbService';
 import { Factor, RepositoryItem, AttachedFile, OptimizationResult, ConversationTurn, Conversation } from './types';
 
 // Lazy Loaded Components
 const RepositoryBrowser = lazy(() => import('./components/RepositoryBrowser'));
 const OptimizationModal = lazy(() => import('./components/OptimizationModal'));
 const ProjectDashboard = lazy(() => import('./components/ProjectDashboard'));
+const GitHubTokenModal = lazy(() => import('./components/GitHubTokenModal'));
 
 const INITIAL_FACTORS: Factor[] = [
   { id: 'prof', type: 'toggle', label: 'Tom Profissional', enabled: false },
@@ -78,9 +79,10 @@ const App: React.FC = () => {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [currentProjectId, setCurrentProjectId] = useState('default-project');
   
-  // Project Modal Global State
+  // Modals Global State
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
+  const [isGitHubTokenModalOpen, setIsGitHubTokenModalOpen] = useState(false);
 
   const [expandedSections, setExpandedSections] = useState({
     history: true,
@@ -120,7 +122,19 @@ const App: React.FC = () => {
         const factorsSetting = await db.settings.get('tessy-factors');
         if (factorsSetting) setFactors(factorsSetting.value);
         const lastProjSetting = await db.settings.get('tessy-current-project');
-        if (lastProjSetting) setCurrentProjectId(lastProjSetting.value);
+        let projId = currentProjectId;
+        if (lastProjSetting) {
+          projId = lastProjSetting.value;
+          setCurrentProjectId(projId);
+        }
+        
+        // GitHub Token Logic
+        const proj = await db.projects.get(projId);
+        if (proj?.githubRepo) {
+          const token = await getGitHubToken();
+          if (!token) setIsGitHubTokenModalOpen(true);
+        }
+
         const lastConvIdSetting = await db.settings.get('tessy_last_conv_id');
         let lastConv = null;
         if (lastConvIdSetting) {
@@ -172,9 +186,17 @@ const App: React.FC = () => {
     setTimeout(() => textInputRef.current?.focus(), 10);
   }, [currentProjectId]);
 
-  const handleSwitchProject = useCallback((id: string) => {
+  const handleSwitchProject = useCallback(async (id: string) => {
     setCurrentProjectId(id);
     db.settings.put({ key: 'tessy-current-project', value: id });
+    
+    // Check GitHub token for the new project
+    const proj = await db.projects.get(id);
+    if (proj?.githubRepo) {
+      const token = await getGitHubToken();
+      if (!token) setIsGitHubTokenModalOpen(true);
+    }
+    
     handleNewConversation();
     setRefreshKey(p => p + 1);
     setHistoryRefreshKey(p => p + 1);
@@ -429,6 +451,14 @@ const App: React.FC = () => {
         <div className="hidden lg:flex items-center gap-4">
           <ProjectSwitcher currentProjectId={currentProjectId} onSwitch={handleSwitchProject} onOpenModal={() => handleOpenProjectModal()} onEditProject={(id) => handleOpenProjectModal(id)} />
           <DateAnchor groundingEnabled={factors.find(f => f.id === 'grounding')?.enabled || false} />
+          
+          <button 
+            onClick={() => setIsGitHubTokenModalOpen(true)}
+            className="w-8 h-8 flex items-center justify-center brutalist-button bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-emerald-600 transition-all border-emerald-600/20"
+            title="Configurações GitHub"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+          </button>
         </div>
         
         <div className="flex lg:hidden items-center gap-2">
@@ -565,6 +595,11 @@ const App: React.FC = () => {
         {isOptModalOpen && optimizationResult && (
           <OptimizationModal isOpen={isOptModalOpen} result={optimizationResult} onClose={() => setIsOptModalOpen(false)} onApply={handleApplyOptimization} />
         )}
+        <GitHubTokenModal 
+          isOpen={isGitHubTokenModalOpen} 
+          onClose={() => setIsGitHubTokenModalOpen(false)} 
+          onSuccess={() => setRefreshKey(k => k + 1)} 
+        />
       </Suspense>
 
       {/* PROJECT MODAL INJECTED AT ROOT LEVEL FOR CORRECT Z-INDEX AND POSITIONING */}

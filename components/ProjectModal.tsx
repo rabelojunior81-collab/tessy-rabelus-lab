@@ -40,9 +40,20 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, projectId,
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+
     if (!name.trim()) {
       setError('O nome do projeto é obrigatório.');
       return;
+    }
+
+    // GitHub Repo Validation: user/repo
+    if (githubRepo.trim()) {
+      const repoRegex = /^[a-zA-Z0-9-]+\/[a-zA-Z0-9-._]+$/;
+      if (!repoRegex.test(githubRepo.trim())) {
+        setError('Repositório GitHub deve estar no formato: usuario/repositorio');
+        return;
+      }
     }
 
     const id = projectId || generateUUID();
@@ -77,7 +88,6 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, projectId,
         className="glass-panel !rounded-none w-full max-w-[500px] flex flex-col animate-zoom-in !bg-white dark:!bg-slate-900 shadow-[20px_20px_0_rgba(0,0,0,0.5)] border-4 border-emerald-500 overflow-hidden max-h-[95vh]"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header com estilo brutalista reforçado */}
         <div className="px-6 py-5 border-b-4 border-emerald-500 flex justify-between items-center bg-emerald-500/10 dark:bg-slate-950/60 shrink-0">
           <div className="flex flex-col">
             <h3 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter leading-none">
@@ -127,7 +137,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, projectId,
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div className="space-y-3">
-              <label className="block text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">Repositório Git</label>
+              <label className="block text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">Repositório Git (usuario/repo)</label>
               <input
                 type="text"
                 value={githubRepo}
