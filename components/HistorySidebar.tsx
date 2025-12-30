@@ -18,6 +18,8 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ currentProjectId, activ
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [editingConv, setEditingConv] = useState<Conversation | null>(null);
+  const [newTitle, setNewTitle] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -71,6 +73,12 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ currentProjectId, activ
     setConfirmDeleteId(id);
   }, []);
 
+  const handleEditClick = useCallback((e: React.MouseEvent, conv: Conversation) => {
+    e.stopPropagation();
+    setEditingConv(conv);
+    setNewTitle(conv.title);
+  }, []);
+
   const confirmDelete = useCallback(async () => {
     if (confirmDeleteId) {
       await db.conversations.delete(confirmDeleteId);
@@ -79,6 +87,15 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ currentProjectId, activ
       loadConversations();
     }
   }, [confirmDeleteId, onDelete, loadConversations]);
+
+  const saveRename = useCallback(async () => {
+    if (editingConv && newTitle.trim()) {
+      const updated = { ...editingConv, title: newTitle.trim(), updatedAt: Date.now() };
+      await db.conversations.put(updated);
+      setEditingConv(null);
+      loadConversations();
+    }
+  }, [editingConv, newTitle, loadConversations]);
 
   const handleLoadMore = useCallback(() => {
     setCurrentPage(prev => prev + 1);
@@ -137,16 +154,27 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ currentProjectId, activ
                   } active:translate-x-[2px] active:translate-y-[2px] active:scale-[1] active:shadow-none`}
                 >
                   <div className="flex justify-between items-start mb-1">
-                    <h3 className={`text-[10px] sm:text-[11px] font-black uppercase truncate pr-8 tracking-wider transition-colors duration-300 ${isActive ? 'text-emerald-600' : 'text-slate-800 dark:text-white group-hover:text-teal-600'}`}>
+                    <h3 className={`text-[10px] sm:text-[11px] font-black uppercase truncate pr-14 tracking-wider transition-colors duration-300 ${isActive ? 'text-emerald-600' : 'text-slate-800 dark:text-white group-hover:text-teal-600'}`}>
                       {conv.title}
                     </h3>
-                    <button 
-                      onClick={(e) => handleDeleteClick(e, conv.id)} 
-                      className="absolute top-3 right-3 text-slate-400 hover:text-red-500 transition-all p-1 active:scale-90"
-                      aria-label="Deletar"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
-                    </button>
+                    <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button 
+                        onClick={(e) => handleEditClick(e, conv)} 
+                        className="text-slate-400 hover:text-emerald-600 transition-all p-1 active:scale-90"
+                        aria-label="Editar Título"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                      </button>
+                      <button 
+                        onClick={(e) => handleDeleteClick(e, conv.id)} 
+                        className="text-slate-400 hover:text-red-500 transition-all p-1 active:scale-90"
+                        aria-label="Deletar"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                      </button>
+                    </div>
                   </div>
                   <div className="flex items-center justify-between mt-2">
                     <p className="text-[8px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-tight">{formatDate(conv.updatedAt)}</p>
@@ -190,6 +218,39 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ currentProjectId, activ
             >
               Confirmar
             </button>
+          </div>
+        </div>
+      )}
+
+      {editingConv && (
+        <div className="absolute inset-0 z-[60] bg-emerald-950/20 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center animate-fade-in transition-all">
+          <div className="w-full max-w-[300px] bg-white dark:bg-slate-900 border-4 border-emerald-600 shadow-[10px_10px_0_rgba(16,185,129,0.3)] p-6">
+            <h4 className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-4">Renomear Sequência</h4>
+            <input 
+              autoFocus
+              type="text"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              className="w-full bg-slate-50 dark:bg-slate-950 border-2 border-emerald-600/20 p-3 text-[11px] font-black text-slate-900 dark:text-white uppercase mb-6 focus:outline-none focus:border-emerald-600"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') saveRename();
+                if (e.key === 'Escape') setEditingConv(null);
+              }}
+            />
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setEditingConv(null)} 
+                className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-[9px] font-black uppercase text-slate-500 hover:bg-slate-200 transition-all active:scale-95"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={saveRename} 
+                className="flex-1 py-3 bg-emerald-600 text-white text-[9px] font-black uppercase shadow-lg shadow-emerald-500/20 active:scale-95 transition-all"
+              >
+                Salvar
+              </button>
+            </div>
           </div>
         </div>
       )}

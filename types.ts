@@ -64,9 +64,15 @@ export interface AttachedFile {
   projectId?: string;
   name: string;
   mimeType: string;
-  data: string; // base64 or blob
+  data: string; // base64 encoded data
   size: number;
   blob?: Blob;
+}
+
+export interface FileUploadError {
+  fileName: string;
+  error: string;
+  timestamp: number;
 }
 
 export interface OptimizationSuggestion {

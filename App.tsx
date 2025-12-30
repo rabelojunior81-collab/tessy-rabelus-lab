@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useCallback, Suspense, lazy } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import HistorySidebar from './components/HistorySidebar';
@@ -96,6 +97,7 @@ const App: React.FC = () => {
   const [result, setResult] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isOptimizing, setIsOptimizing] = useState(false);
+  const [isUploadingFiles, setIsUploadingFiles] = useState(false);
   const [statusMessage, setStatusMessage] = useState('PRONTO');
   const [refreshKey, setRefreshKey] = useState(0);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
@@ -318,12 +320,60 @@ const App: React.FC = () => {
 
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files) return;
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
-    const maxSize = 4 * 1024 * 1024;
-    (Array.from(files) as File[]).forEach(file => {
-      if (!allowedTypes.includes(file.type)) return;
-      if (file.size > maxSize) return;
+    if (!files || files.length === 0) return;
+
+    const allowedTypes = [
+      'image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif', 'image/gif', 'image/bmp', 'image/svg+xml',
+      'application/pdf', 'text/plain', 'text/html', 'text/css', 'text/javascript', 'text/markdown', 'application/json',
+      'application/x-python', 'application/x-typescript', 'application/x-java', 'application/x-cpp',
+      'audio/wav', 'audio/mp3', 'audio/mpeg', 'audio/aac', 'audio/ogg', 'audio/flac',
+      'video/mp4', 'video/mpeg', 'video/quicktime', 'video/x-msvideo', 'video/webm'
+    ];
+
+    const maxSizeByType: Record<string, number> = {
+      image: 20 * 1024 * 1024,
+      document: 20 * 1024 * 1024,
+      text: 20 * 1024 * 1024,
+      audio: 20 * 1024 * 1024,
+      video: 100 * 1024 * 1024,
+      default: 20 * 1024 * 1024
+    };
+
+    setIsUploadingFiles(true);
+    const fileArray: File[] = Array.from(files);
+    let processedCount = 0;
+
+    const checkDone = () => {
+      processedCount++;
+      if (processedCount === fileArray.length) {
+        setIsUploadingFiles(false);
+      }
+    };
+
+    fileArray.forEach((file: File) => {
+      console.log("Uploading file:", file.name, file.type, file.size);
+
+      if (!allowedTypes.includes(file.type)) {
+        alert(`Formato não suportado: ${file.type}. Formatos aceitos: imagens, PDFs, código, áudio, vídeo.`);
+        checkDone();
+        return;
+      }
+
+      let category = 'default';
+      if (file.type.startsWith('image/')) category = 'image';
+      else if (file.type.startsWith('video/')) category = 'video';
+      else if (file.type.startsWith('audio/')) category = 'audio';
+      else if (file.type.startsWith('text/') || file.type.includes('json') || file.type.includes('javascript')) category = 'text';
+      else if (file.type.includes('pdf')) category = 'document';
+
+      const maxSize = maxSizeByType[category] || maxSizeByType.default;
+
+      if (file.size > maxSize) {
+        alert(`Arquivo muito grande: ${file.name}. Limite: ${maxSize / (1024 * 1024)}MB`);
+        checkDone();
+        return;
+      }
+
       const reader = new FileReader();
       reader.onload = () => {
         const base64Data = (reader.result as string).split(',')[1];
@@ -333,11 +383,22 @@ const App: React.FC = () => {
           name: file.name,
           mimeType: file.type,
           data: base64Data,
-          size: file.size
+          size: file.size,
+          blob: file // Store the actual File object as Blob for type safety
         }]);
+        console.log("File processed successfully:", file.name);
+        checkDone();
       };
+
+      reader.onerror = () => {
+        console.error("Erro ao ler arquivo:", file.name);
+        alert(`Erro ao ler arquivo: ${file.name}`);
+        checkDone();
+      };
+
       reader.readAsDataURL(file);
     });
+
     if (fileInputRef.current) fileInputRef.current.value = '';
   }, [currentProjectId]);
 
@@ -533,7 +594,7 @@ const App: React.FC = () => {
         <section className="flex-1 flex flex-col min-w-0">
           {currentConversation && (
             <Canvas 
-              result={result} isLoading={isLoading} isOptimizing={isOptimizing}
+              result={result} isLoading={isLoading} isOptimizing={isOptimizing} isUploadingFiles={isUploadingFiles}
               onSavePrompt={handleSaveToRepository} onOptimize={handleOptimize}
               attachedFiles={attachedFiles} onRemoveFile={handleRemoveFile}
               conversationHistory={currentConversation.turns}
@@ -580,8 +641,8 @@ const App: React.FC = () => {
         <div className="flex items-center space-x-2 sm:space-x-6">
           <span className="hidden xs:inline uppercase">© 2024 RABELUS LAB</span>
           <span className="flex items-center space-x-2">
-            <span className={`w-2 h-2 sm:w-2.5 sm:h-2.5 transition-all duration-500 ${isLoading ? 'bg-amber-500 animate-pulse' : 'bg-emerald-600'}`}></span>
-            <span className="uppercase text-slate-800 dark:text-white truncate max-w-[80px] sm:max-w-none transition-colors duration-300">MOTOR: {statusMessage}</span>
+            <span className={`w-2 h-2 sm:w-2.5 sm:h-2.5 transition-all duration-500 ${isLoading || isUploadingFiles ? 'bg-amber-500 animate-pulse' : 'bg-emerald-600'}`}></span>
+            <span className="uppercase text-slate-800 dark:text-white truncate max-w-[80px] sm:max-w-none transition-colors duration-300">MOTOR: {isUploadingFiles ? 'CARREGANDO ARQUIVOS' : statusMessage}</span>
           </span>
         </div>
         <div className="flex items-center space-x-4 sm:space-x-8">

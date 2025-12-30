@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import FilePreview from './FilePreview';
 import { AttachedFile, ConversationTurn, Template, Factor, Conversation } from '../types';
@@ -12,6 +13,7 @@ interface CanvasProps {
   result: string;
   isLoading: boolean;
   isOptimizing: boolean;
+  isUploadingFiles?: boolean;
   onSavePrompt: (title: string, description: string, tags: string[]) => void;
   onOptimize: () => void;
   attachedFiles: AttachedFile[];
@@ -34,7 +36,7 @@ interface CanvasProps {
 }
 
 const Canvas: React.FC<CanvasProps> = ({ 
-  result, isLoading, isOptimizing, onSavePrompt, onOptimize, attachedFiles, onRemoveFile,
+  result, isLoading, isOptimizing, isUploadingFiles, onSavePrompt, onOptimize, attachedFiles, onRemoveFile,
   conversationHistory, onNewConversation, inputText, setInputText, fileInputRef, textInputRef,
   handleFileUpload, handleInterpret, handleKeyDown, pendingUserMessage, pendingFiles,
   factors, conversationTitle, conversationId, onImportSuccess
@@ -131,7 +133,25 @@ const Canvas: React.FC<CanvasProps> = ({
 
           {(result || hasContent) && !isLoading && (
             <>
-              <button onClick={onOptimize} disabled={isOptimizing} className={`brutalist-button text-[8px] sm:text-[10px] px-2 sm:px-3 py-2 font-black uppercase tracking-widest active:scale-95 ${isOptimizing ? 'bg-amber-500/50 text-white cursor-not-allowed' : 'bg-amber-600/10 text-amber-600'}`}>Otimizar</button>
+              <button 
+                onClick={onOptimize} 
+                disabled={isOptimizing} 
+                className={`brutalist-button text-[8px] sm:text-[10px] px-2 sm:px-3 py-2 font-black uppercase tracking-widest active:scale-95 relative overflow-hidden transition-all duration-300
+                  ${isOptimizing 
+                    ? 'bg-amber-500/50 text-white cursor-not-allowed border-amber-500 scale-95' 
+                    : 'bg-amber-600/10 text-amber-600 border-amber-600/30 hover:bg-amber-500 hover:text-white animate-[pulse_2s_infinite_ease-in-out]'
+                  }`}
+              >
+                {isOptimizing ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Otimizando
+                  </span>
+                ) : 'Otimizar'}
+              </button>
               
               <button onClick={handleCopy} className={`brutalist-button text-[8px] sm:text-[10px] px-2 sm:px-3 py-2 font-black uppercase tracking-widest transition-all ${copied ? 'bg-emerald-500 text-white' : 'bg-emerald-600/10 text-emerald-600'}`}>
                 {copied ? 'Copiado' : 'Copiar'}
@@ -199,20 +219,26 @@ const Canvas: React.FC<CanvasProps> = ({
       </div>
 
       <div className="mt-6 sm:mt-8 flex flex-col space-y-3 shrink-0 z-10">
+        {isUploadingFiles && (
+          <div className="flex items-center gap-3 p-4 bg-emerald-600/10 border-2 border-emerald-600/30 animate-pulse brutalist-panel">
+            <div className="w-5 h-5 border-2 border-emerald-600 border-t-transparent animate-spin"></div>
+            <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Processando arquivos...</span>
+          </div>
+        )}
         {attachedFiles.length > 0 && <FilePreview files={attachedFiles} onRemove={onRemoveFile} />}
         <div className="flex items-center gap-2 sm:gap-4 bg-white/90 dark:bg-slate-900/60 backdrop-blur-2xl p-2 sm:p-4 border-2 border-emerald-600/20 shadow-xl focus-within:border-emerald-600 transition-all">
           <button onClick={() => fileInputRef.current?.click()} className="p-2 sm:p-3 text-slate-500 hover:text-emerald-600 transition-all active:scale-90">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
           </button>
-          <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" multiple accept=".jpg,.jpeg,.png,.webp,.pdf" />
+          <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" multiple />
           <textarea
             ref={textInputRef as any} value={inputText} onChange={(e) => setInputText(e.target.value)} onKeyDown={handleKeyDown}
             placeholder="Transmitir comando..."
             className="flex-1 bg-transparent border-none py-2 px-1 focus:outline-none text-sm sm:text-base text-slate-800 dark:text-white placeholder-emerald-900/20 font-bold resize-none h-[44px] sm:h-[60px] custom-scrollbar"
-            disabled={isLoading}
+            disabled={isLoading || isUploadingFiles}
           />
           <button
-            onClick={() => handleInterpret()} disabled={isLoading || (!inputText.trim() && attachedFiles.length === 0)}
+            onClick={() => handleInterpret()} disabled={isLoading || isUploadingFiles || (!inputText.trim() && attachedFiles.length === 0)}
             className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-30 text-white text-[10px] sm:text-xs font-black uppercase tracking-widest px-4 sm:px-10 h-[44px] sm:h-[60px] brutalist-button active:scale-95 transition-transform"
           >
             {isLoading ? '...' : 'Exec'}

@@ -14,8 +14,9 @@ export class TessyDatabase extends Dexie {
   secrets!: Table<{ id: string; key: string; value: string }>;
 
   constructor() {
+    // Call the super constructor with the database name
     super('TessyDB');
-    // Fix: Correctly call the version() method inherited from the Dexie base class to define schema
+    // Call the version() method inherited from the Dexie base class to define schema
     this.version(1).stores({
       projects: 'id, name, createdAt, updatedAt',
       conversations: 'id, projectId, title, createdAt, updatedAt',
@@ -59,7 +60,7 @@ export async function migrateToIndexedDB(): Promise<void> {
       }
     };
 
-    // Fix: Use the transaction() method from the db instance to perform atomic migration operations
+    // Use the transaction() method from the db instance to perform atomic migration operations
     await db.transaction('rw', [db.projects, db.conversations, db.library, db.settings], async () => {
       // 1. Create Default Project
       await db.projects.put({
