@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { db, generateUUID } from '../services/dbService';
 import { Project } from '../types';
@@ -71,7 +70,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, projectId,
   return (
     <div className="fixed top-0 left-0 w-full h-full z-[200] flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-md animate-fade-in">
       <div 
-        className="relative glass-panel !rounded-none w-full max-w-[500px] max-h-[90vh] flex flex-col animate-zoom-in !bg-white dark:!bg-slate-900 shadow-2xl border-2 border-emerald-500/30 overflow-hidden mx-auto"
+        className="relative glass-panel !rounded-none w-full max-w-[500px] max-h-[90vh] flex flex-col animate-zoom-in !bg-white dark:!bg-slate-900 shadow-2xl border-2 border-emerald-500/30 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-6 py-4 border-b-2 border-emerald-500/20 flex justify-between items-center bg-emerald-500/5 dark:bg-slate-950/40 shrink-0">

@@ -1,6 +1,6 @@
 
-// Fix: Use default import for Dexie to ensure proper class inheritance and prototype access in TypeScript
-import Dexie from 'dexie';
+// Fix: Use named import for Dexie to ensure proper class inheritance and type resolution in TypeScript
+import { Dexie } from 'dexie';
 import type { Table } from 'dexie';
 import { Conversation, Project, RepositoryItem, Template, Factor } from '../types';
 
