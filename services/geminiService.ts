@@ -107,6 +107,53 @@ const githubTools = {
 };
 
 /**
+ * Execute GitHub function calls from Gemini with structured success/error responses.
+ */
+async function executeFunctionCall(fc: { name: string; args: any }, githubToken: string, repoPath: string): Promise<any> {
+  try {
+    switch (fc.name) {
+      case 'read_github_file': {
+        const filePath = fc.args.file_path as string;
+        const result = await githubService.fetchFileContent(githubToken, repoPath, filePath);
+        return { success: true, content: result.content, file_path: filePath };
+      }
+      case 'list_github_directory': {
+        const dirPath = (fc.args.directory_path as string) || '';
+        const files = await githubService.fetchDirectoryContents(githubToken, repoPath, dirPath);
+        return { success: true, files, directory_path: dirPath };
+      }
+      case 'search_github_code': {
+        const query = fc.args.query as string;
+        const results = await githubService.searchCode(githubToken, repoPath, query);
+        return { success: true, results, query };
+      }
+      case 'get_github_readme': {
+        const content = await githubService.fetchReadme(githubToken, repoPath);
+        return { success: true, content };
+      }
+      case 'list_github_branches': {
+        const branches = await githubService.fetchBranches(githubToken, repoPath);
+        return { success: true, branches };
+      }
+      case 'get_commit_details': {
+        const sha = fc.args.commit_sha as string;
+        const commit = await githubService.fetchCommitDetails(githubToken, repoPath, sha);
+        return { success: true, commit };
+      }
+      case 'get_repository_structure': {
+        const maxDepth = (fc.args.max_depth as number) || 2;
+        const structure = await githubService.fetchRepositoryStructure(githubToken, repoPath, maxDepth);
+        return { success: true, structure };
+      }
+      default:
+        return { success: false, error: "Função desconhecida" };
+    }
+  } catch (error: any) {
+    return { success: false, error: error.message || "Erro na execução da ferramenta GitHub" };
+  }
+}
+
+/**
  * Step 1: Interpret the user's raw text into a structured JSON intent, considering context.
  */
 export const interpretIntent = async (
@@ -248,8 +295,8 @@ IMPORTANTE: Ao responder sobre eventos, notícias, lançamentos ou qualquer info
     // Add history context (last 3 turns)
     if (history.length > 0) {
       history.slice(-3).forEach(turn => {
-        contents.push({ parts: [{ text: `Usuário: ${turn.userMessage}` }] });
-        contents.push({ parts: [{ text: `Tessy: ${turn.tessyResponse}` }] });
+        contents.push({ role: 'user', parts: [{ text: `Usuário: ${turn.userMessage}` }] });
+        contents.push({ role: 'model', parts: [{ text: `Tessy: ${turn.tessyResponse}` }] });
       });
     }
 
@@ -281,15 +328,17 @@ NOTA: Se esta tarefa envolver informações temporais (notícias, eventos recent
       });
     }
 
-    contents.push({ parts });
+    contents.push({ role: 'user', parts });
 
     // Build tools array
     const tools: any[] = [];
-    if (groundingEnabled) {
-      tools.push({ googleSearch: {} });
-    }
+    // Fix: Prioritize tools based on context. Only googleSearch is allowed when used, it cannot be combined with functionDeclarations.
     if (repoPath) {
+      // Use repository specific tools if available
       tools.push(githubTools);
+    } else if (groundingEnabled) {
+      // Fallback to search grounding for general information
+      tools.push({ googleSearch: {} });
     }
 
     let response = await ai.models.generateContent({
@@ -302,55 +351,30 @@ NOTA: Se esta tarefa envolver informações temporais (notícias, eventos recent
       },
     });
 
-    // Handle Function Calling loop if needed
+    // Handle Function Calling loop
     let iteration = 0;
     while (response.functionCalls && response.functionCalls.length > 0 && iteration < 5) {
       iteration++;
+      const modelTurn = response.candidates[0].content;
+      contents.push(modelTurn);
+
       const functionResponses: any[] = [];
 
       for (const fc of response.functionCalls) {
-        let result: any = "Função não encontrada ou erro na execução.";
-        if (!githubToken) {
-          result = "Erro: Token do GitHub não configurado para realizar esta ação.";
+        let result: any;
+        if (!githubToken || !repoPath) {
+          result = { success: false, error: "Token do GitHub ou Repositório não configurado." };
         } else {
-          try {
-            switch (fc.name) {
-              case 'read_github_file':
-                result = await githubService.fetchFileContent(githubToken, repoPath!, fc.args.file_path as string);
-                break;
-              case 'list_github_directory':
-                result = await githubService.fetchDirectoryContents(githubToken, repoPath!, fc.args.directory_path as string);
-                break;
-              case 'search_github_code':
-                result = await githubService.searchCode(githubToken, repoPath!, fc.args.query as string);
-                break;
-              case 'get_github_readme':
-                result = await githubService.fetchReadme(githubToken, repoPath!);
-                break;
-              case 'list_github_branches':
-                result = await githubService.fetchBranches(githubToken, repoPath!);
-                break;
-              case 'get_commit_details':
-                result = await githubService.fetchCommitDetails(githubToken, repoPath!, fc.args.commit_sha as string);
-                break;
-              case 'get_repository_structure':
-                result = await githubService.fetchRepositoryStructure(githubToken, repoPath!, fc.args.max_depth as number);
-                break;
-            }
-          } catch (e: any) {
-            result = `Erro ao executar ${fc.name}: ${e.message}`;
-          }
+          result = await executeFunctionCall(fc, githubToken, repoPath);
         }
 
         functionResponses.push({
           id: fc.id,
           name: fc.name,
-          response: { result }
+          response: result
         });
       }
 
-      // Add tool responses to history
-      contents.push(response.candidates[0].content); // Model's turn with function calls
       contents.push({
         parts: functionResponses.map(fr => ({
           functionResponse: fr
