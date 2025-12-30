@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import FilePreview from './FilePreview';
 import { AttachedFile, ConversationTurn, Template, Factor, Conversation } from '../types';
@@ -46,6 +45,9 @@ const Canvas: React.FC<CanvasProps> = ({
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [isPulsingCopy, setIsPulsingCopy] = useState(false);
+  const [isPulsingExec, setIsPulsingExec] = useState(false);
+  
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const exportDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -73,6 +75,9 @@ const Canvas: React.FC<CanvasProps> = ({
     const textToCopy = result || (lastTurn ? lastTurn.tessyResponse : "");
     if (!textToCopy) return;
 
+    setIsPulsingCopy(true);
+    setTimeout(() => setIsPulsingCopy(false), 300);
+
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(textToCopy).then(() => {
         setCopied(true);
@@ -89,6 +94,12 @@ const Canvas: React.FC<CanvasProps> = ({
       setTimeout(() => setCopied(false), 2000);
     }
   }, [result, conversationHistory]);
+
+  const onExecClick = useCallback(() => {
+    setIsPulsingExec(true);
+    setTimeout(() => setIsPulsingExec(false), 200);
+    handleInterpret();
+  }, [handleInterpret]);
 
   const handleExportMarkdown = useCallback(() => {
     const content = exportToMarkdown(conversationHistory, factors, conversationTitle);
@@ -175,7 +186,7 @@ const Canvas: React.FC<CanvasProps> = ({
                 ) : 'Otimizar'}
               </button>
               
-              <button onClick={handleCopy} className={`brutalist-button text-[8px] sm:text-[10px] px-2 sm:px-3 py-2 font-black uppercase tracking-widest transition-all ${copied ? 'bg-emerald-500 text-white' : 'bg-emerald-600/10 text-emerald-600'}`}>
+              <button onClick={handleCopy} className={`brutalist-button text-[8px] sm:text-[10px] px-2 sm:px-3 py-2 font-black uppercase tracking-widest transition-all ${isPulsingCopy ? 'animate-pulse-click' : ''} ${copied ? 'bg-emerald-500 text-white' : 'bg-emerald-600/10 text-emerald-600'}`}>
                 {copied ? 'Copiado' : 'Copiar'}
               </button>
 
@@ -293,8 +304,8 @@ const Canvas: React.FC<CanvasProps> = ({
             disabled={isLoading || isUploadingFiles}
           />
           <button
-            onClick={() => handleInterpret()} disabled={isLoading || isUploadingFiles || (!inputText.trim() && attachedFiles.length === 0)}
-            className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-30 text-white text-[10px] sm:text-xs font-black uppercase tracking-widest px-4 sm:px-10 h-[44px] sm:h-[60px] brutalist-button active:scale-95 transition-transform"
+            onClick={onExecClick} disabled={isLoading || isUploadingFiles || (!inputText.trim() && attachedFiles.length === 0)}
+            className={`bg-emerald-600 hover:bg-emerald-700 disabled:opacity-30 text-white text-[10px] sm:text-xs font-black uppercase tracking-widest px-4 sm:px-10 h-[44px] sm:h-[60px] brutalist-button active:scale-95 transition-all ${isPulsingExec ? 'animate-pulse-click-small' : ''}`}
           >
             {isLoading ? '...' : 'Exec'}
           </button>
