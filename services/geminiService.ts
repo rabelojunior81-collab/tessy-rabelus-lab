@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type, FunctionDeclaration } from "@google/genai";
 import { Factor, AttachedFile, OptimizationResult, ConversationTurn, GroundingChunk } from "../types";
 import * as githubService from "./githubService";
@@ -123,8 +124,81 @@ async function executeFunctionCall(fc: { name: string; args: any }, githubToken:
       }
       case 'search_github_code': {
         const query = fc.args.query as string;
-        const results = await githubService.searchCode(githubToken, repoPath, query);
-        return { success: true, results, query };
+        const [owner, repo] = repoPath.split('/');
+        
+        let searchResult: any;
+        try {
+          const items = await githubService.searchCode(githubToken, repoPath, query);
+          searchResult = { success: true, items: items };
+        } catch (e) {
+          searchResult = { success: false };
+        }
+
+        if (searchResult.success && searchResult.items && searchResult.items.length > 0) {
+          return searchResult;
+        }
+
+        const structure = await githubService.fetchRepositoryStructure(githubToken, repoPath, 2);
+        const structureResult = { success: !!structure, tree: structure };
+
+        if (structureResult.success === false) {
+          return structureResult;
+        }
+
+        const matchingFiles: any[] = [];
+        const searchInStructure = async (items: any[]) => {
+          for (const item of items) {
+            if (item.type === 'file') {
+              if (item.path.endsWith('.ts') || item.path.endsWith('.tsx') || item.path.endsWith('.js') || item.path.endsWith('.jsx')) {
+                const fileData = await githubService.fetchFileContent(githubToken, repoPath, item.path);
+                const fileResult = { success: true, content: fileData.content };
+
+                if (fileResult.success && fileResult.content) {
+                  const lines = fileResult.content.split('\n');
+                  const lineMatches: any[] = [];
+                  lines.forEach((line, index) => {
+                    if (line.toLowerCase().includes(query.toLowerCase())) {
+                      lineMatches.push({
+                        line: line.trim(),
+                        lineNumber: index + 1
+                      });
+                    }
+                  });
+
+                  if (lineMatches.length > 0) {
+                    matchingFiles.push({
+                      path: item.path,
+                      name: item.name,
+                      matches: lineMatches
+                    });
+                  }
+                }
+              }
+            } else if (item.type === 'dir' && item.items) {
+              await searchInStructure(item.items);
+            }
+          }
+        };
+
+        if (structureResult.tree && structureResult.tree.items) {
+          await searchInStructure(structureResult.tree.items);
+        }
+
+        if (matchingFiles.length === 0) {
+          return {
+            success: false,
+            error: "Nenhum arquivo encontrado contendo a query especificada",
+            fallbackUsed: true
+          };
+        }
+
+        return {
+          success: true,
+          items: matchingFiles,
+          message: "Resultados encontrados via busca manual (GitHub Code Search indisponível)",
+          fallbackUsed: true,
+          totalCount: matchingFiles.length
+        };
       }
       case 'get_github_readme': {
         const content = await githubService.fetchReadme(githubToken, repoPath);
