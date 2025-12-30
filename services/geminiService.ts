@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type, FunctionDeclaration } from "@google/genai";
 import { Factor, AttachedFile, OptimizationResult, ConversationTurn, GroundingChunk } from "../types";
 import * as githubService from "./githubService";
@@ -256,14 +255,47 @@ export const applyFactorsAndGenerate = async (
 
 **DATA E HORA ATUAL**: ${currentDate} (Horário de Brasília, GMT-3)
 
-IMPORTANTE: Ao responder sobre eventos, notícias, lançamentos ou qualquer informação temporal, SEMPRE considere que AGORA é ${currentDate}. Se a pergunta envolver informações recentes ou eventos após esta data, você DEVE usar grounding (busca em tempo real) para obter dados atualizados. `;
+IMPORTANTE: Ao responder sobre eventos, notícias, lançamentos ou qualquer informação temporal, SEMPRE considere que AGORA é ${currentDate}. Se a pergunta envolver informações recentes ou eventos após esta data, você DEVE usar grounding (busca em tempo real) para obter dados atualizados. 
+
+**REGRAS ANTI-ALUCINAÇÃO**: 
+1. Responda apenas com base em fatos verificáveis ou dados obtidos através de ferramentas.
+2. Se você não souber a resposta ou não puder obtê-la via grounding/GitHub, admita que não possui a informação.
+3. NUNCA invente links, fatos históricos ou detalhes técnicos inexistentes.
+`;
     
-    if (groundingEnabled) {
-      systemInstruction += "Use busca em tempo real do Google (grounding) para fornecer informações ATUALIZADAS sobre tecnologias, modelos LLM e melhores práticas. Sempre cite fontes quando usar dados externos. ";
-    }
-    
+    // GitHub Tools Instructions (conditional)
     if (repoPath) {
-      systemInstruction += `Você tem acesso às ferramentas do GitHub para o repositório "${repoPath}". Use-as para ler código, listar diretórios ou buscar informações no projeto se o usuário solicitar algo relacionado ao desenvolvimento deste repositório. `;
+      systemInstruction += `
+FERRAMENTAS GITHUB DISPONÍVEIS:
+
+Você tem acesso a ferramentas para ler e analisar o repositório GitHub conectado ("${repoPath}"). SEMPRE use estas ferramentas ANTES de responder sobre o projeto.
+
+Ferramentas disponíveis:
+- get_github_readme: Leia PRIMEIRO para entender o projeto
+- list_github_directory: Explore a estrutura de pastas
+- read_github_file: Leia código-fonte, configurações, documentação
+- search_github_code: Encontre onde algo está implementado
+- get_repository_structure: Visão geral da organização do projeto
+- list_github_branches: Veja branches disponíveis
+- get_commit_details: Analise mudanças de commits específicos
+
+FLUXO OBRIGATÓRIO para perguntas sobre o projeto:
+1. Se pergunta sobre "o que é o projeto" ou "entendimento geral": SEMPRE chame get_github_readme PRIMEIRO
+2. Se pergunta sobre "estrutura" ou "organização": SEMPRE chame get_repository_structure ou list_github_directory
+3. Se pergunta sobre "arquivo específico" ou "código": SEMPRE chame read_github_file com caminho correto
+4. Se pergunta sobre "onde está implementado X": SEMPRE chame search_github_code
+5. NUNCA responda sobre o projeto sem usar ferramentas
+6. NUNCA invente estrutura de código, arquivos, ou conteúdos
+7. SEMPRE cite o arquivo/caminho de onde obteve a informação
+
+Formato de resposta: "De acordo com [arquivo/ferramenta], [informação real]..."
+
+IMPORTANTE: Se ferramenta retornar erro (arquivo não encontrado, etc), ADMITA o erro ao usuário. Não invente conteúdo alternativo.
+`;
+    }
+
+    if (groundingEnabled) {
+      systemInstruction += "\nUse busca em tempo real do Google (grounding) para fornecer informações ATUALIZADAS sobre tecnologias, modelos LLM e melhores práticas. Sempre cite fontes quando usar dados externos. ";
     }
 
     const isProfessional = factors.find(f => f.id === 'prof' && f.enabled);
