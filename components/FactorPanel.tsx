@@ -32,11 +32,11 @@ const FactorPanel: React.FC<FactorPanelProps> = ({ factors, onToggle }) => {
         {factors.map((factor) => {
           if (factor.type === 'toggle') {
             return (
-              <div key={factor.id} className="flex items-center justify-between p-4 bg-white/80 dark:bg-slate-900/40 border-2 border-emerald-600/25 shadow-[4px_4px_0_rgba(16,185,129,0.1)] dark:shadow-[4px_4px_0_rgba(0,0,0,0.3)]">
+              <div key={factor.id} className="flex items-center justify-between p-4 bg-white/80 dark:bg-slate-900/40 border-2 lg:border border-emerald-600/25 shadow-[4px_4px_0_rgba(16,185,129,0.1)] dark:shadow-[4px_4px_0_rgba(0,0,0,0.3)]">
                 <span className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider">{factor.label}</span>
                 <button
                   onClick={() => handleToggle(factor.id)}
-                  className={`w-14 h-7 border-2 transition-all flex items-center px-1 ${
+                  className={`w-14 h-7 border-2 lg:border transition-all flex items-center px-1 ${
                     factor.enabled ? 'bg-emerald-600 border-emerald-300' : 'bg-slate-200 dark:bg-slate-800 border-slate-300 dark:border-slate-600'
                   } !rounded-none shadow-inner`}
                 >
@@ -46,7 +46,7 @@ const FactorPanel: React.FC<FactorPanelProps> = ({ factors, onToggle }) => {
             );
           } else if (factor.type === 'slider') {
             return (
-              <div key={factor.id} className="p-5 bg-white/80 dark:bg-slate-900/40 border-2 border-emerald-600/25 shadow-[4px_4px_0_rgba(16,185,129,0.1)] dark:shadow-[4px_4px_0_rgba(0,0,0,0.3)]">
+              <div key={factor.id} className="p-5 bg-white/80 dark:bg-slate-900/40 border-2 lg:border border-emerald-600/25 shadow-[4px_4px_0_rgba(16,185,129,0.1)] dark:shadow-[4px_4px_0_rgba(0,0,0,0.3)]">
                 <label className="block text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider mb-4">
                   {factor.label}
                 </label>
@@ -65,14 +65,14 @@ const FactorPanel: React.FC<FactorPanelProps> = ({ factors, onToggle }) => {
             );
           } else if (factor.type === 'dropdown') {
             return (
-              <div key={factor.id} className="p-5 bg-white/80 dark:bg-slate-900/40 border-2 border-emerald-600/25 shadow-[4px_4px_0_rgba(16,185,129,0.1)] dark:shadow-[4px_4px_0_rgba(0,0,0,0.3)]">
+              <div key={factor.id} className="p-5 bg-white/80 dark:bg-slate-900/40 border-2 lg:border border-emerald-600/25 shadow-[4px_4px_0_rgba(16,185,129,0.1)] dark:shadow-[4px_4px_0_rgba(0,0,0,0.3)]">
                 <label className="block text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider mb-3">
                   {factor.label}
                 </label>
                 <select
                   value={factor.value ?? (factor.options?.[0] || 'intermediario')}
                   onChange={(e) => handleDropdownChange(factor.id, e.target.value)}
-                  className="w-full bg-white/85 dark:bg-slate-800 border-2 border-emerald-600/25 p-3 text-xs font-bold text-slate-800 dark:text-white uppercase focus:outline-none focus:border-emerald-600 transition-all !rounded-none"
+                  className="w-full bg-white/85 dark:bg-slate-800 border-2 lg:border border-emerald-600/25 p-3 text-xs font-bold text-slate-800 dark:text-white uppercase focus:outline-none focus:border-emerald-600 transition-all !rounded-none"
                 >
                   {factor.options?.map((opt) => (
                     <option key={opt} value={opt} className="dark:bg-slate-800">{opt.toUpperCase()}</option>
@@ -89,7 +89,7 @@ const FactorPanel: React.FC<FactorPanelProps> = ({ factors, onToggle }) => {
             );
           } else if (factor.type === 'text') {
             return (
-              <div key={factor.id} className="p-5 bg-white/80 dark:bg-slate-900/40 border-2 border-emerald-600/25 shadow-[4px_4px_0_rgba(16,185,129,0.1)] dark:shadow-[4px_4px_0_rgba(0,0,0,0.3)]">
+              <div key={factor.id} className="p-5 bg-white/80 dark:bg-slate-900/40 border-2 lg:border border-emerald-600/25 shadow-[4px_4px_0_rgba(16,185,129,0.1)] dark:shadow-[4px_4px_0_rgba(0,0,0,0.3)]">
                 <label className="block text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider mb-3">
                   {factor.label}
                 </label>
@@ -97,7 +97,7 @@ const FactorPanel: React.FC<FactorPanelProps> = ({ factors, onToggle }) => {
                   value={factor.value ?? ''}
                   onChange={(e) => handleTextChange(factor.id, e.target.value)}
                   placeholder="EX: PROTOCOLO NODE.JS..."
-                  className="w-full bg-white/85 dark:bg-slate-800 border-2 border-emerald-600/25 p-4 text-xs font-medium text-slate-600 dark:text-slate-300 focus:outline-none focus:border-emerald-600 resize-none transition-all !rounded-none h-32 custom-scrollbar placeholder:text-slate-400 dark:placeholder:text-emerald-900/30"
+                  className="w-full bg-white/85 dark:bg-slate-800 border-2 lg:border border-emerald-600/25 p-4 text-xs font-medium text-slate-600 dark:text-slate-300 focus:outline-none focus:border-emerald-600 resize-none transition-all !rounded-none h-32 custom-scrollbar placeholder:text-slate-400 dark:placeholder:text-emerald-900/30"
                 />
               </div>
             );
@@ -106,7 +106,7 @@ const FactorPanel: React.FC<FactorPanelProps> = ({ factors, onToggle }) => {
         })}
       </div>
       
-      <div className="mt-auto p-6 bg-emerald-600/15 dark:bg-emerald-900/20 border-2 border-emerald-600/30 shadow-[6px_6px_0_rgba(16,185,129,0.1)] dark:shadow-[6px_6px_0_rgba(0,0,0,0.3)]">
+      <div className="mt-auto p-6 bg-emerald-600/15 dark:bg-emerald-900/20 border-2 lg:border border-emerald-600/30 shadow-[6px_6px_0_rgba(16,185,129,0.1)] dark:shadow-[6px_6px_0_rgba(0,0,0,0.3)]">
         <h4 className="text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-3 flex items-center gap-2">
            <span className="w-1.5 h-3 bg-emerald-400"></span> Dica do Sistema
         </h4>
