@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import FilePreview from './FilePreview';
 import LoadingSpinner from './LoadingSpinner';
@@ -150,20 +149,20 @@ const Canvas: React.FC<CanvasProps> = ({
         <div className="flex items-center gap-2 sm:gap-3">
           <h2 className="text-lg sm:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter glow-text-green shrink-0">Canvas</h2>
           {hasContent && (
-            <button onClick={onNewConversation} className="brutalist-button text-[8px] sm:text-[10px] px-2 py-1.5 sm:px-3 bg-red-600/10 text-red-600 font-black uppercase tracking-widest active:scale-95 shrink-0">
+            <button onClick={onNewConversation} className="brutalist-button text-[8px] sm:text-[10px] px-2 py-1.5 sm:px-3 bg-red-600/10 text-red-600 font-black uppercase tracking-widest active:scale-95 hover:lg:-translate-y-0.5 transition-all shrink-0">
               Reiniciar
             </button>
           )}
         </div>
         
         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-          <button onClick={() => setIsTemplateModalOpen(true)} className="brutalist-button text-[8px] sm:text-[10px] px-2 py-2 sm:px-3 bg-emerald-600/10 text-emerald-600 font-black uppercase tracking-widest border-emerald-600/20 active:scale-95">Templates</button>
+          <button onClick={() => setIsTemplateModalOpen(true)} className="brutalist-button text-[8px] sm:text-[10px] px-2 py-2 sm:px-3 bg-emerald-600/10 text-emerald-600 font-black uppercase tracking-widest border-emerald-600/20 active:scale-95 hover:lg:-translate-y-0.5 transition-all">Templates</button>
 
           {(result || hasContent) && !isLoading && (
             <>
               <button 
                 onClick={() => setIsModalOpen(true)} 
-                className="brutalist-button text-[8px] sm:text-[10px] px-2 py-2 sm:px-3 bg-lime-600/10 text-lime-600 font-black uppercase tracking-widest border-lime-600/20 active:scale-95"
+                className="brutalist-button text-[8px] sm:text-[10px] px-2 py-2 sm:px-3 bg-lime-600/10 text-lime-600 font-black uppercase tracking-widest border-lime-600/20 active:scale-95 hover:lg:-translate-y-0.5 transition-all"
               >
                 Salvar
               </button>
@@ -171,23 +170,23 @@ const Canvas: React.FC<CanvasProps> = ({
               <button 
                 onClick={onOptimize} 
                 disabled={isOptimizing} 
-                className={`brutalist-button text-[8px] sm:text-[10px] px-2 py-2 sm:px-3 font-black uppercase tracking-widest active:scale-95 relative overflow-hidden transition-all duration-300
+                className={`brutalist-button text-[8px] sm:text-[10px] px-2 py-2 sm:px-3 font-black uppercase tracking-widest active:scale-95 hover:lg:-translate-y-0.5 relative overflow-hidden transition-all duration-300
                   ${isOptimizing 
                     ? 'bg-amber-500/50 text-white cursor-not-allowed border-amber-500 scale-95' 
-                    : 'bg-amber-600/10 text-amber-600 border-amber-600/30 hover:bg-amber-500 hover:text-white'
+                    : 'bg-amber-600/10 text-amber-600 border-amber-600/30 hover:bg-amber-500 hover:text-white lg:hover:shadow-[4px_4px_0_rgba(217,119,6,0.2)]'
                   }`}
               >
                 {isOptimizing ? 'Otimizando' : 'Otimizar'}
               </button>
               
-              <button onClick={handleCopy} className={`brutalist-button text-[8px] sm:text-[10px] px-2 py-2 sm:px-3 font-black uppercase tracking-widest transition-all ${isPulsingCopy ? 'animate-pulse-click' : ''} ${copied ? 'bg-emerald-500 text-white' : 'bg-emerald-600/10 text-emerald-600'}`}>
+              <button onClick={handleCopy} className={`brutalist-button text-[8px] sm:text-[10px] px-2 py-2 sm:px-3 font-black uppercase tracking-widest transition-all hover:lg:-translate-y-0.5 ${isPulsingCopy ? 'animate-pulse-click' : ''} ${copied ? 'bg-emerald-500 text-white lg:shadow-[0_0_10px_#10b981]' : 'bg-emerald-600/10 text-emerald-600'}`}>
                 {copied ? 'Copiado' : 'Copiar'}
               </button>
 
               <div className="relative" ref={exportDropdownRef}>
-                <button onClick={() => setShowExportMenu(!showExportMenu)} disabled={!hasContent} className="brutalist-button text-[8px] sm:text-[10px] px-2 py-2 sm:px-3 bg-teal-600/10 text-teal-600 font-black uppercase tracking-widest active:scale-95">Exportar</button>
+                <button onClick={() => setShowExportMenu(!showExportMenu)} disabled={!hasContent} className="brutalist-button text-[8px] sm:text-[10px] px-2 py-2 sm:px-3 bg-teal-600/10 text-teal-600 font-black uppercase tracking-widest active:scale-95 hover:lg:-translate-y-0.5 transition-all">Exportar</button>
                 {showExportMenu && (
-                  <div className="absolute top-full mt-2 right-0 glass-panel py-1 z-50 min-w-[140px] !rounded-none !bg-slate-900/95 !border-emerald-600 animate-fade-in">
+                  <div className="absolute top-full mt-2 right-0 glass-panel py-1 z-50 min-w-[140px] !rounded-none !bg-slate-900/95 !border-emerald-600 animate-fade-in lg:shadow-[10px_10px_0_rgba(0,0,0,0.5)]">
                     <button onClick={handleExportMarkdown} className="w-full text-left px-4 py-3 text-[9px] text-emerald-400 font-black hover:bg-emerald-600/20 uppercase tracking-widest border-b border-emerald-600/10">Markdown</button>
                     <button onClick={handleExportHTML} className="w-full text-left px-4 py-3 text-[9px] text-emerald-400 font-black hover:bg-emerald-600/20 uppercase tracking-widest border-b border-emerald-600/10">HTML</button>
                     <button onClick={handleExportPDF} className="w-full text-left px-4 py-3 text-[9px] text-emerald-400 font-black hover:bg-emerald-600/20 uppercase tracking-widest">PDF</button>
@@ -199,24 +198,24 @@ const Canvas: React.FC<CanvasProps> = ({
         </div>
       </div>
 
-      <div ref={scrollContainerRef} className="flex-1 w-full glass-panel !rounded-none p-4 sm:p-8 overflow-y-auto custom-scrollbar flex flex-col space-y-5 sm:space-y-8 bg-white/80 dark:bg-slate-900/40">
+      <div ref={scrollContainerRef} className="flex-1 w-full glass-panel !rounded-none p-4 sm:p-8 overflow-y-auto custom-scrollbar flex flex-col space-y-5 sm:space-y-8 bg-white/80 dark:bg-slate-900/40 lg:shadow-[12px_12px_0_rgba(16,185,129,0.05)] transition-shadow">
         {conversationHistory.length === 0 && !isLoading && !result && !pendingUserMessage && (
           <div className="h-full flex flex-col items-center justify-center text-slate-500 italic text-center px-4 sm:px-12 animate-fade-in">
-            <div className="w-10 h-10 sm:w-16 sm:h-16 border-2 sm:border-4 border-emerald-600/20 mb-4 flex items-center justify-center text-emerald-600/25 font-black text-xl sm:text-4xl">?</div>
+            <div className="w-10 h-10 sm:w-16 sm:h-16 border-2 sm:border-4 border-emerald-600/20 mb-4 flex items-center justify-center text-emerald-600/25 font-black text-xl sm:text-4xl lg:shadow-[4px_4px_0_rgba(16,185,129,0.1)]">?</div>
             <p className="font-black uppercase tracking-widest text-[8px] sm:text-[10px]">Aguardando sequência de comando...</p>
           </div>
         )}
 
         {conversationHistory.map((turn) => (
           <div key={turn.id} className="flex flex-col space-y-3 sm:space-y-4 animate-fade-in">
-            <div className="self-end max-w-[95%] sm:max-w-[85%] bg-emerald-600/10 border-2 border-emerald-600/20 p-3 sm:p-4 rounded-none text-[11px] sm:text-sm text-slate-800 dark:text-white shadow-[4px_4px_0_rgba(16,185,129,0.1)]">
+            <div className="self-end max-w-[95%] sm:max-w-[85%] bg-emerald-600/10 border-2 border-emerald-600/20 p-3 sm:p-4 rounded-none text-[11px] sm:text-sm text-slate-800 dark:text-white shadow-[4px_4px_0_rgba(16,185,129,0.1)] lg:shadow-[6px_6px_0_rgba(16,185,129,0.15)]">
               <p className="whitespace-pre-wrap font-medium">{turn.userMessage}</p>
               {turn.attachedFiles && turn.attachedFiles.length > 0 && (
                 <div className="mt-3 sm:mt-4 flex flex-wrap gap-2">
                   {turn.attachedFiles.map((file) => (
                     <div 
                       key={file.id} 
-                      className="relative flex flex-col items-center p-1.5 sm:p-2 bg-white/60 dark:bg-slate-800/40 border border-emerald-600/20 hover:border-emerald-600/40 transition-all cursor-pointer group"
+                      className="relative flex flex-col items-center p-1.5 sm:p-2 bg-white/60 dark:bg-slate-800/40 border border-emerald-600/20 hover:border-emerald-600/40 transition-all cursor-pointer group hover:lg:shadow-[4px_4px_0_rgba(16,185,129,0.2)]"
                       title={`${file.name} (${file.mimeType})`}
                     >
                       {file.mimeType.startsWith('image/') ? (
@@ -238,14 +237,14 @@ const Canvas: React.FC<CanvasProps> = ({
                 </div>
               )}
             </div>
-            <div className="self-start max-w-[95%] sm:max-w-[85%] bg-white/90 dark:bg-slate-800/60 border-2 border-emerald-600/20 p-3.5 sm:p-5 rounded-none text-[11px] sm:text-sm text-slate-800 dark:text-emerald-50 leading-relaxed shadow-[6px_6px_0_rgba(16,185,129,0.1)]">
+            <div className="self-start max-w-[95%] sm:max-w-[85%] bg-white/90 dark:bg-slate-800/60 border-2 border-emerald-600/20 p-3.5 sm:p-5 rounded-none text-[11px] sm:text-sm text-slate-800 dark:text-emerald-50 leading-relaxed shadow-[6px_6px_0_rgba(16,185,129,0.1)] lg:shadow-[10px_10px_0_rgba(0,0,0,0.05)]">
               <div className="whitespace-pre-wrap mb-3 sm:mb-4">{turn.tessyResponse}</div>
               {turn.groundingChunks && turn.groundingChunks.length > 0 && (
-                <div className="mt-3 sm:mt-4 p-2 sm:p-3 bg-emerald-600/5 border border-emerald-600/30 rounded-none">
+                <div className="mt-3 sm:mt-4 p-2 sm:p-3 bg-emerald-600/5 border border-emerald-600/30 rounded-none lg:shadow-inner">
                   <div className="text-[8px] sm:text-[9px] font-black text-emerald-600 uppercase mb-2">✓ Fontes Confirmadas</div>
                   <div className="flex flex-wrap gap-1.5 sm:gap-2">
                     {turn.groundingChunks.map((chunk, idx) => chunk.web ? (
-                      <a key={idx} href={chunk.web.uri} target="_blank" rel="noopener noreferrer" className="text-[8px] sm:text-[9px] px-2 py-1 bg-slate-800 text-emerald-400 border border-emerald-600/40 font-bold uppercase truncate max-w-[120px] sm:max-w-[150px]">{chunk.web.title}</a>
+                      <a key={idx} href={chunk.web.uri} target="_blank" rel="noopener noreferrer" className="text-[8px] sm:text-[9px] px-2 py-1 bg-slate-800 text-emerald-400 border border-emerald-600/40 font-bold uppercase truncate max-w-[120px] sm:max-w-[150px] lg:hover:shadow-[0_0_8px_#10b981] transition-shadow">{chunk.web.title}</a>
                     ) : null)}
                   </div>
                 </div>
@@ -256,15 +255,15 @@ const Canvas: React.FC<CanvasProps> = ({
 
         {pendingUserMessage && (
           <div className="flex flex-col space-y-3 sm:space-y-4 animate-fade-in">
-            <div className="self-end max-w-[85%] bg-emerald-600/10 border-2 border-emerald-600/10 p-4 text-[11px] italic">
+            <div className="self-end max-w-[85%] bg-emerald-600/10 border-2 border-emerald-600/10 p-4 text-[11px] italic lg:shadow-[6px_6px_0_rgba(16,185,129,0.05)]">
               {pendingUserMessage}
             </div>
-            <div className="self-start p-5 text-[10px] sm:text-xs text-emerald-600 font-black uppercase tracking-[0.2em] animate-pulse">Sincronizando...</div>
+            <div className="self-start p-5 text-[10px] sm:text-xs text-emerald-600 font-black uppercase tracking-[0.2em] animate-pulse glow-text-green">Sincronizando...</div>
           </div>
         )}
 
         {result && !isLoading && (
-           <div className="self-start max-w-[90%] bg-red-600/10 border-2 border-red-600/30 p-5 text-xs text-red-600 font-bold animate-fade-in">
+           <div className="self-start max-w-[90%] bg-red-600/10 border-2 border-red-600/30 p-5 text-xs text-red-600 font-bold animate-fade-in lg:shadow-[10px_10px_0_rgba(220,38,38,0.1)]">
              <div className="uppercase font-black mb-1">Erro de Processamento</div>
              {result}
            </div>
@@ -273,14 +272,14 @@ const Canvas: React.FC<CanvasProps> = ({
 
       <div className="mt-4 sm:mt-8 flex flex-col space-y-2 sm:space-y-3 shrink-0 z-10">
         {isUploadingFiles && (
-          <div className="flex items-center gap-3 p-3 bg-emerald-600/10 border-2 border-emerald-600/30 animate-pulse brutalist-panel">
+          <div className="flex items-center gap-3 p-3 bg-emerald-600/10 border-2 border-emerald-600/30 animate-pulse brutalist-panel lg:shadow-[6px_6px_0_rgba(16,185,129,0.1)]">
             <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent animate-spin"></div>
             <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Processando arquivos...</span>
           </div>
         )}
         {attachedFiles.length > 0 && <FilePreview files={attachedFiles} onRemove={onRemoveFile} />}
-        <div className="flex items-center gap-2 sm:gap-4 bg-white/90 dark:bg-slate-900/60 backdrop-blur-2xl p-2 sm:p-4 border-2 border-emerald-600/20 shadow-xl focus-within:border-emerald-600 transition-all">
-          <button onClick={() => fileInputRef.current?.click()} className="p-2 sm:p-3 text-slate-500 hover:text-emerald-600 transition-all active:scale-90 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-4 bg-white/90 dark:bg-slate-900/60 backdrop-blur-2xl p-2 sm:p-4 border-2 border-emerald-600/20 shadow-xl focus-within:border-emerald-600 transition-all focus-within:lg:shadow-[8px_8px_0_rgba(16,185,129,0.15)]">
+          <button onClick={() => fileInputRef.current?.click()} className="p-2 sm:p-3 text-slate-500 hover:text-emerald-600 transition-all active:scale-90 lg:hover:scale-110 shrink-0">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
           </button>
           <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" multiple />
@@ -292,7 +291,7 @@ const Canvas: React.FC<CanvasProps> = ({
           />
           <button
             onClick={onExecClick} disabled={isLoading || isUploadingFiles || (!inputText.trim() && attachedFiles.length === 0)}
-            className={`bg-emerald-600 hover:bg-emerald-700 disabled:opacity-30 text-white text-[9px] sm:text-xs font-black uppercase tracking-widest px-4 sm:px-10 h-[44px] sm:h-[60px] brutalist-button active:scale-95 transition-all shrink-0 ${isPulsingExec ? 'animate-pulse-click-small' : ''}`}
+            className={`bg-emerald-600 hover:bg-emerald-700 disabled:opacity-30 text-white text-[9px] sm:text-xs font-black uppercase tracking-widest px-4 sm:px-10 h-[44px] sm:h-[60px] brutalist-button active:scale-95 transition-all shrink-0 lg:shadow-[6px_6px_0_rgba(0,0,0,0.8)] hover:lg:-translate-y-0.5 hover:lg:shadow-[8px_8px_0_rgba(0,0,0,0.9)] ${isPulsingExec ? 'animate-pulse-click-small' : ''}`}
           >
             {isLoading ? '...' : 'Exec'}
           </button>

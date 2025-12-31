@@ -54,10 +54,10 @@ const ProjectSwitcher: React.FC<ProjectSwitcherProps> = ({ currentProjectId, onS
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-white/80 dark:bg-slate-900/60 border-2 lg:border border-emerald-600/30 hover:border-emerald-600 transition-all duration-300 shadow-[4px_4px_0_rgba(16,185,129,0.1)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none cursor-pointer group"
+        className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-white/80 dark:bg-slate-900/60 border-2 lg:border border-emerald-600/30 hover:border-emerald-600 transition-all duration-300 shadow-[4px_4px_0_rgba(16,185,129,0.1)] lg:shadow-[6px_6px_0_rgba(16,185,129,0.2)] hover:lg:-translate-y-0.5 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none cursor-pointer group"
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-emerald-600 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z" />
         </svg>
         <span className="text-[10px] sm:text-xs font-black uppercase text-slate-800 dark:text-white tracking-widest max-w-[80px] sm:max-w-[150px] truncate">
           {currentProject?.name || 'Selecionar Projeto'}
@@ -68,7 +68,7 @@ const ProjectSwitcher: React.FC<ProjectSwitcherProps> = ({ currentProjectId, onS
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 w-64 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-2 lg:border border-emerald-600 shadow-2xl z-50 animate-fade-in transition-all">
+        <div className="absolute top-full left-0 mt-2 w-64 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-2 lg:border border-emerald-600 shadow-2xl lg:shadow-[10px_10px_0_rgba(0,0,0,0.5)] z-50 animate-fade-in transition-all">
           <div className="max-h-64 overflow-y-auto custom-scrollbar">
             {projects.length === 0 ? (
               <div className="p-4 text-center text-[8px] font-black uppercase text-slate-400 italic">Nenhum projeto</div>
@@ -82,9 +82,9 @@ const ProjectSwitcher: React.FC<ProjectSwitcherProps> = ({ currentProjectId, onS
                   }`}
                 >
                   <div className="flex items-center gap-2 overflow-hidden flex-1">
-                    <div className="w-2.5 h-2.5 rounded-full shrink-0 shadow-inner" style={{ backgroundColor: project.color || '#10b981' }} />
+                    <div className="w-2.5 h-2.5 rounded-full shrink-0 shadow-inner" style={{ backgroundColor: project.color || '#10b981', boxShadow: project.id === currentProjectId ? '0 0 8px currentColor' : 'none' }} />
                     <span className={`text-[10px] font-black uppercase tracking-wider truncate transition-colors ${
-                      project.id === currentProjectId ? 'text-emerald-600' : 'text-slate-700 dark:text-slate-300'
+                      project.id === currentProjectId ? 'text-emerald-600 glow-text-green' : 'text-slate-700 dark:text-slate-300'
                     }`}>
                       {project.name}
                     </span>
