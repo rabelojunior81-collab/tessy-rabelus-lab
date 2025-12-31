@@ -59,7 +59,7 @@ const TessyLogo = React.memo(() => (
 const AccordionHeader = React.memo(({ title, isOpen, onClick }: { title: string, isOpen: boolean, onClick: () => void }) => (
   <button 
     onClick={onClick}
-    className="w-full flex items-center justify-between px-6 py-5 bg-white/40 dark:bg-slate-900/40 hover:bg-emerald-500/10 transition-all duration-300 border-b-2 border-emerald-600/15 group cursor-pointer"
+    className="w-full flex items-center justify-between px-6 py-5 bg-white/40 dark:bg-slate-900/40 hover:bg-emerald-500/10 transition-all duration-300 border-b-2 lg:border-b border-emerald-600/15 group cursor-pointer"
   >
     <span className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-600 dark:text-emerald-400 group-hover:translate-x-1 transition-transform">
       {title}
@@ -530,11 +530,11 @@ const App: React.FC = () => {
 
   return (
     <div className="h-screen w-full flex flex-col overflow-hidden font-sans selection:bg-emerald-600/30">
-      <header className="h-14 sm:h-16 flex items-center justify-between px-3 sm:px-6 lg:px-8 border-b-2 border-emerald-600/25 bg-white/85 dark:bg-slate-900/60 backdrop-blur-2xl z-40 shrink-0">
+      <header className="h-14 sm:h-16 flex items-center justify-between px-3 sm:px-6 lg:px-8 border-b-2 lg:border-b border-emerald-600/25 bg-white/85 dark:bg-slate-900/60 backdrop-blur-2xl z-40 shrink-0">
         <div className="flex items-center space-x-2 sm:space-x-4 min-w-0">
           <button 
             onClick={() => setIsSidebarMobileOpen(true)}
-            className="md:hidden brutalist-button w-9 h-9 sm:w-10 sm:h-10 bg-emerald-600/10 text-emerald-600 border-emerald-600/20 active:scale-95 transition-all flex items-center justify-center shrink-0"
+            className="md:hidden brutalist-button w-9 h-9 sm:w-10 sm:h-10 bg-emerald-600/10 text-emerald-600 border-2 border-emerald-600/20 active:scale-95 transition-all flex items-center justify-center shrink-0"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
           </button>
@@ -557,7 +557,7 @@ const App: React.FC = () => {
           
           <button 
             onClick={() => setIsGitHubTokenModalOpen(true)}
-            className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center brutalist-button bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-emerald-600 transition-all border-emerald-600/20 shrink-0"
+            className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center brutalist-button bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-emerald-600 transition-all border-2 lg:border border-emerald-600/20 shrink-0"
             title="Configurações GitHub"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
@@ -570,18 +570,18 @@ const App: React.FC = () => {
           </div>
           <button 
             onClick={() => setIsFactorsMobileOpen(true)}
-            className="md:hidden brutalist-button w-9 h-9 sm:w-10 sm:h-10 bg-teal-600/10 text-teal-600 border-teal-600/20 active:scale-95 transition-all flex items-center justify-center shrink-0"
+            className="md:hidden brutalist-button w-9 h-9 sm:w-10 sm:h-10 bg-teal-600/10 text-teal-600 border-2 border-teal-600/20 active:scale-95 transition-all flex items-center justify-center shrink-0"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>
           </button>
-          <button onClick={toggleTheme} className={`w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center brutalist-button bg-emerald-600/15 text-emerald-600 dark:text-emerald-400 border-emerald-600/25 active:scale-90 transition-all shrink-0 ${isRotatingTheme ? 'animate-rotate-theme' : ''}`}>
+          <button onClick={toggleTheme} className={`w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center brutalist-button bg-emerald-600/15 text-emerald-600 dark:text-emerald-400 border-2 lg:border border-emerald-600/25 active:scale-90 transition-all shrink-0 ${isRotatingTheme ? 'animate-rotate-theme' : ''}`}>
             {theme === 'dark' ? (
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" /></svg>
             ) : (
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" /></svg>
             )}
           </button>
-          <div className="w-8 h-8 sm:w-11 sm:h-11 border-2 border-emerald-600/25 p-0.5 shadow-[4px_4px_0_rgba(16,185,129,0.15)] bg-white/85 dark:bg-slate-950/40 shrink-0 overflow-hidden hidden xs:block">
+          <div className="w-8 h-8 sm:w-11 sm:h-11 border-2 lg:border border-emerald-600/25 p-0.5 shadow-[4px_4px_0_rgba(16,185,129,0.15)] bg-white/85 dark:bg-slate-950/40 shrink-0 overflow-hidden hidden xs:block">
             <img src={`https://api.dicebear.com/7.x/identicon/svg?seed=tessy-green&backgroundColor=10b981`} alt="Avatar" className="w-full h-full object-cover" />
           </div>
         </div>
@@ -616,7 +616,7 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        <aside className="hidden md:flex flex-col w-[25%] lg:w-[18%] border-r-2 border-emerald-600/15 glass-panel !border-t-0 !border-b-0 overflow-y-auto custom-scrollbar">
+        <aside className="hidden md:flex flex-col w-[25%] lg:w-[18%] border-r-2 lg:border-r border-emerald-600/15 glass-panel !border-t-0 !border-b-0 overflow-y-auto custom-scrollbar">
           <AccordionHeader title="Histórico" isOpen={expandedSections.history} onClick={() => toggleSection('history')} />
           <div className={`transition-all duration-300 ease-in-out overflow-hidden ${expandedSections.history ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
             {renderAccordionContent('history')}
@@ -674,12 +674,12 @@ const App: React.FC = () => {
              </div>
           </div>
         </div>
-        <aside className="hidden md:block w-[30%] lg:w-[22%] border-l-2 border-emerald-600/15 glass-panel !border-t-0 !border-b-0 overflow-y-auto custom-scrollbar">
+        <aside className="hidden md:block w-[30%] lg:w-[22%] border-l-2 lg:border-l border-emerald-600/15 glass-panel !border-t-0 !border-b-0 overflow-y-auto custom-scrollbar">
           <FactorPanel factors={factors} onToggle={handleToggleFactor} />
         </aside>
       </main>
 
-      <footer className="h-8 sm:h-10 border-t-2 border-emerald-600/25 bg-white/85 dark:bg-slate-900/80 px-4 sm:px-8 flex items-center justify-between text-[7px] sm:text-[10px] text-slate-600 dark:text-slate-400 font-black tracking-[0.2em] shrink-0 z-40">
+      <footer className="h-8 sm:h-10 border-t-2 lg:border-t border-emerald-600/25 bg-white/85 dark:bg-slate-900/80 px-4 sm:px-8 flex items-center justify-between text-[7px] sm:text-[10px] text-slate-600 dark:text-slate-400 font-black tracking-[0.2em] shrink-0 z-40">
         <div className="flex items-center space-x-2 sm:space-x-6">
           <span className="hidden xs:inline uppercase">© 2024 RABELUS LAB</span>
           <span className="flex items-center space-x-2">

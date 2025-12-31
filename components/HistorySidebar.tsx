@@ -125,7 +125,7 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ currentProjectId, activ
               setCurrentPage(1);
             }}
             placeholder="BUSCAR CONVERSAS..."
-            className="w-full bg-white/80 dark:bg-slate-900/60 border-2 border-teal-600/25 py-2.5 pl-4 pr-10 text-[10px] font-black text-slate-800 dark:text-white placeholder:text-slate-600 dark:placeholder:text-slate-400 focus:outline-none focus:border-teal-600 transition-all !rounded-none uppercase tracking-widest shadow-sm"
+            className="w-full bg-white/80 dark:bg-slate-900/60 border-2 lg:border border-teal-600/25 py-2.5 pl-4 pr-10 text-[10px] font-black text-slate-800 dark:text-white placeholder:text-slate-600 dark:placeholder:text-slate-400 focus:outline-none focus:border-teal-600 transition-all !rounded-none uppercase tracking-widest shadow-sm"
           />
         </div>
       </div>
@@ -134,7 +134,7 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ currentProjectId, activ
         {isLoading ? (
           <div className="flex justify-center p-8"><div className="w-6 h-6 border-2 border-emerald-600 border-t-transparent animate-spin"></div></div>
         ) : displayedConversations.length === 0 ? (
-          <div className="border-2 border-dashed border-teal-600/25 p-8 text-center bg-white/40 dark:bg-slate-900/10">
+          <div className="border-2 lg:border border-dashed border-teal-600/25 p-8 text-center bg-white/40 dark:bg-slate-900/10">
             <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest italic tracking-wider">Nenhum registro localizado</p>
           </div>
         ) : (
@@ -156,7 +156,7 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ currentProjectId, activ
                   key={conv.id}
                   onClick={() => onLoad(conv)}
                   style={animationStyle}
-                  className={`relative w-full text-left p-4 transition-all duration-300 cursor-pointer border-2 group ${index < 20 ? 'animate-slide-in-left' : ''} ${
+                  className={`relative w-full text-left p-4 transition-all duration-300 cursor-pointer border-2 lg:border group ${index < 20 ? 'animate-slide-in-left' : ''} ${
                     isActive 
                       ? 'bg-emerald-600/10 border-emerald-600 shadow-[4px_4px_0_rgba(16,185,129,0.15)] scale-[1.02]' 
                       : 'bg-white/80 dark:bg-slate-800/20 border-teal-600/10 hover:border-teal-600/50 hover:bg-teal-500/5 hover:scale-[1.02] hover:shadow-lg'
@@ -194,7 +194,7 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ currentProjectId, activ
                   <div className="flex items-center justify-between mt-2">
                     <p className="text-[8px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-tight">{formatDate(conv.updatedAt)}</p>
                     <div className="flex items-center gap-2">
-                      <div className="text-[7px] font-black uppercase px-1 bg-teal-500/10 text-teal-600 border border-teal-500/20 flex items-center gap-1">
+                      <div className="text-[7px] font-black uppercase px-1 bg-teal-500/10 text-teal-600 border lg:border border-teal-500/20 flex items-center gap-1">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-2 w-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
                         {conv.turns.length} msg
                       </div>
@@ -208,7 +208,7 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ currentProjectId, activ
             {hasMore && (
               <button 
                 onClick={handleLoadMore} 
-                className="w-full py-4 border-2 border-emerald-600/20 text-[10px] font-black uppercase text-emerald-600 hover:bg-emerald-500/5 transition-all brutalist-button cursor-pointer active:scale-95"
+                className="w-full py-4 border-2 lg:border border-emerald-600/20 text-[10px] font-black uppercase text-emerald-600 hover:bg-emerald-500/5 transition-all brutalist-button cursor-pointer active:scale-95"
               >
                 Carregar Registros Anteriores
               </button>
@@ -249,7 +249,7 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({ currentProjectId, activ
               type="text"
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-slate-950 border-2 border-emerald-600/20 p-3 text-[11px] font-black text-slate-900 dark:text-white uppercase mb-6 focus:outline-none focus:border-emerald-600"
+              className="w-full bg-slate-50 dark:bg-slate-950 border-2 lg:border border-emerald-600/20 p-3 text-[11px] font-black text-slate-900 dark:text-white uppercase mb-6 focus:outline-none focus:border-emerald-600"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') saveRename();
                 if (e.key === 'Escape') setEditingConv(null);

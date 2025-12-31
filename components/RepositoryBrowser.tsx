@@ -95,7 +95,7 @@ const RepositoryBrowser: React.FC<RepositoryBrowserProps> = ({ currentProjectId,
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder="BUSCAR PROMPTS..."
-          className="w-full bg-white/80 dark:bg-slate-900/60 border-2 border-emerald-600/25 py-2.5 px-4 text-[10px] font-black text-slate-800 dark:text-white placeholder:text-slate-600 dark:placeholder:text-slate-400 focus:outline-none focus:border-emerald-600 transition-all !rounded-none uppercase tracking-widest shadow-sm"
+          className="w-full bg-white/80 dark:bg-slate-900/60 border-2 lg:border border-emerald-600/25 py-2.5 px-4 text-[10px] font-black text-slate-800 dark:text-white placeholder:text-slate-600 dark:placeholder:text-slate-400 focus:outline-none focus:border-emerald-600 transition-all !rounded-none uppercase tracking-widest shadow-sm"
         />
       </div>
 
@@ -105,7 +105,7 @@ const RepositoryBrowser: React.FC<RepositoryBrowserProps> = ({ currentProjectId,
             <button
               key={tag}
               onClick={() => toggleTag(tag)}
-              className={`px-3 py-1 text-[8px] font-black uppercase border transition-all cursor-pointer active:scale-95 ${
+              className={`px-3 py-1 text-[8px] font-black uppercase border lg:border transition-all cursor-pointer active:scale-95 ${
                 selectedTags.includes(tag) 
                   ? 'bg-emerald-600 border-emerald-300 text-white shadow-md' 
                   : 'bg-white/40 dark:bg-slate-800/40 border-emerald-600/10 text-slate-500 dark:text-slate-400 hover:border-emerald-600/40'
@@ -124,7 +124,7 @@ const RepositoryBrowser: React.FC<RepositoryBrowserProps> = ({ currentProjectId,
         {isLoading ? (
           <div className="flex justify-center p-8"><div className="w-6 h-6 border-2 border-emerald-600 border-t-transparent animate-spin"></div></div>
         ) : filteredItems.length === 0 ? (
-          <div className="border-2 border-dashed border-emerald-600/20 p-8 text-center bg-white/40 dark:bg-slate-900/10">
+          <div className="border-2 lg:border border-dashed border-emerald-600/20 p-8 text-center bg-white/40 dark:bg-slate-900/10">
             <p className="text-[10px] text-slate-500 font-black uppercase italic tracking-widest">Nenhum protocolo localizado</p>
           </div>
         ) : (
@@ -141,7 +141,7 @@ const RepositoryBrowser: React.FC<RepositoryBrowserProps> = ({ currentProjectId,
                 key={item.id}
                 onClick={() => onSelectItem(item)}
                 style={animationStyle}
-                className={`relative w-full text-left p-4 bg-white/60 dark:bg-slate-800/10 border-2 border-emerald-600/10 hover:border-emerald-600/50 hover:bg-emerald-500/5 transition-all cursor-pointer group shadow-[4px_4px_0_rgba(16,185,129,0.03)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${index < 20 ? 'animate-slide-in-right' : ''}`}
+                className={`relative w-full text-left p-4 bg-white/60 dark:bg-slate-800/10 border-2 lg:border border-emerald-600/10 hover:border-emerald-600/50 hover:bg-emerald-500/5 transition-all cursor-pointer group shadow-[4px_4px_0_rgba(16,185,129,0.03)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${index < 20 ? 'animate-slide-in-right' : ''}`}
               >
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="text-[10px] sm:text-[11px] font-black text-slate-800 dark:text-white uppercase truncate pr-8 tracking-wider group-hover:text-emerald-600 transition-colors">
@@ -160,7 +160,7 @@ const RepositoryBrowser: React.FC<RepositoryBrowserProps> = ({ currentProjectId,
                 <p className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase line-clamp-2 leading-tight italic">{item.description || 'Sem descrição.'}</p>
                 <div className="flex gap-1 mt-3">
                    {item.tags?.slice(0, 3).map(tag => (
-                     <span key={tag} className="text-[7px] font-black uppercase text-emerald-600 dark:text-emerald-500 bg-emerald-500/5 px-1 border border-emerald-600/10">{tag}</span>
+                     <span key={tag} className="text-[7px] font-black uppercase text-emerald-600 dark:text-emerald-500 bg-emerald-500/5 px-1 border lg:border border-emerald-600/10">{tag}</span>
                    ))}
                 </div>
               </div>
