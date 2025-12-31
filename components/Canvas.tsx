@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import FilePreview from './FilePreview';
 import LoadingSpinner from './LoadingSpinner';
@@ -35,6 +34,21 @@ interface CanvasProps {
   conversationId: string;
   onImportSuccess?: (conv: Conversation) => void;
 }
+
+const getFileIcon = (mimeType: string) => {
+  if (mimeType.startsWith('video/')) return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+  );
+  if (mimeType.startsWith('audio/')) return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" /></svg>
+  );
+  if (mimeType.startsWith('text/') || mimeType.includes('json') || mimeType.includes('javascript')) return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
+  );
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+  );
+};
 
 const Canvas: React.FC<CanvasProps> = ({ 
   result, isLoading, isOptimizing, isUploadingFiles, onSavePrompt, onOptimize, attachedFiles, onRemoveFile,
@@ -127,22 +141,7 @@ const Canvas: React.FC<CanvasProps> = ({
     setTimeout(() => textInputRef.current?.focus(), 100);
   }, [setInputText, textInputRef]);
 
-  const getFileIcon = (mimeType: string) => {
-    if (mimeType.startsWith('video/')) return (
-      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-    );
-    if (mimeType.startsWith('audio/')) return (
-      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" /></svg>
-    );
-    if (mimeType.startsWith('text/') || mimeType.includes('json') || mimeType.includes('javascript')) return (
-      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
-    );
-    return (
-      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
-    );
-  };
-
-  const hasContent = conversationHistory.length > 0;
+  const hasContent = useMemo(() => conversationHistory.length > 0, [conversationHistory.length]);
 
   return (
     <div className="h-full flex flex-col p-4 sm:p-6 lg:p-8 bg-transparent overflow-hidden relative">
@@ -188,7 +187,7 @@ const Canvas: React.FC<CanvasProps> = ({
                 ) : 'Otimizar'}
               </button>
               
-              <button handleCopy={handleCopy} className={`brutalist-button text-[8px] sm:text-[10px] px-2 sm:px-3 py-2 font-black uppercase tracking-widest transition-all ${isPulsingCopy ? 'animate-pulse-click' : ''} ${copied ? 'bg-emerald-500 text-white' : 'bg-emerald-600/10 text-emerald-600'}`}>
+              <button onClick={handleCopy} className={`brutalist-button text-[8px] sm:text-[10px] px-2 sm:px-3 py-2 font-black uppercase tracking-widest transition-all ${isPulsingCopy ? 'animate-pulse-click' : ''} ${copied ? 'bg-emerald-500 text-white' : 'bg-emerald-600/10 text-emerald-600'}`}>
                 {copied ? 'Copiado' : 'Copiar'}
               </button>
 

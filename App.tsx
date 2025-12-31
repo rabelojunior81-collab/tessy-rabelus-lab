@@ -1,5 +1,4 @@
-
-import React, { useState, useRef, useEffect, useCallback, Suspense, lazy } from 'react';
+import React, { useState, useRef, useEffect, useCallback, Suspense, lazy, useMemo } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import HistorySidebar from './components/HistorySidebar';
 import Canvas from './components/Canvas';
@@ -56,7 +55,7 @@ const TessyLogo = React.memo(() => (
   </div>
 ));
 
-const AccordionHeader = ({ title, isOpen, onClick }: { title: string, isOpen: boolean, onClick: () => void }) => (
+const AccordionHeader = React.memo(({ title, isOpen, onClick }: { title: string, isOpen: boolean, onClick: () => void }) => (
   <button 
     onClick={onClick}
     className="w-full flex items-center justify-between px-6 py-5 bg-white/40 dark:bg-slate-900/40 hover:bg-emerald-500/10 transition-all duration-300 border-b-2 border-emerald-600/15 group cursor-pointer"
@@ -72,7 +71,7 @@ const AccordionHeader = ({ title, isOpen, onClick }: { title: string, isOpen: bo
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
     </svg>
   </button>
-);
+));
 
 const App: React.FC = () => {
   const [isMigrating, setIsMigrating] = useState(true);
@@ -179,9 +178,9 @@ const App: React.FC = () => {
     setTimeout(() => setIsRotatingTheme(false), 300);
   }, []);
 
-  const toggleSection = (section: keyof typeof expandedSections) => {
+  const toggleSection = useCallback((section: keyof typeof expandedSections) => {
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
-  };
+  }, []);
 
   const handleNewConversation = useCallback(() => {
     const newConv: Conversation = {
@@ -496,6 +495,25 @@ const App: React.FC = () => {
     showToast('Salvo na Biblioteca!', 'success');
   }, [currentConversation, result, factors, currentProjectId, showToast]);
 
+  const handleEditProjectInDashboard = useCallback((id: string) => handleOpenProjectModal(id), [handleOpenProjectModal]);
+  const handleOpenLibraryInDashboard = useCallback(() => setExpandedSections(p => ({...p, library: true})), []);
+  const handleRefreshHistoryInDashboard = useCallback(() => setHistoryRefreshKey(p => p + 1), []);
+
+  const renderAccordionContent = useCallback((section: keyof typeof expandedSections) => {
+    switch (section) {
+      case 'history':
+        return <HistorySidebar currentProjectId={currentProjectId} activeId={currentConversation?.id || ''} onLoad={handleLoadConversationFromHistory} onDelete={handleDeleteConversationFromHistory} refreshKey={historyRefreshKey} onClose={() => setIsSidebarMobileOpen(false)} />;
+      case 'library':
+        return <RepositoryBrowser currentProjectId={currentProjectId} onSelectItem={handleSelectItem} refreshKey={refreshKey} onClose={() => setIsSidebarMobileOpen(false)} />;
+      case 'projects':
+        return <ProjectDashboard projectId={currentProjectId} onNewConversation={handleNewConversation} onOpenLibrary={handleOpenLibraryInDashboard} onRefreshHistory={handleRefreshHistoryInDashboard} onEditProject={handleEditProjectInDashboard} />;
+      default:
+        return null;
+    }
+  }, [currentProjectId, currentConversation?.id, handleLoadConversationFromHistory, handleDeleteConversationFromHistory, historyRefreshKey, handleSelectItem, refreshKey, handleNewConversation, handleOpenLibraryInDashboard, handleRefreshHistoryInDashboard, handleEditProjectInDashboard]);
+
+  const groundingStatus = useMemo(() => factors.find(f => f.id === 'grounding')?.enabled || false, [factors]);
+
   if (isMigrating) {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-900 text-emerald-500">
@@ -504,19 +522,6 @@ const App: React.FC = () => {
       </div>
     );
   }
-
-  const renderAccordionContent = (section: keyof typeof expandedSections) => {
-    switch (section) {
-      case 'history':
-        return <HistorySidebar currentProjectId={currentProjectId} activeId={currentConversation?.id || ''} onLoad={handleLoadConversationFromHistory} onDelete={handleDeleteConversationFromHistory} refreshKey={historyRefreshKey} onClose={() => setIsSidebarMobileOpen(false)} />;
-      case 'library':
-        return <RepositoryBrowser currentProjectId={currentProjectId} onSelectItem={handleSelectItem} refreshKey={refreshKey} onClose={() => setIsSidebarMobileOpen(false)} />;
-      case 'projects':
-        return <ProjectDashboard projectId={currentProjectId} onNewConversation={handleNewConversation} onOpenLibrary={() => setExpandedSections(p => ({...p, library: true}))} onRefreshHistory={() => setHistoryRefreshKey(p => p + 1)} onEditProject={(id) => handleOpenProjectModal(id)} />;
-      default:
-        return null;
-    }
-  };
 
   return (
     <div className="h-screen w-full flex flex-col overflow-hidden font-sans selection:bg-emerald-600/30">
@@ -541,7 +546,7 @@ const App: React.FC = () => {
 
         <div className="hidden lg:flex items-center gap-4">
           <ProjectSwitcher currentProjectId={currentProjectId} onSwitch={handleSwitchProject} onOpenModal={() => handleOpenProjectModal()} onEditProject={(id) => handleOpenProjectModal(id)} />
-          <DateAnchor groundingEnabled={factors.find(f => f.id === 'grounding')?.enabled || false} />
+          <DateAnchor groundingEnabled={groundingStatus} />
           
           <button 
             onClick={() => setIsGitHubTokenModalOpen(true)}
