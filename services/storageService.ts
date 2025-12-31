@@ -23,9 +23,65 @@ const STORAGE_KEYS = {
   CUSTOM_TEMPLATES: 'tessy_custom_templates'
 };
 
-// --- Simple Compression (LZW Implementation) ---
+// --- Debounce & Batching Management ---
+
+const pendingWrites = new Map<string, any>();
+const writeTimers = new Map<string, number>();
+
+/**
+ * Flushes a specific pending write to localStorage immediately.
+ */
+const flushWrite = (key: string) => {
+  if (writeTimers.has(key)) {
+    clearTimeout(writeTimers.get(key));
+    writeTimers.delete(key);
+  }
+
+  if (pendingWrites.has(key)) {
+    try {
+      const data = pendingWrites.get(key);
+      const jsonString = JSON.stringify(data);
+      const compressed = compress(jsonString);
+      localStorage.setItem(key, compressed);
+      pendingWrites.delete(key);
+    } catch (error) {
+      console.error(`Failed to flush write for key ${key}:`, error);
+    }
+  }
+};
+
+/**
+ * Flushes all pending writes to localStorage.
+ * Useful for beforeunload events.
+ */
+const flushAll = () => {
+  Array.from(pendingWrites.keys()).forEach(key => flushWrite(key));
+};
+
+/**
+ * Schedules a debounced write to localStorage.
+ */
+const scheduleWrite = (key: string, data: any) => {
+  pendingWrites.set(key, data);
+  
+  if (writeTimers.has(key)) {
+    clearTimeout(writeTimers.get(key));
+  }
+
+  const timerId = window.setTimeout(() => {
+    flushWrite(key);
+  }, 500); // 500ms debounce as requested
+
+  writeTimers.set(key, timerId);
+};
+
+// Handle tab closing to ensure data is saved
+window.addEventListener('beforeunload', flushAll);
+
+// --- Optimized Compression (LZW Implementation) ---
 
 const compress = (uncompressed: string): string => {
+  if (!uncompressed) return "";
   const dictionary: { [key: string]: number } = {};
   for (let i = 0; i < 256; i++) dictionary[String.fromCharCode(i)] = i;
 
@@ -40,17 +96,29 @@ const compress = (uncompressed: string): string => {
       w = wc;
     } else {
       result.push(dictionary[w]);
-      dictionary[wc] = dictSize++;
+      if (dictSize < 4096) { // Limit dictionary size to prevent memory bloat
+        dictionary[wc] = dictSize++;
+      }
       w = c;
     }
   }
 
   if (w !== "") result.push(dictionary[w]);
+  
+  // Convert numbers to a more compact string format
   return btoa(result.map(n => String.fromCharCode(n >> 8, n & 0xff)).join(''));
 };
 
 const decompress = (compressed: string): string => {
-  const binary = atob(compressed);
+  if (!compressed) return "";
+  let binary;
+  try {
+    binary = atob(compressed);
+  } catch (e) {
+    // Fallback for non-base64 data (uncompressed legacy)
+    return compressed;
+  }
+  
   const compressedData: number[] = [];
   for (let i = 0; i < binary.length; i += 2) {
     compressedData.push((binary.charCodeAt(i) << 8) | binary.charCodeAt(i + 1));
@@ -71,11 +139,14 @@ const decompress = (compressed: string): string => {
     } else if (k === dictSize) {
       entry = w + w.charAt(0);
     } else {
-      throw new Error("Decompression failure");
+      // Recovery for malformed data
+      continue;
     }
 
     result += entry;
-    dictionary[dictSize++] = w + entry.charAt(0);
+    if (dictSize < 4096) {
+      dictionary[dictSize++] = w + entry.charAt(0);
+    }
     w = entry;
   }
   return result;
@@ -85,8 +156,22 @@ const decompress = (compressed: string): string => {
 
 export const getDocs = (collectionName: string): any[] => {
   try {
-    const data = localStorage.getItem(collectionName);
-    return data ? JSON.parse(data) : [];
+    // Check pending memory first
+    if (pendingWrites.has(collectionName)) {
+      return pendingWrites.get(collectionName);
+    }
+
+    const raw = localStorage.getItem(collectionName);
+    if (!raw) return [];
+    
+    let decompressed;
+    try {
+      decompressed = decompress(raw);
+      return JSON.parse(decompressed);
+    } catch (e) {
+      // Fallback for legacy plain JSON
+      return JSON.parse(raw);
+    }
   } catch (error) {
     console.error(`Error retrieving from ${collectionName}:`, error);
     return [];
@@ -102,7 +187,7 @@ export const addDoc = (collectionName: string, doc: any): void => {
       timestamp: Date.now()
     };
     const updated = [newDoc, ...existing];
-    localStorage.setItem(collectionName, JSON.stringify(updated));
+    scheduleWrite(collectionName, updated);
   } catch (error) {
     console.error(`Error saving to ${collectionName}:`, error);
   }
@@ -112,14 +197,14 @@ export const deleteDoc = (collectionName: string, docId: string): void => {
   try {
     const existing = getDocs(collectionName);
     const updated = existing.filter(doc => doc.id !== docId);
-    localStorage.setItem(collectionName, JSON.stringify(updated));
+    scheduleWrite(collectionName, updated);
   } catch (error) {
     console.error(`Error deleting from ${collectionName}:`, error);
   }
 };
 
 export const getAllTags = (): string[] => {
-  const items = getDocs('prompts') as RepositoryItem[];
+  const items = getDocs(STORAGE_KEYS.PROMPTS) as RepositoryItem[];
   const tagSet = new Set<string>();
   items.forEach(item => {
     if (item.tags) {
@@ -142,8 +227,7 @@ export const saveConversation = (conv: Conversation): void => {
       conversations.unshift(conv);
     }
     
-    const compressedData = compress(JSON.stringify(conversations));
-    localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, compressedData);
+    scheduleWrite(STORAGE_KEYS.CONVERSATIONS, conversations);
     localStorage.setItem(STORAGE_KEYS.LAST_CONV_ID, conv.id);
   } catch (error) {
     console.error('Error saving conversation:', error);
@@ -151,25 +235,7 @@ export const saveConversation = (conv: Conversation): void => {
 };
 
 export const getAllConversations = (): Conversation[] => {
-  try {
-    const data = localStorage.getItem(STORAGE_KEYS.CONVERSATIONS);
-    if (!data) return [];
-    
-    let convs: Conversation[];
-    try {
-      // Try decompressing
-      const decompressed = decompress(data);
-      convs = JSON.parse(decompressed);
-    } catch (e) {
-      // Fallback to legacy uncompressed format
-      convs = JSON.parse(data);
-    }
-    
-    return convs;
-  } catch (error) {
-    console.error('Error getting conversations:', error);
-    return [];
-  }
+  return getDocs(STORAGE_KEYS.CONVERSATIONS) as Conversation[];
 };
 
 export const loadConversation = (conversationId: string): Conversation | null => {
@@ -186,68 +252,28 @@ export const loadLastConversation = (): Conversation | null => {
 export const deleteConversation = (id: string): void => {
   const convs = getAllConversations();
   const updated = convs.filter(c => c.id !== id);
-  const compressedData = compress(JSON.stringify(updated));
-  localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, compressedData);
+  scheduleWrite(STORAGE_KEYS.CONVERSATIONS, updated);
   
   if (localStorage.getItem(STORAGE_KEYS.LAST_CONV_ID) === id) {
     localStorage.removeItem(STORAGE_KEYS.LAST_CONV_ID);
   }
 };
 
-// --- Cleanup Logic ---
-
-export const cleanOldConversations = (): number => {
-  try {
-    const conversations = getAllConversations();
-    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
-    const now = Date.now();
-    
-    const initialCount = conversations.length;
-    const filtered = conversations.filter(c => (now - c.updatedAt) < THIRTY_DAYS_MS);
-    const removedCount = initialCount - filtered.length;
-    
-    if (removedCount > 0) {
-      const compressedData = compress(JSON.stringify(filtered));
-      localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, compressedData);
-    }
-    
-    return removedCount;
-  } catch (error) {
-    console.error('Error cleaning old conversations:', error);
-    return 0;
-  }
-};
-
 // --- Factors Persistence ---
 
 export const saveFactors = (factors: Factor[]): void => {
-  try {
-    localStorage.setItem(STORAGE_KEYS.FACTORS, JSON.stringify(factors));
-  } catch (error) {
-    console.error('Error saving factors:', error);
-  }
+  scheduleWrite(STORAGE_KEYS.FACTORS, factors);
 };
 
 export const loadFactors = (): Factor[] | null => {
-  try {
-    const data = localStorage.getItem(STORAGE_KEYS.FACTORS);
-    return data ? JSON.parse(data) : null;
-  } catch (error) {
-    console.error('Error loading factors:', error);
-    return null;
-  }
+  const docs = getDocs(STORAGE_KEYS.FACTORS);
+  return Array.isArray(docs) && docs.length > 0 ? docs : null;
 };
 
 // --- Custom Templates Persistence ---
 
 export const getCustomTemplates = (): Template[] => {
-  try {
-    const data = localStorage.getItem(STORAGE_KEYS.CUSTOM_TEMPLATES);
-    return data ? JSON.parse(data) : [];
-  } catch (error) {
-    console.error('Error getting custom templates:', error);
-    return [];
-  }
+  return getDocs(STORAGE_KEYS.CUSTOM_TEMPLATES) as Template[];
 };
 
 export const saveCustomTemplate = (template: Template): void => {
@@ -261,7 +287,7 @@ export const saveCustomTemplate = (template: Template): void => {
       updatedAt: Date.now()
     };
     templates.push(newTemplate);
-    localStorage.setItem(STORAGE_KEYS.CUSTOM_TEMPLATES, JSON.stringify(templates));
+    scheduleWrite(STORAGE_KEYS.CUSTOM_TEMPLATES, templates);
   } catch (error) {
     console.error('Error saving custom template:', error);
   }
@@ -278,7 +304,7 @@ export const updateCustomTemplate = (id: string, updatedTemplate: Template): voi
         isCustom: true,
         updatedAt: Date.now()
       };
-      localStorage.setItem(STORAGE_KEYS.CUSTOM_TEMPLATES, JSON.stringify(templates));
+      scheduleWrite(STORAGE_KEYS.CUSTOM_TEMPLATES, templates);
     }
   } catch (error) {
     console.error('Error updating custom template:', error);
@@ -289,7 +315,7 @@ export const deleteCustomTemplate = (id: string): void => {
   try {
     const templates = getCustomTemplates();
     const filtered = templates.filter(t => t.id !== id);
-    localStorage.setItem(STORAGE_KEYS.CUSTOM_TEMPLATES, JSON.stringify(filtered));
+    scheduleWrite(STORAGE_KEYS.CUSTOM_TEMPLATES, filtered);
   } catch (error) {
     console.error('Error deleting custom template:', error);
   }

@@ -248,9 +248,13 @@ const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleGlobalKeyDown, true);
   }, [handleNewConversation]);
 
+  // Debounced persistence for factors to avoid DB bottleneck during slider movement
   useEffect(() => {
     if (!isMigrating) {
-      db.settings.put({ key: 'tessy-factors', value: factors });
+      const timer = setTimeout(() => {
+        db.settings.put({ key: 'tessy-factors', value: factors });
+      }, 500);
+      return () => clearTimeout(timer);
     }
   }, [factors, isMigrating]);
 
